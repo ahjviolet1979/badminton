@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>배드민턴 대진표 보기</title>
+  <script src="supabase_config.js"></script>
+  <style>
+    :root {
+      --bg: #f6f7f3;
+      --panel: #ffffff;
+      --ink: #17211b;
+      --muted: #657269;
+      --line: #dce3db;
+      --accent: #047857;
+      --amber: #f59e0b;
+      --shadow: 0 12px 28px rgba(23, 33, 27, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body.locked .app {
+      display: none;
+    }
+
+    .login-screen {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 20px;
+    }
+
+    body:not(.locked) .login-screen {
+      display: none;
+    }
+
+    .login-card {
+      width: min(420px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+
+    .login-card h1 {
+      margin-bottom: 8px;
+    }
+
+    .login-card p {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .login-error {
+      min-height: 20px;
+      margin-top: 10px;
+      color: #b91c1c;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Malgun Gothic", Arial, sans-serif;
+      background:
+        linear-gradient(120deg, rgba(4, 120, 87, 0.09), transparent 36%),
+        linear-gradient(300deg, rgba(37, 99, 235, 0.08), transparent 38%),
+        var(--bg);
+      color: var(--ink);
+    }
+
+    button { font: inherit; }
+
+    .app {
+      width: min(1360px, 100%);
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .button {
+      border: 0;
+      border-radius: 8px;
+      min-height: 40px;
+      padding: 0 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      border-bottom: 1px solid var(--line);
+      margin: -18px -18px 16px;
+      padding: 10px 12px 0;
+      background: #fbfcfa;
+      border-radius: 8px 8px 0 0;
+      overflow-x: auto;
+    }
+
+    .tab {
+      border: 0;
+      background: transparent;
+      padding: 11px 13px;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      color: var(--muted);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .tab.active {
+      background: var(--panel);
+      color: #065f46;
+      box-shadow: inset 0 3px 0 var(--accent);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .stat {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 13px;
+      background: #fbfcfa;
+      min-height: 76px;
+    }
+
+    .stat b {
+      display: block;
+      font-size: 24px;
+      line-height: 1.1;
+    }
+
+    .stat span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .tablewrap {
+      width: 100%;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: collapse;
+      background: #fff;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 9px;
+      text-align: left;
+      vertical-align: middle;
+      font-size: 13px;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      background: #eef5ef;
+      color: #25352b;
+      font-weight: 900;
+      z-index: 1;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .team {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 132px;
+    }
+
+    .pair {
+      font-weight: 900;
+      line-height: 1.25;
+    }
+
+    .versus {
+      color: var(--muted);
+      text-align: center;
+      font-weight: 900;
+      width: 48px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 2px 9px;
+      font-weight: 900;
+      font-size: 12px;
+      background: #eef2ff;
+      color: #1d4ed8;
+      margin: 1px 2px 1px 0;
+    }
+
+    .badge.warn {
+      background: #fffbeb;
+      color: #b45309;
+    }
+
+    .empty {
+      min-height: 260px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+      text-align: center;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      background: #fbfcfa;
+      padding: 26px;
+      line-height: 1.5;
+    }
+
+    .rank-1 td:first-child { color: var(--amber); font-weight: 900; }
+    .rank-2 td:first-child, .rank-3 td:first-child { font-weight: 900; }
+
+    .history-name {
+      font-weight: 900;
+      min-width: 88px;
+    }
+
+    .history-text {
+      min-width: 220px;
+      line-height: 1.55;
+      font-weight: 700;
+    }
+
+    .history-record {
+      min-width: 132px;
+      white-space: nowrap;
+    }
+
+    .record-line {
+      display: flex;
+      gap: 6px;
+      flex-wrap: nowrap;
+      margin-bottom: 5px;
+    }
+
+    .record-line:last-child { margin-bottom: 0; }
+
+    .history-table {
+      width: 100%;
+      min-width: 760px;
+      table-layout: fixed;
+    }
+
+    .history-summary-text {
+      padding-left: 16px;
+      line-height: 1.8;
+    }
+
+    .history-partners {
+      min-width: 0;
+      padding-left: 45px;
+      padding-right: 15px;
+      line-height: 1.8;
+      overflow-wrap: normal;
+      word-break: keep-all;
+      white-space: nowrap;
+    }
+
+    .history-table th,
+    .history-table td {
+      overflow-wrap: anywhere;
+    }
+
+    .history-table th:nth-child(3) {
+      padding-left: 45px;
+      padding-right: 15px;
+    }
+
+    .history-table th:nth-child(4) {
+      padding-left: 16px;
+    }
+
+    @media (max-width: 760px) {
+      .app { padding: 14px; }
+      header { align-items: start; flex-direction: column; }
+      h1 { font-size: 23px; }
+      .button { width: 100%; justify-content: center; }
+      .stats { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body class="locked">
+  <div class="login-screen">
+    <form class="login-card" id="viewerLoginForm">
+      <h1>대회 입장</h1>
+      <p>안내받은 비밀번호를 입력하면 대진표를 볼 수 있습니다.</p>
+      <label for="viewerLoginPassword">비밀번호</label>
+      <input id="viewerLoginPassword" type="password" autocomplete="current-password">
+      <button class="button" type="submit" style="width: 100%; justify-content: center; margin-top: 14px;">입장</button>
+      <div class="login-error" id="viewerLoginError"></div>
+    </form>
+  </div>
+  <main class="app">
+    <header>
+      <div>
+        <h1>배드민턴 대진표</h1>
+        <p class="subtitle" id="statusText">대회 데이터를 불러오는 중입니다.</p>
+      </div>
+      <button class="button" id="reloadBtn" type="button">새로고침</button>
+    </header>
+
+    <section class="panel">
+      <div class="tabs">
+        <button class="tab active" data-view="scheduleView" type="button">대진표</button>
+        <button class="tab" data-view="summaryView" type="button">출전요약</button>
+        <button class="tab" data-view="rankingView" type="button">개인순위</button>
+        <button class="tab" data-view="historyView" type="button">선수별 이력</button>
+        <button class="tab" data-view="matrixView" type="button">중복점검</button>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b id="playerCount">0</b><span>선수</span></div>
+        <div class="stat"><b id="matchCount">0</b><span>경기</span></div>
+        <div class="stat"><b id="roundCount">0</b><span>라운드</span></div>
+        <div class="stat"><b id="completeCount">0</b><span>결과 입력</span></div>
+      </div>
+
+      <div class="view active" id="scheduleView">
+        <div id="scheduleOutput" class="empty">대진 데이터를 기다리고 있습니다.</div>
+      </div>
+
+      <div class="view" id="summaryView">
+        <div id="summaryOutput" class="empty">출전요약 데이터를 기다리고 있습니다.</div>
+      </div>
+
+      <div class="view" id="rankingView">
+        <div id="rankingOutput" class="empty">순위 데이터를 기다리고 있습니다.</div>
+      </div>
+
+      <div class="view" id="historyView">
+        <div id="historyOutput" class="empty">선수별 이력 데이터를 기다리고 있습니다.</div>
+      </div>
+
+      <div class="view" id="matrixView">
+        <div id="matrixOutput" class="empty">중복점검 데이터를 기다리고 있습니다.</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      players: [],
+      schedule: [],
+      results: {},
+      updatedAt: ""
+    };
+
+    const el = id => document.getElementById(id);
+    let supabaseClient = null;
+    let realtimeChannel = null;
+    const loginConfig = window.BADMINTON_SUPABASE || {};
+
+    function setupViewerLogin() {
+      if (sessionStorage.getItem("badminton_viewer_ok") === "1") {
+        document.body.classList.remove("locked");
+        loadData();
+        subscribeRealtime();
+        return;
+      }
+      el("viewerLoginForm").addEventListener("submit", event => {
+        event.preventDefault();
+        const password = el("viewerLoginPassword").value;
+        if (password === (loginConfig.viewerPassword || "0000")) {
+          sessionStorage.setItem("badminton_viewer_ok", "1");
+          document.body.classList.remove("locked");
+          el("viewerLoginPassword").value = "";
+          loadData();
+          subscribeRealtime();
+        } else {
+          el("viewerLoginError").textContent = "비밀번호가 맞지 않습니다.";
+        }
+      });
+    }
+
+    function keyOf(a, b) {
+      return [a, b].sort((x, y) => x.localeCompare(y, "ko-KR")).join(" | ");
+    }
+
+    function countLabel(count) {
+      return count > 1 ? `${count}회` : "1회";
+    }
+
+    function summarizeNameCounts(counts) {
+      const rows = [...counts.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"));
+      return rows.length
+        ? rows.map(([name, count]) => `${name} (${countLabel(count)})`).join(", ")
+        : "없음";
+    }
+
+    function summarizePartnersByMatch(matches) {
+      const counts = new Map();
+      matches.forEach(match => {
+        counts.set(match.partner, (counts.get(match.partner) || 0) + 1);
+      });
+      return matches.length
+        ? matches.map(match => `${match.partner} (${countLabel(counts.get(match.partner))})`).join("<br>")
+        : "없음";
+    }
+
+    function summarizeRestGaps(matches) {
+      if (matches.length <= 1) return "첫 출전만 있음";
+      return matches.slice(1).map((match, index) => {
+        const previous = matches[index];
+        const rest = match.id - previous.id - 1;
+        return `${previous.id}->${match.id}경기 사이 ${rest}게임 쉼`;
+      }).join("<br>");
+    }
+
+    function renderStats() {
+      el("playerCount").textContent = state.players.length;
+      el("matchCount").textContent = state.schedule.length;
+      el("roundCount").textContent = state.schedule.length ? Math.max(...state.schedule.map(match => match.round)) : 0;
+      el("completeCount").textContent = Object.values(state.results).filter(Boolean).length;
+    }
+
+    function renderSchedule() {
+      if (!state.schedule.length) {
+        el("scheduleOutput").className = "empty";
+        el("scheduleOutput").textContent = "대진 데이터가 아직 없습니다.";
+        return;
+      }
+      el("scheduleOutput").className = "tablewrap";
+      el("scheduleOutput").innerHTML = `
+        <table>
+          <thead><tr><th>경기</th><th>라운드</th><th>코트</th><th>A팀</th><th></th><th>B팀</th><th>결과</th></tr></thead>
+          <tbody>
+            ${state.schedule.map(match => {
+              const result = state.results[match.id] || "";
+              const resultText = result === "A" ? "A팀 승" : result === "B" ? "B팀 승" : "미입력";
+              return `
+                <tr>
+                  <td>${match.id}</td>
+                  <td><span class="badge">${match.round}R</span></td>
+                  <td>${match.court}코트</td>
+                  <td><div class="team"><span class="pair">${match.teamA[0]}</span><span class="pair">${match.teamA[1]}</span></div></td>
+                  <td class="versus">VS</td>
+                  <td><div class="team"><span class="pair">${match.teamB[0]}</span><span class="pair">${match.teamB[1]}</span></div></td>
+                  <td><span class="badge ${result ? "" : "warn"}">${resultText}</span></td>
+                </tr>`;
+            }).join("")}
+          </tbody>
+        </table>`;
+    }
+
+    function calculateRanking() {
+      const stats = new Map(state.players.map(name => [name, {
+        name, games: 0, wins: 0, losses: 0, winRate: 0, partners: new Set()
+      }]));
+      for (const match of state.schedule) {
+        [...match.teamA, ...match.teamB].forEach(name => stats.get(name).games++);
+        stats.get(match.teamA[0]).partners.add(match.teamA[1]);
+        stats.get(match.teamA[1]).partners.add(match.teamA[0]);
+        stats.get(match.teamB[0]).partners.add(match.teamB[1]);
+        stats.get(match.teamB[1]).partners.add(match.teamB[0]);
+
+        const result = state.results[match.id];
+        if (!result) continue;
+        const winners = result === "A" ? match.teamA : match.teamB;
+        const losers = result === "A" ? match.teamB : match.teamA;
+        winners.forEach(name => stats.get(name).wins++);
+        losers.forEach(name => stats.get(name).losses++);
+      }
+      return [...stats.values()]
+        .map(row => ({
+          ...row,
+          winRate: row.games ? row.wins / row.games : 0,
+          partnerCount: row.partners.size
+        }))
+        .sort((a, b) =>
+          b.wins - a.wins ||
+          b.winRate - a.winRate ||
+          b.games - a.games ||
+          b.partnerCount - a.partnerCount ||
+          a.name.localeCompare(b.name, "ko-KR")
+        );
+    }
+
+    function renderRanking() {
+      if (!state.players.length) {
+        el("rankingOutput").className = "empty";
+        el("rankingOutput").textContent = "순위 데이터가 아직 없습니다.";
+        return;
+      }
+      const ranking = calculateRanking();
+      el("rankingOutput").className = "tablewrap";
+      el("rankingOutput").innerHTML = `
+        <table>
+          <thead><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead>
+          <tbody>
+            ${ranking.map((row, i) => `
+              <tr class="rank-${i + 1}">
+                <td>${i + 1}</td>
+                <td>${row.name}</td>
+                <td>${row.games}</td>
+                <td>${row.wins}</td>
+                <td>${row.losses}</td>
+                <td>${Math.round(row.winRate * 100)}%</td>
+                <td>${row.partnerCount}</td>
+              </tr>`).join("")}
+          </tbody>
+        </table>`;
+    }
+
+    function calculatePlayerHistories() {
+      const histories = new Map(state.players.map(name => [name, {
+        name,
+        games: 0,
+        wins: 0,
+        losses: 0,
+        pending: 0,
+        partners: new Map(),
+        opponents: new Map(),
+        matches: []
+      }]));
+
+      for (const match of state.schedule) {
+        const result = state.results[match.id] || "";
+        const teams = [
+          { code: "A", label: "A팀", players: match.teamA, opponents: match.teamB },
+          { code: "B", label: "B팀", players: match.teamB, opponents: match.teamA }
+        ];
+
+        for (const team of teams) {
+          const status = !result ? "미입력" : result === team.code ? "승" : "패";
+          for (const player of team.players) {
+            const partner = team.players.find(name => name !== player);
+            const history = histories.get(player);
+            history.games++;
+            if (status === "승") history.wins++;
+            if (status === "패") history.losses++;
+            if (status === "미입력") history.pending++;
+            history.partners.set(partner, (history.partners.get(partner) || 0) + 1);
+            for (const opponent of team.opponents) {
+              history.opponents.set(opponent, (history.opponents.get(opponent) || 0) + 1);
+            }
+            history.matches.push({
+              id: match.id,
+              round: match.round,
+              court: match.court,
+              team: team.label,
+              partner,
+              opponents: team.opponents.join(" / "),
+              status
+            });
+          }
+        }
+      }
+
+      return [...histories.values()].sort((a, b) => a.name.localeCompare(b.name, "ko-KR"));
+    }
+
+    function renderAppearanceSummary() {
+      if (!state.schedule.length) {
+        el("summaryOutput").className = "empty";
+        el("summaryOutput").textContent = "출전요약 데이터가 아직 없습니다.";
+        return;
+      }
+      const histories = calculatePlayerHistories();
+      el("summaryOutput").className = "tablewrap";
+      el("summaryOutput").innerHTML = `
+        <table>
+          <thead><tr><th>선수</th><th>전적</th><th>파트너 내용</th><th>출전한 게임 사이 텀</th></tr></thead>
+          <tbody>
+            ${histories.map(history => `
+              <tr>
+                <td class="history-name">${history.name}</td>
+                <td class="history-record">
+                  <span class="badge">${history.games}경기</span>
+                  <span class="badge">승 ${history.wins}</span>
+                  <span class="badge warn">패 ${history.losses}</span>
+                  ${history.pending ? `<span class="badge warn">미입력 ${history.pending}</span>` : ""}
+                </td>
+                <td class="history-text">${summarizeNameCounts(history.partners)}</td>
+                <td class="history-text">${summarizeRestGaps(history.matches)}</td>
+              </tr>`).join("")}
+          </tbody>
+        </table>`;
+    }
+
+    function renderPlayerHistory() {
+      if (!state.schedule.length) {
+        el("historyOutput").className = "empty";
+        el("historyOutput").textContent = "선수별 이력 데이터가 아직 없습니다.";
+        return;
+      }
+      const histories = calculatePlayerHistories();
+      el("historyOutput").className = "tablewrap";
+      el("historyOutput").innerHTML = `
+        <table class="history-table">
+          <colgroup>
+            <col style="width: 10%;">
+            <col style="width: 16%;">
+            <col style="width: 16%;">
+            <col style="width: 58%;">
+          </colgroup>
+          <thead><tr><th>선수</th><th>전적</th><th>파트너</th><th>경기별 요약</th></tr></thead>
+          <tbody>
+            ${histories.map(history => `
+              <tr>
+                <td class="history-name">${history.name}</td>
+                <td class="history-record">
+                  <div class="record-line"><span class="badge">${history.games}경기</span></div>
+                  <div class="record-line">
+                    <span class="badge">승 ${history.wins}</span>
+                    <span class="badge warn">패 ${history.losses}</span>
+                    ${history.pending ? `<span class="badge warn">미입력 ${history.pending}</span>` : ""}
+                  </div>
+                </td>
+                <td class="history-text history-partners">${summarizePartnersByMatch(history.matches)}</td>
+                <td class="history-text history-summary-text">
+                  ${history.matches.map(match =>
+                    `${match.id}경기 ${match.round}R/${match.court}코트: ${match.partner}와 팀, 상대 ${match.opponents}, ${match.status}`
+                  ).join("<br>")}
+                </td>
+              </tr>`).join("")}
+          </tbody>
+        </table>`;
+    }
+
+    function renderMatrix() {
+      if (!state.schedule.length) {
+        el("matrixOutput").className = "empty";
+        el("matrixOutput").textContent = "중복점검 데이터가 아직 없습니다.";
+        return;
+      }
+      const games = new Map(state.players.map(p => [p, 0]));
+      const partners = new Map();
+      const opponents = new Map();
+
+      for (const match of state.schedule) {
+        [...match.teamA, ...match.teamB].forEach(p => games.set(p, games.get(p) + 1));
+        [match.teamA, match.teamB].forEach(team => {
+          const key = keyOf(team[0], team[1]);
+          partners.set(key, (partners.get(key) || 0) + 1);
+        });
+        for (const a of match.teamA) {
+          for (const b of match.teamB) {
+            const key = keyOf(a, b);
+            opponents.set(key, (opponents.get(key) || 0) + 1);
+          }
+        }
+      }
+
+      const duplicatePartners = [...partners.entries()].filter(([, count]) => count > 1);
+      const gameRows = [...games.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"));
+      el("matrixOutput").className = "tablewrap";
+      el("matrixOutput").innerHTML = `
+        <table>
+          <thead><tr><th>구분</th><th>항목</th><th>값</th><th>상태</th></tr></thead>
+          <tbody>
+            <tr><td>경기 수</td><td>최대/최소</td><td>${Math.max(...games.values())} / ${Math.min(...games.values())}</td><td><span class="badge">균형 확인</span></td></tr>
+            <tr><td>파트너 중복</td><td>중복 조합</td><td>${duplicatePartners.length ? duplicatePartners.map(([k, c]) => `${k} (${c}회)`).join(", ") : "없음"}</td><td><span class="badge ${duplicatePartners.length ? "warn" : ""}">${duplicatePartners.length ? "일부 중복" : "좋음"}</span></td></tr>
+            ${gameRows.map(([name, count]) => `<tr><td>선수별 경기</td><td>${name}</td><td>${count}</td><td></td></tr>`).join("")}
+          </tbody>
+        </table>`;
+    }
+
+    function renderAll() {
+      renderStats();
+      renderSchedule();
+      renderAppearanceSummary();
+      renderRanking();
+      renderPlayerHistory();
+      renderMatrix();
+    }
+
+    function activateView(viewId) {
+      document.querySelectorAll(".tab").forEach(tab => {
+        tab.classList.toggle("active", tab.dataset.view === viewId);
+      });
+      document.querySelectorAll(".view").forEach(view => {
+        view.classList.toggle("active", view.id === viewId);
+      });
+    }
+
+    function cloudConfig() {
+      const params = new URLSearchParams(location.search);
+      const globalConfig = window.BADMINTON_SUPABASE || {};
+      return {
+        url: params.get("url") || globalConfig.url || "",
+        anonKey: params.get("key") || globalConfig.anonKey || "",
+        eventId: params.get("event") || globalConfig.eventId || "main"
+      };
+    }
+
+    async function getSupabaseClient() {
+      const config = cloudConfig();
+      if (!config.url || !config.anonKey) return null;
+      if (!supabaseClient) {
+        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+        supabaseClient = createClient(config.url, config.anonKey);
+      }
+      return supabaseClient;
+    }
+
+    function applySharedPayload(data) {
+      state.players = Array.isArray(data.players) ? data.players : [];
+      state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
+      state.results = data.results || {};
+      state.updatedAt = data.updatedAt || "";
+      renderAll();
+      const updated = state.updatedAt ? new Date(state.updatedAt).toLocaleString("ko-KR") : "알 수 없음";
+      el("statusText").textContent = `마지막 업데이트: ${updated}`;
+    }
+
+    async function loadSupabaseData() {
+      const config = cloudConfig();
+      const client = await getSupabaseClient();
+      if (!client) return false;
+      const { data, error } = await client
+        .from("badminton_events")
+        .select("data, updated_at")
+        .eq("id", config.eventId)
+        .single();
+      if (error) throw error;
+      applySharedPayload({
+        ...data.data,
+        updatedAt: data.data?.updatedAt || data.updated_at
+      });
+      return true;
+    }
+
+    async function loadJsonData() {
+      try {
+        const response = await fetch(`badminton_data.json?ts=${Date.now()}`, { cache: "no-store" });
+        if (!response.ok) throw new Error("데이터 파일 없음");
+        const data = await response.json();
+        applySharedPayload(data);
+      } catch (error) {
+        state.players = [];
+        state.schedule = [];
+        state.results = {};
+        renderAll();
+        el("statusText").textContent = "Supabase 설정 또는 badminton_data.json을 찾을 수 없습니다.";
+      }
+    }
+
+    async function loadData() {
+      try {
+        const loadedFromSupabase = await loadSupabaseData();
+        if (!loadedFromSupabase) await loadJsonData();
+      } catch (error) {
+        el("statusText").textContent = `Supabase 불러오기 실패: ${error.message}`;
+        await loadJsonData();
+      }
+    }
+
+    async function subscribeRealtime() {
+      const config = cloudConfig();
+      const client = await getSupabaseClient();
+      if (!client) return;
+      if (realtimeChannel) client.removeChannel(realtimeChannel);
+      realtimeChannel = client
+        .channel(`badminton-viewer-${config.eventId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "badminton_events",
+            filter: `id=eq.${config.eventId}`
+          },
+          payload => {
+            if (payload.new?.data) {
+              applySharedPayload({
+                ...payload.new.data,
+                updatedAt: payload.new.data?.updatedAt || payload.new.updated_at
+              });
+            }
+          }
+        )
+        .subscribe();
+      }
+
+    document.querySelectorAll(".tab").forEach(tab => {
+      tab.addEventListener("click", () => activateView(tab.dataset.view));
+    });
+    el("reloadBtn").addEventListener("click", loadData);
+    setupViewerLogin();
+  </script>
+</body>
+</html>
