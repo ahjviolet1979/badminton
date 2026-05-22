@@ -555,6 +555,10 @@
       <input id="adminLoginId" type="text" autocomplete="username">
       <label for="adminLoginPassword">비밀번호</label>
       <input id="adminLoginPassword" type="password" autocomplete="current-password">
+      <label for="adminLoginEventId">대회 ID</label>
+      <input id="adminLoginEventId" type="text" placeholder="예: 2026-spring">
+      <label for="adminLoginViewerPassword">사용자 접속 비밀번호</label>
+      <input id="adminLoginViewerPassword" type="password" placeholder="참가자에게 알려줄 비밀번호">
       <button class="button primary" type="submit" style="width: 100%; justify-content: center; margin-top: 14px;">입장</button>
       <div class="login-error" id="adminLoginError"></div>
     </form>
@@ -632,6 +636,13 @@
             <label for="supabaseEventId">대회 ID</label>
             <input id="supabaseEventId" type="text" value="main">
           </div>
+          <div>
+            <label for="viewerAccessPassword">사용자 접속 비밀번호</label>
+            <input id="viewerAccessPassword" type="password" placeholder="참가자 비밀번호">
+          </div>
+        </div>
+
+        <div class="settings">
           <label class="checkrow">
             <input id="autoCloudSave" type="checkbox" checked>
             결과 변경 시 서버 저장
@@ -731,10 +742,15 @@
     function setupAdminLogin() {
       if (sessionStorage.getItem("badminton_admin_ok") === "1") {
         document.body.classList.remove("locked");
+        const savedConfig = defaultCloudConfig();
+        el("supabaseEventId").value = savedConfig.eventId;
+        el("viewerAccessPassword").value = localStorage.getItem("badminton_viewer_password") || "";
         window.setTimeout(() => loadCloudData(true), 0);
         return;
       }
       el("adminLoginId").value = config.adminId || "";
+      el("adminLoginEventId").value = localStorage.getItem("badminton_supabase_event_id") || config.eventId || "main";
+      el("adminLoginViewerPassword").value = localStorage.getItem("badminton_viewer_password") || "";
       el("adminLoginForm").addEventListener("submit", event => {
         event.preventDefault();
         if (!config.adminId || !config.adminPassword) {
@@ -743,10 +759,21 @@
         }
         const id = el("adminLoginId").value.trim();
         const password = el("adminLoginPassword").value.trim();
+        const eventId = el("adminLoginEventId").value.trim();
+        const viewerPassword = el("adminLoginViewerPassword").value.trim();
+        if (!eventId || !viewerPassword) {
+          el("adminLoginError").textContent = "대회 ID와 사용자 접속 비밀번호를 입력하세요.";
+          return;
+        }
         if (id === config.adminId && password === config.adminPassword) {
           sessionStorage.setItem("badminton_admin_ok", "1");
+          localStorage.setItem("badminton_supabase_event_id", eventId);
+          localStorage.setItem("badminton_viewer_password", viewerPassword);
+          el("supabaseEventId").value = eventId;
+          el("viewerAccessPassword").value = viewerPassword;
           document.body.classList.remove("locked");
           el("adminLoginPassword").value = "";
+          el("adminLoginViewerPassword").value = "";
           loadCloudData(true);
         } else {
           el("adminLoginError").textContent = "아이디 또는 비밀번호가 맞지 않습니다.";
@@ -962,7 +989,8 @@
       return {
         url: localStorage.getItem("badminton_supabase_url") || globalConfig.url || "",
         anonKey: localStorage.getItem("badminton_supabase_anon_key") || globalConfig.anonKey || "",
-        eventId: localStorage.getItem("badminton_supabase_event_id") || globalConfig.eventId || "main"
+        eventId: localStorage.getItem("badminton_supabase_event_id") || globalConfig.eventId || "main",
+        viewerPassword: localStorage.getItem("badminton_viewer_password") || ""
       };
     }
 
@@ -971,17 +999,20 @@
       el("supabaseUrl").value = config.url;
       el("supabaseAnonKey").value = config.anonKey;
       el("supabaseEventId").value = config.eventId;
+      el("viewerAccessPassword").value = config.viewerPassword;
     }
 
     function readCloudConfig() {
       const config = {
         url: el("supabaseUrl").value.trim(),
         anonKey: el("supabaseAnonKey").value.trim(),
-        eventId: el("supabaseEventId").value.trim() || "main"
+        eventId: el("supabaseEventId").value.trim() || "main",
+        viewerPassword: el("viewerAccessPassword").value.trim()
       };
       localStorage.setItem("badminton_supabase_url", config.url);
       localStorage.setItem("badminton_supabase_anon_key", config.anonKey);
       localStorage.setItem("badminton_supabase_event_id", config.eventId);
+      localStorage.setItem("badminton_viewer_password", config.viewerPassword);
       return config;
     }
 
@@ -1003,6 +1034,8 @@
       return {
         version: 1,
         updatedAt: new Date().toISOString(),
+        eventId: readCloudConfig().eventId,
+        viewerPassword: readCloudConfig().viewerPassword,
         players: state.players,
         schedule: state.schedule,
         results: state.results,
@@ -1016,12 +1049,17 @@
       state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
       state.results = data.results || {};
       state.seed = data.seed || state.seed;
+      if (data.viewerPassword) {
+        el("viewerAccessPassword").value = data.viewerPassword;
+        localStorage.setItem("badminton_viewer_password", data.viewerPassword);
+      }
       renderAll(true);
     }
 
     async function saveCloudData(silent = false) {
-      if (!state.schedule.length) {
-        if (!silent) setMessage("먼저 대진을 생성해야 서버에 저장할 수 있습니다.", true);
+      const config = readCloudConfig();
+      if (!config.viewerPassword) {
+        if (!silent) setMessage("사용자 접속 비밀번호를 먼저 입력하세요.", true);
         return;
       }
       try {
@@ -1050,6 +1088,7 @@
           .single();
         if (error) {
           if (error.code === "PGRST116") {
+            await saveCloudData(true);
             if (!silent) setMessage("서버에 저장된 대회 데이터가 아직 없습니다.");
             return;
           }
@@ -1789,8 +1828,8 @@
     });
 
     el("players").value = sampleNames.slice(0, 12).join("\n");
-    setupAdminLogin();
     loadCloudConfigToForm();
+    setupAdminLogin();
     renderAll(true);
   </script>
 </body>

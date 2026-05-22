@@ -364,7 +364,9 @@
   <div class="login-screen">
     <form class="login-card" id="viewerLoginForm">
       <h1>대회 입장</h1>
-      <p>안내받은 비밀번호를 입력하면 대진표를 볼 수 있습니다.</p>
+      <p>안내받은 대회 ID와 비밀번호를 입력하면 대진표를 볼 수 있습니다.</p>
+      <label for="viewerLoginEventId">대회 ID</label>
+      <input id="viewerLoginEventId" type="text" placeholder="예: 2026-spring">
       <label for="viewerLoginPassword">비밀번호</label>
       <input id="viewerLoginPassword" type="password" autocomplete="current-password">
       <button class="button" type="submit" style="width: 100%; justify-content: center; margin-top: 14px;">입장</button>
@@ -433,26 +435,32 @@
 
     function setupViewerLogin() {
       if (sessionStorage.getItem("badminton_viewer_ok") === "1") {
+        el("viewerLoginEventId").value = sessionStorage.getItem("badminton_viewer_event_id") || loginConfig.eventId || "main";
         document.body.classList.remove("locked");
         loadData();
         subscribeRealtime();
         return;
       }
-      el("viewerLoginForm").addEventListener("submit", event => {
+      el("viewerLoginEventId").value = sessionStorage.getItem("badminton_viewer_event_id") || loginConfig.eventId || "main";
+      el("viewerLoginForm").addEventListener("submit", async event => {
         event.preventDefault();
-        if (!loginConfig.viewerPassword) {
-          el("viewerLoginError").textContent = "사용자 비밀번호 설정이 없습니다. 관리자에게 문의하세요.";
+        const eventId = el("viewerLoginEventId").value.trim();
+        const password = el("viewerLoginPassword").value.trim();
+        if (!eventId || !password) {
+          el("viewerLoginError").textContent = "대회 ID와 비밀번호를 입력하세요.";
           return;
         }
-        const password = el("viewerLoginPassword").value.trim();
-        if (password === loginConfig.viewerPassword) {
+        try {
+          const data = await authenticateViewer(eventId, password);
           sessionStorage.setItem("badminton_viewer_ok", "1");
+          sessionStorage.setItem("badminton_viewer_event_id", eventId);
+          sessionStorage.setItem("badminton_viewer_password", password);
           document.body.classList.remove("locked");
           el("viewerLoginPassword").value = "";
-          loadData();
+          applySharedPayload(data);
           subscribeRealtime();
-        } else {
-          el("viewerLoginError").textContent = "비밀번호가 맞지 않습니다.";
+        } catch (error) {
+          el("viewerLoginError").textContent = error.message;
         }
       });
     }
@@ -768,7 +776,7 @@
       return {
         url: params.get("url") || globalConfig.url || "",
         anonKey: params.get("key") || globalConfig.anonKey || "",
-        eventId: params.get("event") || globalConfig.eventId || "main"
+        eventId: params.get("event") || sessionStorage.getItem("badminton_viewer_event_id") || globalConfig.eventId || "main"
       };
     }
 
@@ -780,6 +788,32 @@
         supabaseClient = createClient(config.url, config.anonKey);
       }
       return supabaseClient;
+    }
+
+    async function fetchEventData(eventId) {
+      const client = await getSupabaseClient();
+      if (!client) throw new Error("Supabase 설정이 비어 있습니다.");
+      const { data, error } = await client
+        .from("badminton_events")
+        .select("data, updated_at")
+        .eq("id", eventId)
+        .single();
+      if (error) {
+        if (error.code === "PGRST116") throw new Error("해당 대회 ID를 찾을 수 없습니다.");
+        throw new Error(`대회 데이터 불러오기 실패: ${error.message}`);
+      }
+      return {
+        ...data.data,
+        updatedAt: data.data?.updatedAt || data.updated_at
+      };
+    }
+
+    async function authenticateViewer(eventId, password) {
+      sessionStorage.setItem("badminton_viewer_event_id", eventId);
+      const data = await fetchEventData(eventId);
+      if (!data.viewerPassword) throw new Error("이 대회에는 사용자 비밀번호가 설정되어 있지 않습니다.");
+      if (password !== data.viewerPassword) throw new Error("대회 ID 또는 비밀번호가 맞지 않습니다.");
+      return data;
     }
 
     function applySharedPayload(data) {
@@ -794,23 +828,15 @@
 
     async function loadSupabaseData() {
       const config = cloudConfig();
-      const client = await getSupabaseClient();
-      if (!client) return false;
-      const { data, error } = await client
-        .from("badminton_events")
-        .select("data, updated_at")
-        .eq("id", config.eventId)
-        .single();
-      if (error) {
-        if (error.code === "PGRST116") {
-          throw new Error("아직 서버에 저장된 대회 데이터가 없습니다. 관리자 화면에서 서버 저장을 먼저 눌러주세요.");
-        }
-        throw error;
+      const data = await fetchEventData(config.eventId);
+      const savedPassword = sessionStorage.getItem("badminton_viewer_password") || "";
+      if (data.viewerPassword && savedPassword !== data.viewerPassword) {
+        sessionStorage.removeItem("badminton_viewer_ok");
+        document.body.classList.add("locked");
+        el("viewerLoginError").textContent = "사용자 비밀번호가 변경되었습니다. 새 비밀번호로 다시 입장하세요.";
+        throw new Error("사용자 비밀번호가 변경되었습니다.");
       }
-      applySharedPayload({
-        ...data.data,
-        updatedAt: data.data?.updatedAt || data.updated_at
-      });
+      applySharedPayload(data);
       return true;
     }
 
@@ -865,10 +891,23 @@
           },
           payload => {
             if (payload.new?.data) {
+              const savedPassword = sessionStorage.getItem("badminton_viewer_password") || "";
+              if (payload.new.data.viewerPassword && savedPassword !== payload.new.data.viewerPassword) {
+                sessionStorage.removeItem("badminton_viewer_ok");
+                document.body.classList.add("locked");
+                el("viewerLoginError").textContent = "사용자 비밀번호가 변경되었습니다. 새 비밀번호로 다시 입장하세요.";
+                return;
+              }
               applySharedPayload({
                 ...payload.new.data,
                 updatedAt: payload.new.data?.updatedAt || payload.new.updated_at
               });
+            } else if (payload.eventType === "DELETE") {
+              state.players = [];
+              state.schedule = [];
+              state.results = {};
+              renderAll();
+              el("statusText").textContent = "대회 데이터가 삭제되었습니다.";
             }
           }
         )
