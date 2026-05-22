@@ -1734,8 +1734,6 @@
     el("exportDataBtn").addEventListener("click", exportSharedData);
     el("saveCloudBtn").addEventListener("click", () => saveCloudData(false));
     el("loadCloudBtn").addEventListener("click", loadCloudData);
-    el("captureTabBtn").addEventListener("click", captureCurrentTab);
-    el("captureAllBtn").addEventListener("click", captureMainTabs);
     el("copyCsvBtn").addEventListener("click", async () => {
       const csvText = el("csvText").value;
       if (!csvText) return;
