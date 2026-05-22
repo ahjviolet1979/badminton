@@ -595,17 +595,17 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v12"/><path d="M17 8l-5-5-5 5"/><path d="M5 21h14"/></svg>
           서버 저장
         </button>
-        <button class="button" id="loadCloudBtn" type="button" title="Supabase에서 최신 상태 불러오기">
+        <button class="button" id="loadCloudBtn" type="button" title="Supabase에서 대회 데이터 가져오기">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
-          서버 불러오기
-        </button>
-        <button class="button danger" id="deleteCloudBtn" type="button" title="Supabase에 저장된 대회 데이터 삭제">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-          서버 삭제
+          데이터 가져오기
         </button>
         <button class="button danger" id="endTournamentBtn" type="button" title="사용자에게 대회 내용을 더 이상 보여주지 않기">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/></svg>
           대회 종료
+        </button>
+        <button class="button danger" id="deleteCloudBtn" type="button" title="Supabase에 저장된 대회 데이터 삭제">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          대회 삭제
         </button>
         <button class="button" id="logoutAdminBtn" type="button" title="관리자 로그아웃">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 3v18"/></svg>
@@ -633,9 +633,11 @@
 
         <div class="settings">
           <div>
-            <label for="tournamentSelect">기존 대회 선택</label>
-            <select id="tournamentSelect">
-              <option value="">대회 목록을 불러오는 중입니다</option>
+            <label for="tries">탐색 강도</label>
+            <select id="tries">
+              <option value="450">빠르게</option>
+              <option value="1000" selected>균형</option>
+              <option value="2200">꼼꼼하게</option>
             </select>
           </div>
           <div>
@@ -646,11 +648,9 @@
 
         <div class="settings">
           <div>
-            <label for="tries">탐색 강도</label>
-            <select id="tries">
-              <option value="450">빠르게</option>
-              <option value="1000" selected>균형</option>
-              <option value="2200">꼼꼼하게</option>
+            <label for="tournamentSelect">대회 선택</label>
+            <select id="tournamentSelect">
+              <option value="">대회 목록을 불러오는 중입니다</option>
             </select>
           </div>
         </div>
