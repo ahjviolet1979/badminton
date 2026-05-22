@@ -774,7 +774,12 @@
         .select("data, updated_at")
         .eq("id", config.eventId)
         .single();
-      if (error) throw error;
+      if (error) {
+        if (error.code === "PGRST116") {
+          throw new Error("아직 서버에 저장된 대회 데이터가 없습니다. 관리자 화면에서 서버 저장을 먼저 눌러주세요.");
+        }
+        throw error;
+      }
       applySharedPayload({
         ...data.data,
         updatedAt: data.data?.updatedAt || data.updated_at
@@ -799,11 +804,20 @@
 
     async function loadData() {
       try {
+        const config = cloudConfig();
+        if (!config.url || !config.anonKey) {
+          el("statusText").textContent = "Supabase 설정이 비어 있습니다. supabase_config.js에 URL과 anon key를 입력하세요.";
+          await loadJsonData();
+          return;
+        }
         const loadedFromSupabase = await loadSupabaseData();
         if (!loadedFromSupabase) await loadJsonData();
       } catch (error) {
+        state.players = [];
+        state.schedule = [];
+        state.results = {};
+        renderAll();
         el("statusText").textContent = `Supabase 불러오기 실패: ${error.message}`;
-        await loadJsonData();
       }
     }
 
