@@ -73,7 +73,7 @@
       color: var(--ink);
     }
 
-    button { font: inherit; }
+    button, select, input { font: inherit; }
 
     .app {
       width: min(1360px, 100%);
@@ -114,6 +114,22 @@
       color: #fff;
       font-weight: 800;
       white-space: nowrap;
+    }
+
+    input, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 11px;
+      background: #fbfcfa;
+      color: var(--ink);
+    }
+
+    label {
+      display: block;
+      margin: 12px 0 7px;
+      font-weight: 800;
+      font-size: 13px;
     }
 
     .panel {
@@ -366,7 +382,9 @@
       <h1>대회 입장</h1>
       <p>안내받은 대회 ID와 비밀번호를 입력하면 대진표를 볼 수 있습니다.</p>
       <label for="viewerLoginEventId">대회 ID</label>
-      <input id="viewerLoginEventId" type="text" placeholder="예: 2026-spring">
+      <select id="viewerLoginEventId">
+        <option value="">대회 목록을 불러오는 중입니다</option>
+      </select>
       <label for="viewerLoginPassword">비밀번호</label>
       <input id="viewerLoginPassword" type="password" autocomplete="current-password">
       <button class="button" type="submit" style="width: 100%; justify-content: center; margin-top: 14px;">입장</button>
@@ -379,7 +397,10 @@
         <h1>배드민턴 대진표</h1>
         <p class="subtitle" id="statusText">대회 데이터를 불러오는 중입니다.</p>
       </div>
-      <button class="button" id="reloadBtn" type="button">새로고침</button>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="button" id="reloadBtn" type="button">새로고침</button>
+        <button class="button" id="logoutViewerBtn" type="button">로그아웃</button>
+      </div>
     </header>
 
     <section class="panel">
@@ -435,13 +456,12 @@
 
     function setupViewerLogin() {
       if (sessionStorage.getItem("badminton_viewer_ok") === "1") {
-        el("viewerLoginEventId").value = sessionStorage.getItem("badminton_viewer_event_id") || loginConfig.eventId || "main";
         document.body.classList.remove("locked");
         loadData();
         subscribeRealtime();
         return;
       }
-      el("viewerLoginEventId").value = sessionStorage.getItem("badminton_viewer_event_id") || loginConfig.eventId || "main";
+      loadTournamentOptions();
       el("viewerLoginForm").addEventListener("submit", async event => {
         event.preventDefault();
         const eventId = el("viewerLoginEventId").value.trim();
@@ -790,6 +810,33 @@
       return supabaseClient;
     }
 
+    async function loadTournamentOptions() {
+      const select = el("viewerLoginEventId");
+      try {
+        const client = await getSupabaseClient();
+        if (!client) throw new Error("Supabase 설정이 비어 있습니다.");
+        const { data, error } = await client
+          .from("badminton_events")
+          .select("id, data, updated_at")
+          .order("updated_at", { ascending: false });
+        if (error) throw error;
+        const events = (data || []).filter(row => !row.data?.ended);
+        if (!events.length) {
+          select.innerHTML = `<option value="">진행 중인 대회가 없습니다</option>`;
+          return;
+        }
+        const saved = sessionStorage.getItem("badminton_viewer_event_id") || "";
+        select.innerHTML = events.map(row => {
+          const label = row.data?.eventId || row.id;
+          const selected = row.id === saved ? "selected" : "";
+          return `<option value="${row.id}" ${selected}>${label}</option>`;
+        }).join("");
+      } catch (error) {
+        select.innerHTML = `<option value="">대회 목록 불러오기 실패</option>`;
+        el("viewerLoginError").textContent = error.message;
+      }
+    }
+
     async function fetchEventData(eventId) {
       const client = await getSupabaseClient();
       if (!client) throw new Error("Supabase 설정이 비어 있습니다.");
@@ -811,12 +858,24 @@
     async function authenticateViewer(eventId, password) {
       sessionStorage.setItem("badminton_viewer_event_id", eventId);
       const data = await fetchEventData(eventId);
+      if (data.ended) throw new Error("종료된 대회입니다.");
       if (!data.viewerPassword) throw new Error("이 대회에는 사용자 비밀번호가 설정되어 있지 않습니다.");
       if (password !== data.viewerPassword) throw new Error("대회 ID 또는 비밀번호가 맞지 않습니다.");
       return data;
     }
 
     function applySharedPayload(data) {
+      if (data.ended) {
+        state.players = [];
+        state.schedule = [];
+        state.results = {};
+        renderAll();
+        el("statusText").textContent = "대회가 종료되었습니다.";
+        document.body.classList.add("locked");
+        sessionStorage.removeItem("badminton_viewer_ok");
+        loadTournamentOptions();
+        return;
+      }
       state.players = Array.isArray(data.players) ? data.players : [];
       state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
       state.results = data.results || {};
@@ -892,6 +951,10 @@
           payload => {
             if (payload.new?.data) {
               const savedPassword = sessionStorage.getItem("badminton_viewer_password") || "";
+              if (payload.new.data.ended) {
+                applySharedPayload(payload.new.data);
+                return;
+              }
               if (payload.new.data.viewerPassword && savedPassword !== payload.new.data.viewerPassword) {
                 sessionStorage.removeItem("badminton_viewer_ok");
                 document.body.classList.add("locked");
@@ -918,6 +981,13 @@
       tab.addEventListener("click", () => activateView(tab.dataset.view));
     });
     el("reloadBtn").addEventListener("click", loadData);
+    el("logoutViewerBtn").addEventListener("click", () => {
+      sessionStorage.removeItem("badminton_viewer_ok");
+      sessionStorage.removeItem("badminton_viewer_password");
+      document.body.classList.add("locked");
+      el("viewerLoginPassword").value = "";
+      loadTournamentOptions();
+    });
     setupViewerLogin();
   </script>
 </body>

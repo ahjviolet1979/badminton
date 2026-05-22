@@ -590,6 +590,14 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
           서버 삭제
         </button>
+        <button class="button danger" id="endTournamentBtn" type="button" title="사용자에게 대회 내용을 더 이상 보여주지 않기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/></svg>
+          대회 종료
+        </button>
+        <button class="button" id="logoutAdminBtn" type="button" title="관리자 로그아웃">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 3v18"/></svg>
+          로그아웃
+        </button>
       </div>
     </header>
 
@@ -1036,6 +1044,7 @@
         updatedAt: new Date().toISOString(),
         eventId: readCloudConfig().eventId,
         viewerPassword: readCloudConfig().viewerPassword,
+        ended: false,
         players: state.players,
         schedule: state.schedule,
         results: state.results,
@@ -1076,6 +1085,49 @@
       } catch (error) {
         if (!silent) setMessage(`서버 저장 실패: ${error.message}`, true);
       }
+    }
+
+    async function endTournament() {
+      const confirmText = "종료";
+      const input = window.prompt(`대회를 종료하면 사용자 화면에서 대회 내용이 보이지 않습니다. 계속하려면 '${confirmText}'라고 입력하세요.`);
+      if (input !== confirmText) {
+        setMessage("대회 종료를 취소했습니다.");
+        return;
+      }
+      try {
+        const config = readCloudConfig();
+        if (!config.viewerPassword) {
+          setMessage("사용자 접속 비밀번호를 먼저 입력하세요.", true);
+          return;
+        }
+        const { client, eventId } = await getSupabaseClient();
+        const endedPayload = {
+          ...sharedPayload(),
+          ended: true,
+          endedAt: new Date().toISOString()
+        };
+        const { error } = await client
+          .from("badminton_events")
+          .upsert({
+            id: eventId,
+            data: endedPayload,
+            updated_at: new Date().toISOString()
+          });
+        if (error) throw error;
+        setMessage("대회를 종료했습니다. 사용자 화면에는 더 이상 대회 내용이 표시되지 않습니다.", true);
+      } catch (error) {
+        setMessage(`대회 종료 실패: ${error.message}`, true);
+      }
+    }
+
+    function logoutAdmin() {
+      sessionStorage.removeItem("badminton_admin_ok");
+      document.body.classList.add("locked");
+      el("adminLoginPassword").value = "";
+      el("adminLoginViewerPassword").value = "";
+      el("adminLoginEventId").value = el("supabaseEventId").value || "main";
+      el("adminLoginViewerPassword").value = el("viewerAccessPassword").value || "";
+      setMessage("로그아웃했습니다.");
     }
 
     async function loadCloudData(silent = false) {
@@ -1814,6 +1866,8 @@
     el("saveCloudBtn").addEventListener("click", () => saveCloudData(false));
     el("loadCloudBtn").addEventListener("click", loadCloudData);
     el("deleteCloudBtn").addEventListener("click", deleteCloudData);
+    el("endTournamentBtn").addEventListener("click", endTournament);
+    el("logoutAdminBtn").addEventListener("click", logoutAdmin);
     el("copyCsvBtn").addEventListener("click", async () => {
       const csvText = el("csvText").value;
       if (!csvText) return;
