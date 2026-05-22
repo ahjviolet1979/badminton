@@ -247,12 +247,6 @@
       font-weight: 900;
     }
 
-    .team-cell.lose {
-      background: #fef2f2;
-      color: #991b1b;
-      opacity: 0.82;
-    }
-
     .badge {
       display: inline-flex;
       align-items: center;
@@ -269,6 +263,16 @@
     .badge.warn {
       background: #fffbeb;
       color: #b45309;
+    }
+
+    .badge.result-a {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    .badge.result-b {
+      background: #fce7f3;
+      color: #be185d;
     }
 
     .empty {
@@ -505,8 +509,9 @@
             ${state.schedule.map(match => {
               const result = state.results[match.id] || "";
               const resultText = result === "A" ? "A팀 승" : result === "B" ? "B팀 승" : "미입력";
-              const teamAClass = result === "A" ? "win" : result === "B" ? "lose" : "";
-              const teamBClass = result === "B" ? "win" : result === "A" ? "lose" : "";
+              const teamAClass = result === "A" ? "win" : "";
+              const teamBClass = result === "B" ? "win" : "";
+              const resultClass = result === "A" ? "result-a" : result === "B" ? "result-b" : "warn";
               return `
                 <tr>
                   <td>${match.id}</td>
@@ -515,7 +520,7 @@
                   <td class="team-cell ${teamAClass}"><div class="team"><span class="pair">${match.teamA[0]}</span><span class="pair">${match.teamA[1]}</span></div></td>
                   <td class="versus">VS</td>
                   <td class="team-cell ${teamBClass}"><div class="team"><span class="pair">${match.teamB[0]}</span><span class="pair">${match.teamB[1]}</span></div></td>
-                  <td><span class="badge ${result ? "" : "warn"}">${resultText}</span></td>
+                  <td><span class="badge ${resultClass}">${resultText}</span></td>
                 </tr>`;
             }).join("")}
           </tbody>
