@@ -633,9 +633,18 @@
 
         <div class="settings">
           <div>
+            <label for="tournamentSelect">기존 대회 선택</label>
+            <select id="tournamentSelect">
+              <option value="">대회 목록을 불러오는 중입니다</option>
+            </select>
+          </div>
+          <div>
             <label for="courtCount">코트 수</label>
             <input id="courtCount" type="number" min="1" max="10" value="3">
           </div>
+        </div>
+
+        <div class="settings">
           <div>
             <label for="tries">탐색 강도</label>
             <select id="tries">
@@ -1057,6 +1066,19 @@
           const label = row.data?.ended ? `${row.id} (종료)` : row.id;
           return `<option value="${row.id}" label="${label}"></option>`;
         }).join("");
+        const select = el("tournamentSelect");
+        if (select) {
+          if (!rows.length) {
+            select.innerHTML = `<option value="">생성된 대회가 없습니다</option>`;
+          } else {
+            const current = el("supabaseEventId").value || localStorage.getItem("badminton_supabase_event_id") || "";
+            select.innerHTML = `<option value="">대회 선택</option>` + rows.map(row => {
+              const label = row.data?.ended ? `${row.id} (종료)` : row.id;
+              const selected = row.id === current ? "selected" : "";
+              return `<option value="${row.id}" ${selected}>${label}</option>`;
+            }).join("");
+          }
+        }
       } catch (error) {
         el("adminLoginError").textContent = `대회 목록 불러오기 실패: ${error.message}`;
       }
@@ -1903,6 +1925,12 @@
     el("sampleBtn").addEventListener("click", () => {
       el("players").value = sampleNames.join("\n");
       el("seed").value = Math.floor(Math.random() * 900000) + 100000;
+    });
+    el("tournamentSelect").addEventListener("change", event => {
+      if (!event.target.value) return;
+      el("supabaseEventId").value = event.target.value;
+      localStorage.setItem("badminton_supabase_event_id", event.target.value);
+      setMessage("대회를 선택했습니다. 서버 불러오기를 누르면 해당 대회 데이터를 가져옵니다.");
     });
     el("generateBtn").addEventListener("click", generate);
     el("clearResultsBtn").addEventListener("click", () => {
