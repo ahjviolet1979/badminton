@@ -737,9 +737,13 @@
       el("adminLoginId").value = config.adminId || "";
       el("adminLoginForm").addEventListener("submit", event => {
         event.preventDefault();
+        if (!config.adminId || !config.adminPassword) {
+          el("adminLoginError").textContent = "관리자 로그인 설정이 없습니다. supabase_config.js를 확인하세요.";
+          return;
+        }
         const id = el("adminLoginId").value.trim();
         const password = el("adminLoginPassword").value.trim();
-        if (id === (config.adminId || "admin") && password === (config.adminPassword || "1234")) {
+        if (id === config.adminId && password === config.adminPassword) {
           sessionStorage.setItem("badminton_admin_ok", "1");
           document.body.classList.remove("locked");
           el("adminLoginPassword").value = "";

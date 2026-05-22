@@ -440,8 +440,12 @@
       }
       el("viewerLoginForm").addEventListener("submit", event => {
         event.preventDefault();
+        if (!loginConfig.viewerPassword) {
+          el("viewerLoginError").textContent = "사용자 비밀번호 설정이 없습니다. 관리자에게 문의하세요.";
+          return;
+        }
         const password = el("viewerLoginPassword").value.trim();
-        if (password === (loginConfig.viewerPassword || "0000")) {
+        if (password === loginConfig.viewerPassword) {
           sessionStorage.setItem("badminton_viewer_ok", "1");
           document.body.classList.remove("locked");
           el("viewerLoginPassword").value = "";
