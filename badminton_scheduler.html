@@ -567,10 +567,6 @@
       <input id="adminLoginId" type="text" autocomplete="username">
       <label for="adminLoginPassword">비밀번호</label>
       <input id="adminLoginPassword" type="password" autocomplete="current-password">
-      <label for="adminLoginEventId">대회 ID</label>
-      <select id="adminLoginEventId">
-        <option value="">대회 목록을 불러오는 중입니다</option>
-      </select>
       <datalist id="adminEventOptions"></datalist>
       <button class="button primary" type="submit" style="width: 100%; justify-content: center; margin-top: 14px;">입장</button>
       <div class="login-error" id="adminLoginError"></div>
@@ -770,11 +766,13 @@
         const savedConfig = defaultCloudConfig();
         el("supabaseEventId").value = savedConfig.eventId;
         el("viewerAccessPassword").value = localStorage.getItem("badminton_viewer_password") || "";
-        window.setTimeout(() => loadCloudData(true), 0);
+        window.setTimeout(() => {
+          loadAdminEventOptions();
+          if (savedConfig.eventId) loadCloudData(true);
+        }, 0);
         return;
       }
       el("adminLoginId").value = config.adminId || "";
-      loadAdminEventOptions();
       el("adminLoginForm").addEventListener("submit", event => {
         event.preventDefault();
         if (!config.adminId || !config.adminPassword) {
@@ -783,18 +781,12 @@
         }
         const id = el("adminLoginId").value.trim();
         const password = el("adminLoginPassword").value.trim();
-        const eventId = el("adminLoginEventId").value.trim();
-        if (!eventId) {
-          el("adminLoginError").textContent = "입장할 대회를 선택하세요. 새 대회는 로그인 후 만들 수 있습니다.";
-          return;
-        }
         if (id === config.adminId && password === config.adminPassword) {
           sessionStorage.setItem("badminton_admin_ok", "1");
-          localStorage.setItem("badminton_supabase_event_id", eventId);
-          el("supabaseEventId").value = eventId;
           document.body.classList.remove("locked");
           el("adminLoginPassword").value = "";
-          loadCloudData(true);
+          loadAdminEventOptions();
+          setMessage("관리자로 로그인했습니다. 기존 대회를 선택해 서버 불러오기를 하거나 새 대회를 시작하세요.");
         } else {
           el("adminLoginError").textContent = "아이디 또는 비밀번호가 맞지 않습니다.";
         }
@@ -1065,19 +1057,6 @@
           const label = row.data?.ended ? `${row.id} (종료)` : row.id;
           return `<option value="${row.id}" label="${label}"></option>`;
         }).join("");
-        const loginSelect = el("adminLoginEventId");
-        if (loginSelect) {
-          if (!rows.length) {
-            loginSelect.innerHTML = `<option value="">생성된 대회가 없습니다</option>`;
-          } else {
-            const saved = localStorage.getItem("badminton_supabase_event_id") || "";
-            loginSelect.innerHTML = rows.map(row => {
-              const label = row.data?.ended ? `${row.id} (종료)` : row.id;
-              const selected = row.id === saved ? "selected" : "";
-              return `<option value="${row.id}" ${selected}>${label}</option>`;
-            }).join("");
-          }
-        }
       } catch (error) {
         el("adminLoginError").textContent = `대회 목록 불러오기 실패: ${error.message}`;
       }
@@ -1172,9 +1151,6 @@
       sessionStorage.removeItem("badminton_admin_ok");
       document.body.classList.add("locked");
       el("adminLoginPassword").value = "";
-      el("adminLoginViewerPassword").value = "";
-      el("adminLoginEventId").value = el("supabaseEventId").value || "main";
-      el("adminLoginViewerPassword").value = el("viewerAccessPassword").value || "";
       setMessage("로그아웃했습니다.");
     }
 
