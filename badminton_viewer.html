@@ -420,7 +420,7 @@
       }
       el("viewerLoginForm").addEventListener("submit", event => {
         event.preventDefault();
-        const password = el("viewerLoginPassword").value;
+        const password = el("viewerLoginPassword").value.trim();
         if (password === (loginConfig.viewerPassword || "0000")) {
           sessionStorage.setItem("badminton_viewer_ok", "1");
           document.body.classList.remove("locked");

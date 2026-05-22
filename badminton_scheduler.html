@@ -732,7 +732,7 @@
       el("adminLoginForm").addEventListener("submit", event => {
         event.preventDefault();
         const id = el("adminLoginId").value.trim();
-        const password = el("adminLoginPassword").value;
+        const password = el("adminLoginPassword").value.trim();
         if (id === (config.adminId || "admin") && password === (config.adminPassword || "1234")) {
           sessionStorage.setItem("badminton_admin_ok", "1");
           document.body.classList.remove("locked");
