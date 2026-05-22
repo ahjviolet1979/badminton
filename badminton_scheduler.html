@@ -214,6 +214,11 @@
       color: #fff;
     }
 
+    .button.danger {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
     .button.primary:hover { background: var(--accent-dark); }
     .button:hover { filter: brightness(0.98); }
     .button:disabled { cursor: not-allowed; opacity: 0.45; }
@@ -577,7 +582,11 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
           서버 불러오기
         </button>
-             </div>
+        <button class="button danger" id="deleteCloudBtn" type="button" title="Supabase에 저장된 대회 데이터 삭제">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+          서버 삭제
+        </button>
+      </div>
     </header>
 
     <div class="grid">
@@ -722,6 +731,7 @@
     function setupAdminLogin() {
       if (sessionStorage.getItem("badminton_admin_ok") === "1") {
         document.body.classList.remove("locked");
+        window.setTimeout(() => loadCloudData(true), 0);
         return;
       }
       el("adminLoginId").value = config.adminId || "";
@@ -733,6 +743,7 @@
           sessionStorage.setItem("badminton_admin_ok", "1");
           document.body.classList.remove("locked");
           el("adminLoginPassword").value = "";
+          loadCloudData(true);
         } else {
           el("adminLoginError").textContent = "아이디 또는 비밀번호가 맞지 않습니다.";
         }
@@ -1025,7 +1036,7 @@
       }
     }
 
-    async function loadCloudData() {
+    async function loadCloudData(silent = false) {
       try {
         const { client, eventId } = await getSupabaseClient();
         const { data, error } = await client
@@ -1033,12 +1044,42 @@
           .select("data, updated_at")
           .eq("id", eventId)
           .single();
-        if (error) throw error;
+        if (error) {
+          if (error.code === "PGRST116") {
+            if (!silent) setMessage("서버에 저장된 대회 데이터가 아직 없습니다.");
+            return;
+          }
+          throw error;
+        }
         applySharedPayload(data.data);
         const updated = data.updated_at ? new Date(data.updated_at).toLocaleString("ko-KR") : "알 수 없음";
-        setMessage(`서버 데이터를 불러왔습니다. 마지막 저장: ${updated}`);
+        if (!silent) setMessage(`서버 데이터를 불러왔습니다. 마지막 저장: ${updated}`);
       } catch (error) {
-        setMessage(`서버 불러오기 실패: ${error.message}`, true);
+        if (!silent) setMessage(`서버 불러오기 실패: ${error.message}`, true);
+      }
+    }
+
+    async function deleteCloudData() {
+      const confirmText = "삭제";
+      const input = window.prompt(`서버에 저장된 대회 데이터를 삭제합니다. 계속하려면 '${confirmText}'라고 입력하세요.`);
+      if (input !== confirmText) {
+        setMessage("서버 삭제를 취소했습니다.");
+        return;
+      }
+      try {
+        const { client, eventId } = await getSupabaseClient();
+        const { error } = await client
+          .from("badminton_events")
+          .delete()
+          .eq("id", eventId);
+        if (error) throw error;
+        state.players = [];
+        state.schedule = [];
+        state.results = {};
+        renderAll(true);
+        setMessage("서버에 저장된 대회 데이터를 삭제했습니다. 사용자 화면도 새로고침하면 빈 상태로 보입니다.", true);
+      } catch (error) {
+        setMessage(`서버 삭제 실패: ${error.message}`, true);
       }
     }
 
@@ -1729,6 +1770,7 @@
     el("printBtn").addEventListener("click", () => window.print());
     el("saveCloudBtn").addEventListener("click", () => saveCloudData(false));
     el("loadCloudBtn").addEventListener("click", loadCloudData);
+    el("deleteCloudBtn").addEventListener("click", deleteCloudData);
     el("copyCsvBtn").addEventListener("click", async () => {
       const csvText = el("csvText").value;
       if (!csvText) return;
