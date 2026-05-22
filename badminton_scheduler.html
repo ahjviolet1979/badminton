@@ -110,9 +110,21 @@
 
     .toolbar {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       flex-wrap: wrap;
       justify-content: flex-end;
+    }
+
+    .toolbar .button {
+      min-height: 34px;
+      padding: 0 9px;
+      gap: 5px;
+      font-size: 12px;
+    }
+
+    .toolbar .button svg {
+      width: 15px;
+      height: 15px;
     }
 
     .grid {
@@ -556,9 +568,10 @@
       <label for="adminLoginPassword">비밀번호</label>
       <input id="adminLoginPassword" type="password" autocomplete="current-password">
       <label for="adminLoginEventId">대회 ID</label>
-      <input id="adminLoginEventId" type="text" placeholder="예: 2026-spring">
-      <label for="adminLoginViewerPassword">사용자 접속 비밀번호</label>
-      <input id="adminLoginViewerPassword" type="password" placeholder="참가자에게 알려줄 비밀번호">
+      <select id="adminLoginEventId">
+        <option value="">대회 목록을 불러오는 중입니다</option>
+      </select>
+      <datalist id="adminEventOptions"></datalist>
       <button class="button primary" type="submit" style="width: 100%; justify-content: center; margin-top: 14px;">입장</button>
       <div class="login-error" id="adminLoginError"></div>
     </form>
@@ -577,6 +590,10 @@
         <button class="button" id="printBtn" type="button" title="현재 화면 인쇄">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
           인쇄
+        </button>
+        <button class="button" id="newTournamentBtn" type="button" title="새 대회 시작">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          새 대회
         </button>
         <button class="button primary" id="saveCloudBtn" type="button" title="Supabase에 현재 상태 저장">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v12"/><path d="M17 8l-5-5-5 5"/><path d="M5 21h14"/></svg>
@@ -642,11 +659,11 @@
         <div class="settings">
           <div>
             <label for="supabaseEventId">대회 ID</label>
-            <input id="supabaseEventId" type="text" value="main">
+            <input id="supabaseEventId" list="adminEventOptions" type="text" value="main">
           </div>
           <div>
             <label for="viewerAccessPassword">사용자 접속 비밀번호</label>
-            <input id="viewerAccessPassword" type="password" placeholder="참가자 비밀번호">
+            <input id="viewerAccessPassword" type="text" placeholder="참가자 비밀번호">
           </div>
         </div>
 
@@ -757,8 +774,7 @@
         return;
       }
       el("adminLoginId").value = config.adminId || "";
-      el("adminLoginEventId").value = localStorage.getItem("badminton_supabase_event_id") || config.eventId || "main";
-      el("adminLoginViewerPassword").value = localStorage.getItem("badminton_viewer_password") || "";
+      loadAdminEventOptions();
       el("adminLoginForm").addEventListener("submit", event => {
         event.preventDefault();
         if (!config.adminId || !config.adminPassword) {
@@ -768,20 +784,16 @@
         const id = el("adminLoginId").value.trim();
         const password = el("adminLoginPassword").value.trim();
         const eventId = el("adminLoginEventId").value.trim();
-        const viewerPassword = el("adminLoginViewerPassword").value.trim();
-        if (!eventId || !viewerPassword) {
-          el("adminLoginError").textContent = "대회 ID와 사용자 접속 비밀번호를 입력하세요.";
+        if (!eventId) {
+          el("adminLoginError").textContent = "입장할 대회를 선택하세요. 새 대회는 로그인 후 만들 수 있습니다.";
           return;
         }
         if (id === config.adminId && password === config.adminPassword) {
           sessionStorage.setItem("badminton_admin_ok", "1");
           localStorage.setItem("badminton_supabase_event_id", eventId);
-          localStorage.setItem("badminton_viewer_password", viewerPassword);
           el("supabaseEventId").value = eventId;
-          el("viewerAccessPassword").value = viewerPassword;
           document.body.classList.remove("locked");
           el("adminLoginPassword").value = "";
-          el("adminLoginViewerPassword").value = "";
           loadCloudData(true);
         } else {
           el("adminLoginError").textContent = "아이디 또는 비밀번호가 맞지 않습니다.";
@@ -1038,6 +1050,39 @@
       return { client: supabaseClient, eventId: config.eventId };
     }
 
+    async function loadAdminEventOptions() {
+      try {
+        const config = readCloudConfig();
+        if (!config.url || !config.anonKey) return;
+        const { client } = await getSupabaseClient();
+        const { data, error } = await client
+          .from("badminton_events")
+          .select("id, data, updated_at")
+          .order("updated_at", { ascending: false });
+        if (error) throw error;
+        const rows = data || [];
+        el("adminEventOptions").innerHTML = rows.map(row => {
+          const label = row.data?.ended ? `${row.id} (종료)` : row.id;
+          return `<option value="${row.id}" label="${label}"></option>`;
+        }).join("");
+        const loginSelect = el("adminLoginEventId");
+        if (loginSelect) {
+          if (!rows.length) {
+            loginSelect.innerHTML = `<option value="">생성된 대회가 없습니다</option>`;
+          } else {
+            const saved = localStorage.getItem("badminton_supabase_event_id") || "";
+            loginSelect.innerHTML = rows.map(row => {
+              const label = row.data?.ended ? `${row.id} (종료)` : row.id;
+              const selected = row.id === saved ? "selected" : "";
+              return `<option value="${row.id}" ${selected}>${label}</option>`;
+            }).join("");
+          }
+        }
+      } catch (error) {
+        el("adminLoginError").textContent = `대회 목록 불러오기 실패: ${error.message}`;
+      }
+    }
+
     function sharedPayload() {
       return {
         version: 1,
@@ -1060,6 +1105,7 @@
       state.seed = data.seed || state.seed;
       if (data.viewerPassword) {
         el("viewerAccessPassword").value = data.viewerPassword;
+        el("adminLoginViewerPassword").value = data.viewerPassword;
         localStorage.setItem("badminton_viewer_password", data.viewerPassword);
       }
       renderAll(true);
@@ -1082,6 +1128,7 @@
           });
         if (error) throw error;
         if (!silent) setMessage("서버에 저장했습니다. 사용자 화면은 새로고침하거나 실시간 연결로 최신 내용을 볼 수 있습니다.");
+        loadAdminEventOptions();
       } catch (error) {
         if (!silent) setMessage(`서버 저장 실패: ${error.message}`, true);
       }
@@ -1115,6 +1162,7 @@
           });
         if (error) throw error;
         setMessage("대회를 종료했습니다. 사용자 화면에는 더 이상 대회 내용이 표시되지 않습니다.", true);
+        loadAdminEventOptions();
       } catch (error) {
         setMessage(`대회 종료 실패: ${error.message}`, true);
       }
@@ -1173,9 +1221,34 @@
         state.results = {};
         renderAll(true);
         setMessage("서버에 저장된 대회 데이터를 삭제했습니다. 사용자 화면도 새로고침하면 빈 상태로 보입니다.", true);
+        loadAdminEventOptions();
       } catch (error) {
         setMessage(`서버 삭제 실패: ${error.message}`, true);
       }
+    }
+
+    function startNewTournament() {
+      const eventId = window.prompt("새 대회 ID를 입력하세요. 예: 2026-spring");
+      if (!eventId || !eventId.trim()) {
+        setMessage("새 대회 생성을 취소했습니다.");
+        return;
+      }
+      const viewerPassword = window.prompt("사용자 접속 비밀번호를 입력하세요.");
+      if (!viewerPassword || !viewerPassword.trim()) {
+        setMessage("사용자 접속 비밀번호가 없어 새 대회를 만들 수 없습니다.", true);
+        return;
+      }
+      state.players = [];
+      state.schedule = [];
+      state.results = {};
+      el("players").value = "";
+      el("supabaseEventId").value = eventId.trim();
+      el("viewerAccessPassword").value = viewerPassword.trim();
+      localStorage.setItem("badminton_supabase_event_id", eventId.trim());
+      localStorage.setItem("badminton_viewer_password", viewerPassword.trim());
+      renderAll(true);
+      saveCloudData(false);
+      setMessage(`새 대회 '${eventId.trim()}'를 시작했습니다. 명단을 입력하고 대진을 생성하세요.`);
     }
 
     function renderStats() {
@@ -1863,6 +1936,7 @@
       if (el("autoCloudSave").checked) saveCloudData(true);
     });
     el("printBtn").addEventListener("click", () => window.print());
+    el("newTournamentBtn").addEventListener("click", startNewTournament);
     el("saveCloudBtn").addEventListener("click", () => saveCloudData(false));
     el("loadCloudBtn").addEventListener("click", loadCloudData);
     el("deleteCloudBtn").addEventListener("click", deleteCloudData);
