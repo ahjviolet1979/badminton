@@ -651,16 +651,16 @@
       .responsive-card td {
         border-bottom: 0;
         padding: 5px 0;
-        display: flex;
-        justify-content: space-between;
+        display: grid;
+        grid-template-columns: 82px minmax(0, 1fr);
+        align-items: center;
         gap: 12px;
-        text-align: right;
+        text-align: left;
         font-size: 13px;
       }
 
       .responsive-card td::before {
         content: attr(data-label);
-        flex: 0 0 auto;
         color: var(--muted);
         font-weight: 900;
         text-align: left;
@@ -671,7 +671,7 @@
       }
 
       .responsive-card .team {
-        align-items: flex-end;
+        align-items: flex-start;
         min-width: 0;
       }
 

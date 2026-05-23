@@ -28,6 +28,13 @@ to anon
 using (true)
 with check (true);
 
+drop policy if exists "badminton_events_public_delete" on public.badminton_events;
+create policy "badminton_events_public_delete"
+on public.badminton_events
+for delete
+to anon
+using (true);
+
 do $$
 begin
   alter publication supabase_realtime add table public.badminton_events;
