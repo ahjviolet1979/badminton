@@ -619,6 +619,65 @@
       .button { justify-content: center; }
       .actions .button { width: 100%; }
       .toolbar { width: 100%; }
+
+      .responsive-card table,
+      .responsive-card thead,
+      .responsive-card tbody,
+      .responsive-card tr,
+      .responsive-card th,
+      .responsive-card td {
+        display: block;
+        width: 100%;
+        min-width: 0;
+      }
+
+      .responsive-card table {
+        min-width: 0;
+        background: transparent;
+      }
+
+      .responsive-card thead {
+        display: none;
+      }
+
+      .responsive-card tr {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+        margin: 0 0 10px;
+        padding: 8px 10px;
+      }
+
+      .responsive-card td {
+        border-bottom: 0;
+        padding: 5px 0;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        text-align: right;
+        font-size: 13px;
+      }
+
+      .responsive-card td::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        color: var(--muted);
+        font-weight: 900;
+        text-align: left;
+      }
+
+      .responsive-card td[data-label=""]::before {
+        content: "";
+      }
+
+      .responsive-card .team {
+        align-items: flex-end;
+        min-width: 0;
+      }
+
+      .responsive-card .versus {
+        display: none;
+      }
     }
   </style>
 </head>
@@ -1501,20 +1560,20 @@
         const result = state.results[match.id] || "";
         return `
           <tr>
-            <td>${match.id}</td>
-            <td><span class="badge">${match.round}R</span></td>
-            <td>${match.court}코트</td>
-            <td><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamA", 0, match.teamA[0])}</span><span class="pair">${schedulePlayerButton(match.id, "teamA", 1, match.teamA[1])}</span></div></td>
-            <td class="versus">VS</td>
-            <td><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamB", 0, match.teamB[0])}</span><span class="pair">${schedulePlayerButton(match.id, "teamB", 1, match.teamB[1])}</span></div></td>
-            <td>
+            <td data-label="경기">${match.id}</td>
+            <td data-label="라운드"><span class="badge">${match.round}R</span></td>
+            <td data-label="코트">${match.court}코트</td>
+            <td data-label="A팀"><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamA", 0, match.teamA[0])}</span><span class="pair">${schedulePlayerButton(match.id, "teamA", 1, match.teamA[1])}</span></div></td>
+            <td data-label="" class="versus">VS</td>
+            <td data-label="B팀"><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamB", 0, match.teamB[0])}</span><span class="pair">${schedulePlayerButton(match.id, "teamB", 1, match.teamB[1])}</span></div></td>
+            <td data-label="결과">
               <label class="winner"><input type="radio" name="winner-${match.id}" value="A" ${result === "A" ? "checked" : ""}> A승</label>
               <label class="winner"><input type="radio" name="winner-${match.id}" value="B" ${result === "B" ? "checked" : ""}> B승</label>
             </td>
           </tr>`;
       }).join("");
       el("scheduleOutput").innerHTML = `
-        <table>
+        <table class="responsive-card">
           <thead><tr><th>경기</th><th>라운드</th><th>코트</th><th>A팀</th><th></th><th>B팀</th><th>결과</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>`;
