@@ -250,6 +250,10 @@
       margin-top: 14px;
     }
 
+    .player-list-collapsed #players {
+      display: none;
+    }
+
     .stats {
       display: grid;
       grid-template-columns: repeat(4, minmax(120px, 1fr));
@@ -641,6 +645,7 @@
       <aside class="panel no-print">
         <h2>대회 설정</h2>
         <label for="players">출전 선수 명단</label>
+        <button class="button" id="togglePlayersBtn" type="button" style="width: 100%; justify-content: center; margin-bottom: 8px;">명단 숨기기</button>
         <textarea id="players" spellcheck="false" placeholder="한 줄에 한 명씩 입력하세요.&#10;예)&#10;김민수&#10;이지훈&#10;박서연"></textarea>
 
         <div class="settings four-cols">
@@ -2072,6 +2077,11 @@
     el("sampleBtn").addEventListener("click", () => {
       el("players").value = sampleNames.join("\n");
       el("seed").value = Math.floor(Math.random() * 900000) + 100000;
+    });
+    el("togglePlayersBtn").addEventListener("click", () => {
+      const aside = el("players").closest("aside");
+      const collapsed = aside.classList.toggle("player-list-collapsed");
+      el("togglePlayersBtn").textContent = collapsed ? "명단 보이기" : "명단 숨기기";
     });
     el("tournamentSelect").addEventListener("change", async event => {
       const nextEventId = event.target.value;
