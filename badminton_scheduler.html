@@ -1393,6 +1393,56 @@
       if (el("autoCloudSave").checked) saveCloudData(true);
     }
 
+    function applyPlayerListRenames() {
+      if (!state.schedule.length || !state.players.length) return;
+      const nextPlayers = parsePlayers();
+      if (!nextPlayers.length) {
+        el("players").value = state.players.join("\n");
+        return;
+      }
+
+      const renames = [];
+      const max = Math.min(state.players.length, nextPlayers.length);
+      for (let i = 0; i < max; i++) {
+        const before = state.players[i];
+        const after = nextPlayers[i];
+        if (before && after && before !== after) {
+          renames.push({ before, after });
+        }
+      }
+      if (!renames.length) return;
+
+      const testSchedule = state.schedule.map(match => ({
+        ...match,
+        teamA: match.teamA.slice(),
+        teamB: match.teamB.slice()
+      }));
+
+      for (const rename of renames) {
+        for (const match of testSchedule) {
+          match.teamA = match.teamA.map(name => name === rename.before ? rename.after : name);
+          match.teamB = match.teamB.map(name => name === rename.before ? rename.after : name);
+        }
+      }
+
+      const hasDuplicateMatch = testSchedule.some(match => {
+        const names = [...match.teamA, ...match.teamB].map(name => name.toLocaleLowerCase("ko-KR"));
+        return new Set(names).size !== names.length;
+      });
+
+      if (hasDuplicateMatch) {
+        window.alert("명단 변경 결과 같은 경기 안에 중복 선수가 생깁니다. 변경을 취소합니다.");
+        el("players").value = state.players.join("\n");
+        return;
+      }
+
+      state.schedule = testSchedule;
+      rebuildPlayersFromSchedule();
+      renderAll(true);
+      setMessage(`${renames.length}개 선수명을 대진 전체에 반영했습니다.`);
+      if (el("autoCloudSave").checked) saveCloudData(true);
+    }
+
     function renderSchedule() {
       if (!state.schedule.length) {
         el("scheduleOutput").className = "empty";
@@ -2082,6 +2132,7 @@
       el("players").value = sampleNames.join("\n");
       el("seed").value = Math.floor(Math.random() * 900000) + 100000;
     });
+    el("players").addEventListener("change", applyPlayerListRenames);
     el("togglePlayersBtn").addEventListener("click", () => {
       const aside = el("players").closest("aside");
       const collapsed = aside.classList.toggle("player-list-collapsed");
