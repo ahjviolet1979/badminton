@@ -1070,6 +1070,10 @@
     }
 
     async function loadAdminEventOptions() {
+      const select = el("tournamentSelect");
+      if (select) {
+        select.innerHTML = `<option value="">대회 목록을 불러오는 중입니다</option>`;
+      }
       try {
         const client = await getSupabaseClientForList();
         const { data, error } = await client
@@ -1082,7 +1086,6 @@
           const label = row.data?.ended ? `${row.id} (종료)` : row.id;
           return `<option value="${row.id}" label="${label}"></option>`;
         }).join("");
-        const select = el("tournamentSelect");
         if (select) {
           if (!rows.length) {
             select.innerHTML = `<option value="">생성된 대회가 없습니다</option>`;
@@ -1095,8 +1098,18 @@
             }).join("");
           }
         }
+        if (document.body.classList.contains("locked") === false) {
+          setMessage(rows.length ? `대회 목록 ${rows.length}개를 불러왔습니다.` : "생성된 대회가 없습니다.");
+        }
       } catch (error) {
-        el("adminLoginError").textContent = `대회 목록 불러오기 실패: ${error.message}`;
+        if (select) {
+          select.innerHTML = `<option value="">대회 목록 불러오기 실패</option>`;
+        }
+        if (document.body.classList.contains("locked")) {
+          el("adminLoginError").textContent = `대회 목록 불러오기 실패: ${error.message}`;
+        } else {
+          setMessage(`대회 목록 불러오기 실패: ${error.message}`, true);
+        }
       }
     }
 
@@ -1948,6 +1961,8 @@
       localStorage.setItem("badminton_supabase_event_id", event.target.value);
       setMessage("대회를 선택했습니다. 서버 불러오기를 누르면 해당 대회 데이터를 가져옵니다.");
     });
+    el("supabaseUrl").addEventListener("change", loadAdminEventOptions);
+    el("supabaseAnonKey").addEventListener("change", loadAdminEventOptions);
     el("generateBtn").addEventListener("click", generate);
     el("clearResultsBtn").addEventListener("click", () => {
       state.results = {};
