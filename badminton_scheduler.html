@@ -241,7 +241,7 @@
 
     .actions {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: 1fr 1fr;
       gap: 8px;
       margin-top: 14px;
     }
@@ -557,7 +557,8 @@
       h1 { font-size: 23px; }
       .settings { grid-template-columns: 1fr; }
       .stats { grid-template-columns: 1fr 1fr; }
-      .button { width: 100%; justify-content: center; }
+      .button { justify-content: center; }
+      .actions .button { width: 100%; }
       .toolbar { width: 100%; }
     }
   </style>
