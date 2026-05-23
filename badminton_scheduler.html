@@ -1143,6 +1143,7 @@
       state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
       state.results = data.results || {};
       state.seed = data.seed || state.seed;
+      el("players").value = state.players.join("\n");
       el("viewerAccessPassword").value = data.viewerPassword || "";
       localStorage.setItem("badminton_viewer_password", data.viewerPassword || "");
       renderAll(true);
