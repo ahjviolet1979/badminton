@@ -384,8 +384,49 @@
 
     #scheduleOutput th,
     #scheduleOutput td {
-      padding-left: 6px;
-      padding-right: 6px;
+      padding-left: 3px;
+      padding-right: 3px;
+      font-size: 12px;
+    }
+
+    #scheduleOutput table {
+      min-width: 0;
+      table-layout: fixed;
+    }
+
+    #scheduleOutput th:nth-child(1),
+    #scheduleOutput td:nth-child(1) { width: 34px; }
+
+    #scheduleOutput th:nth-child(2),
+    #scheduleOutput td:nth-child(2) { width: 46px; }
+
+    #scheduleOutput th:nth-child(3),
+    #scheduleOutput td:nth-child(3) { width: 48px; }
+
+    #scheduleOutput th:nth-child(5),
+    #scheduleOutput td:nth-child(5) { width: 22px; }
+
+    #scheduleOutput th:nth-child(7),
+    #scheduleOutput td:nth-child(7) { width: 92px; }
+
+    #scheduleOutput .team {
+      min-width: 0;
+    }
+
+    #scheduleOutput .pair {
+      overflow-wrap: anywhere;
+      word-break: keep-all;
+    }
+
+    #scheduleOutput .winner {
+      margin-right: 1px;
+      gap: 2px;
+      font-size: 12px;
+    }
+
+    #scheduleOutput .winner input {
+      width: 14px;
+      height: 14px;
     }
 
     .winner {
