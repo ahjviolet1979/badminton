@@ -1361,13 +1361,15 @@
       const match = state.schedule.find(item => item.id === matchId);
       if (!match) return;
       const team = match[teamKey];
-      const otherTeam = teamKey === "teamA" ? match.teamB : match.teamA;
-      const sameMatchNames = [...team, ...otherTeam].map((name, i) => ({
-        name,
-        isCurrent: i === (teamKey === "teamA" ? index : index + 2)
-      }));
-      const duplicate = sameMatchNames.some(item =>
-        !item.isCurrent && item.name.toLocaleLowerCase("ko-KR") === clean.toLocaleLowerCase("ko-KR")
+      const sameMatchSlots = [
+        { teamKey: "teamA", index: 0, name: match.teamA[0] },
+        { teamKey: "teamA", index: 1, name: match.teamA[1] },
+        { teamKey: "teamB", index: 0, name: match.teamB[0] },
+        { teamKey: "teamB", index: 1, name: match.teamB[1] }
+      ];
+      const duplicate = sameMatchSlots.some(slot =>
+        !(slot.teamKey === teamKey && slot.index === index) &&
+        slot.name.toLocaleLowerCase("ko-KR") === clean.toLocaleLowerCase("ko-KR")
       );
       if (duplicate) {
         setMessage("같은 경기 안에서는 같은 선수를 중복 배치할 수 없습니다.", true);
