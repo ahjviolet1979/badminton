@@ -349,6 +349,24 @@
       line-height: 1.25;
     }
 
+    .player-edit {
+      border: 0;
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 800;
+      line-height: 1.25;
+      text-align: left;
+      border-bottom: 1px dotted var(--accent);
+    }
+
+    .player-edit:hover {
+      color: var(--accent-dark);
+    }
+
     .versus {
       color: var(--muted);
       text-align: center;
@@ -1310,6 +1328,58 @@
       el("completeCount").textContent = Object.values(state.results).filter(Boolean).length;
     }
 
+    function schedulePlayerButton(matchId, teamKey, index, name) {
+      return `<button class="player-edit" type="button" data-match-id="${matchId}" data-team="${teamKey}" data-index="${index}" title="선수 교체">${name}</button>`;
+    }
+
+    function rebuildPlayersFromSchedule() {
+      if (!state.schedule.length) return;
+      const names = [];
+      const seen = new Set();
+      const add = name => {
+        const clean = String(name || "").trim();
+        const key = clean.toLocaleLowerCase("ko-KR");
+        if (!clean || seen.has(key)) return;
+        seen.add(key);
+        names.push(clean);
+      };
+      state.schedule.forEach(match => {
+        [...match.teamA, ...match.teamB].forEach(add);
+      });
+      state.players = names;
+      el("players").value = names.join("\n");
+    }
+
+    function replaceScheduledPlayer(matchId, teamKey, index, currentName) {
+      const nextName = window.prompt("교체할 선수 이름을 입력하세요.", currentName);
+      if (nextName === null) return;
+      const clean = nextName.trim();
+      if (!clean) {
+        setMessage("선수 이름은 비워둘 수 없습니다.", true);
+        return;
+      }
+      const match = state.schedule.find(item => item.id === matchId);
+      if (!match) return;
+      const team = match[teamKey];
+      const otherTeam = teamKey === "teamA" ? match.teamB : match.teamA;
+      const sameMatchNames = [...team, ...otherTeam].map((name, i) => ({
+        name,
+        isCurrent: i === (teamKey === "teamA" ? index : index + 2)
+      }));
+      const duplicate = sameMatchNames.some(item =>
+        !item.isCurrent && item.name.toLocaleLowerCase("ko-KR") === clean.toLocaleLowerCase("ko-KR")
+      );
+      if (duplicate) {
+        setMessage("같은 경기 안에서는 같은 선수를 중복 배치할 수 없습니다.", true);
+        return;
+      }
+      team[index] = clean;
+      rebuildPlayersFromSchedule();
+      renderAll(true);
+      setMessage(`${currentName} 선수를 ${clean}(으)로 교체했습니다. 집계를 다시 계산했습니다.`);
+      if (el("autoCloudSave").checked) saveCloudData(true);
+    }
+
     function renderSchedule() {
       if (!state.schedule.length) {
         el("scheduleOutput").className = "empty";
@@ -1324,9 +1394,9 @@
             <td>${match.id}</td>
             <td><span class="badge">${match.round}R</span></td>
             <td>${match.court}코트</td>
-            <td><div class="team"><span class="pair">${match.teamA[0]}</span><span class="pair">${match.teamA[1]}</span></div></td>
+            <td><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamA", 0, match.teamA[0])}</span><span class="pair">${schedulePlayerButton(match.id, "teamA", 1, match.teamA[1])}</span></div></td>
             <td class="versus">VS</td>
-            <td><div class="team"><span class="pair">${match.teamB[0]}</span><span class="pair">${match.teamB[1]}</span></div></td>
+            <td><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamB", 0, match.teamB[0])}</span><span class="pair">${schedulePlayerButton(match.id, "teamB", 1, match.teamB[1])}</span></div></td>
             <td>
               <label class="winner"><input type="radio" name="winner-${match.id}" value="A" ${result === "A" ? "checked" : ""}> A승</label>
               <label class="winner"><input type="radio" name="winner-${match.id}" value="B" ${result === "B" ? "checked" : ""}> B승</label>
@@ -1345,6 +1415,17 @@
           state.results[matchId] = event.target.value;
           renderAll(false);
           if (el("autoCloudSave").checked) saveCloudData(true);
+        });
+      });
+      el("scheduleOutput").querySelectorAll(".player-edit").forEach(button => {
+        button.addEventListener("click", event => {
+          const target = event.currentTarget;
+          replaceScheduledPlayer(
+            Number(target.dataset.matchId),
+            target.dataset.team,
+            Number(target.dataset.index),
+            target.textContent.trim()
+          );
         });
       });
     }
@@ -1604,6 +1685,7 @@
     }
 
     function renderAll(includeSchedule = true) {
+      if (state.schedule.length) rebuildPlayersFromSchedule();
       renderStats();
       if (includeSchedule) renderSchedule();
       renderRanking();
