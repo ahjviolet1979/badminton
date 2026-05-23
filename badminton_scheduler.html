@@ -773,6 +773,8 @@
       if (sessionStorage.getItem("badminton_admin_ok") === "1") {
         document.body.classList.remove("locked");
         const savedConfig = defaultCloudConfig();
+        el("supabaseUrl").value = savedConfig.url;
+        el("supabaseAnonKey").value = savedConfig.anonKey;
         el("supabaseEventId").value = savedConfig.eventId;
         el("viewerAccessPassword").value = localStorage.getItem("badminton_viewer_password") || "";
         window.setTimeout(() => {
@@ -1051,11 +1053,25 @@
       return { client: supabaseClient, eventId: config.eventId };
     }
 
+    async function getSupabaseClientForList() {
+      const globalConfig = window.BADMINTON_SUPABASE || {};
+      const url = el("supabaseUrl")?.value.trim() || localStorage.getItem("badminton_supabase_url") || globalConfig.url || "";
+      const anonKey = el("supabaseAnonKey")?.value.trim() || localStorage.getItem("badminton_supabase_anon_key") || globalConfig.anonKey || "";
+      if (!url || !anonKey) throw new Error("Supabase URL과 anon key가 필요합니다.");
+      if (!supabaseClient || supabaseClient.__url !== url || supabaseClient.__key !== anonKey) {
+        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+        supabaseClient = createClient(url, anonKey);
+        supabaseClient.__url = url;
+        supabaseClient.__key = anonKey;
+      }
+      localStorage.setItem("badminton_supabase_url", url);
+      localStorage.setItem("badminton_supabase_anon_key", anonKey);
+      return supabaseClient;
+    }
+
     async function loadAdminEventOptions() {
       try {
-        const config = readCloudConfig();
-        if (!config.url || !config.anonKey) return;
-        const { client } = await getSupabaseClient();
+        const client = await getSupabaseClientForList();
         const { data, error } = await client
           .from("badminton_events")
           .select("id, data, updated_at")
