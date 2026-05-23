@@ -1254,11 +1254,15 @@
       }
       try {
         const { client } = await getSupabaseClient();
-        const { error } = await client
+        const { data, error } = await client
           .from("badminton_events")
           .delete()
-          .eq("id", eventId);
+          .eq("id", eventId)
+          .select("id");
         if (error) throw error;
+        if (!data || !data.length) {
+          throw new Error("삭제된 데이터가 없습니다. Supabase delete 정책을 확인하세요.");
+        }
         state.players = [];
         state.schedule = [];
         state.results = {};
