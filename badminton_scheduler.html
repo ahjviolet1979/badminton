@@ -660,10 +660,10 @@
         </div>
 
         <label for="supabaseUrl">Supabase URL</label>
-        <input id="supabaseUrl" type="text" placeholder="https://프로젝트.supabase.co">
+        <input id="supabaseUrl" type="text" placeholder="https://프로젝트.supabase.co" readonly>
 
         <label for="supabaseAnonKey">Supabase anon key</label>
-        <input id="supabaseAnonKey" type="password" placeholder="eyJhbGciOi...">
+        <input id="supabaseAnonKey" type="password" placeholder="eyJhbGciOi..." readonly>
 
         <div class="settings">
           <div>
@@ -1086,8 +1086,13 @@
           .order("updated_at", { ascending: false });
         if (error) throw error;
         const rows = data || [];
+        const labelForEvent = row => {
+          if (row.data?.ended) return `${row.id} (종료)`;
+          if (!row.data?.viewerPassword) return `${row.id} (진행중/비번 없음)`;
+          return `${row.id} (진행중)`;
+        };
         el("adminEventOptions").innerHTML = rows.map(row => {
-          const label = row.data?.ended ? `${row.id} (종료)` : row.id;
+          const label = labelForEvent(row);
           return `<option value="${row.id}" label="${label}"></option>`;
         }).join("");
         if (select) {
@@ -1096,14 +1101,18 @@
           } else {
             const current = el("supabaseEventId").value || localStorage.getItem("badminton_supabase_event_id") || "";
             select.innerHTML = `<option value="">대회 선택</option>` + rows.map(row => {
-              const label = row.data?.ended ? `${row.id} (종료)` : row.id;
+              const label = labelForEvent(row);
               const selected = row.id === current ? "selected" : "";
               return `<option value="${row.id}" ${selected}>${label}</option>`;
             }).join("");
           }
         }
         if (document.body.classList.contains("locked") === false) {
-          setMessage(rows.length ? `대회 목록 ${rows.length}개를 불러왔습니다.` : "생성된 대회가 없습니다.");
+          const activeCount = rows.filter(row => row.data?.ended !== true).length;
+          const endedCount = rows.length - activeCount;
+          const visibleCount = rows.filter(row => row.data?.ended !== true && row.data?.viewerPassword).length;
+          const missingPasswordCount = activeCount - visibleCount;
+          setMessage(rows.length ? `대회 목록 ${rows.length}개를 불러왔습니다. 진행중 ${activeCount}개, 사용자 표시 ${visibleCount}개, 비번 없음 ${missingPasswordCount}개, 종료 ${endedCount}개입니다.` : "생성된 대회가 없습니다.");
         }
       } catch (error) {
         if (select) {
@@ -1137,11 +1146,8 @@
       state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
       state.results = data.results || {};
       state.seed = data.seed || state.seed;
-      if (data.viewerPassword) {
-        el("viewerAccessPassword").value = data.viewerPassword;
-        el("adminLoginViewerPassword").value = data.viewerPassword;
-        localStorage.setItem("badminton_viewer_password", data.viewerPassword);
-      }
+      el("viewerAccessPassword").value = data.viewerPassword || "";
+      localStorage.setItem("badminton_viewer_password", data.viewerPassword || "");
       renderAll(true);
     }
 
@@ -1971,10 +1977,8 @@
       if (!event.target.value) return;
       el("supabaseEventId").value = event.target.value;
       localStorage.setItem("badminton_supabase_event_id", event.target.value);
-      setMessage("대회를 선택했습니다. 서버 불러오기를 누르면 해당 대회 데이터를 가져옵니다.");
+      loadCloudData(false);
     });
-    el("supabaseUrl").addEventListener("change", loadAdminEventOptions);
-    el("supabaseAnonKey").addEventListener("change", loadAdminEventOptions);
     el("generateBtn").addEventListener("click", generate);
     el("clearResultsBtn").addEventListener("click", () => {
       state.results = {};
