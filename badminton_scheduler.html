@@ -1262,9 +1262,14 @@
         state.players = [];
         state.schedule = [];
         state.results = {};
+        el("players").value = "";
+        el("supabaseEventId").value = "";
+        el("viewerAccessPassword").value = "";
+        localStorage.removeItem("badminton_supabase_event_id");
+        localStorage.removeItem("badminton_viewer_password");
         renderAll(true);
         setMessage("서버에 저장된 대회 데이터를 삭제했습니다. 사용자 화면도 새로고침하면 빈 상태로 보입니다.", true);
-        loadAdminEventOptions();
+        await loadAdminEventOptions();
       } catch (error) {
         setMessage(`서버 삭제 실패: ${error.message}`, true);
       }
