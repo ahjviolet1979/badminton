@@ -188,7 +188,7 @@
 
     .stats {
       display: grid;
-      grid-template-columns: repeat(4, minmax(120px, 1fr));
+      grid-template-columns: repeat(5, minmax(100px, 1fr));
       gap: 10px;
       margin-bottom: 14px;
     }
@@ -438,6 +438,7 @@
         <div class="stat"><b id="matchCount">0</b><span>경기</span></div>
         <div class="stat"><b id="roundCount">0</b><span>라운드</span></div>
         <div class="stat"><b id="completeCount">0</b><span>결과 입력</span></div>
+        <div class="stat"><b id="winnerCount">A 0 / B 0</b><span>승리팀</span></div>
       </div>
 
       <div class="view active" id="scheduleView">
@@ -543,6 +544,9 @@
       el("matchCount").textContent = state.schedule.length;
       el("roundCount").textContent = state.schedule.length ? Math.max(...state.schedule.map(match => match.round)) : 0;
       el("completeCount").textContent = Object.values(state.results).filter(Boolean).length;
+      const aWins = Object.values(state.results).filter(value => value === "A").length;
+      const bWins = Object.values(state.results).filter(value => value === "B").length;
+      el("winnerCount").textContent = `A ${aWins} / B ${bWins}`;
     }
 
     function renderSchedule() {
