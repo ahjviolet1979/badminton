@@ -598,7 +598,24 @@
     @media (max-width: 540px) {
       h1 { font-size: 23px; }
       .settings { grid-template-columns: 1fr; }
-      .stats { grid-template-columns: 1fr 1fr; }
+      .stats {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+        gap: 4px;
+      }
+      .stat {
+        min-height: 48px;
+        padding: 7px 5px;
+      }
+      .stat b {
+        font-size: 15px;
+        line-height: 1.1;
+        white-space: nowrap;
+      }
+      .stat span {
+        margin-top: 4px;
+        font-size: 10px;
+        white-space: nowrap;
+      }
       .button { justify-content: center; }
       .actions .button { width: 100%; }
       .toolbar { width: 100%; }
