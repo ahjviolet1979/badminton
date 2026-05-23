@@ -273,38 +273,18 @@
 
     #scheduleOutput th,
     #scheduleOutput td {
-      padding-left: 3px;
-      padding-right: 3px;
-      font-size: 12px;
+      padding-left: 6px;
+      padding-right: 6px;
     }
 
-    #scheduleOutput table {
-      min-width: 0;
-      table-layout: fixed;
+    #scheduleOutput td:nth-child(4),
+    #scheduleOutput td:nth-child(6) {
+      padding-right: 1px;
     }
 
-    #scheduleOutput th:nth-child(1),
-    #scheduleOutput td:nth-child(1) { width: 34px; }
-
-    #scheduleOutput th:nth-child(2),
-    #scheduleOutput td:nth-child(2) { width: 46px; }
-
-    #scheduleOutput th:nth-child(3),
-    #scheduleOutput td:nth-child(3) { width: 48px; }
-
-    #scheduleOutput th:nth-child(5),
-    #scheduleOutput td:nth-child(5) { width: 22px; }
-
-    #scheduleOutput th:nth-child(7),
-    #scheduleOutput td:nth-child(7) { width: 70px; }
-
-    #scheduleOutput .team {
-      min-width: 0;
-    }
-
-    #scheduleOutput .pair {
-      overflow-wrap: anywhere;
-      word-break: keep-all;
+    #scheduleOutput td:nth-child(4) .team,
+    #scheduleOutput td:nth-child(6) .team {
+      min-width: 76px;
     }
 
     .team-cell {
