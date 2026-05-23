@@ -185,6 +185,10 @@
       gap: 10px;
     }
 
+    .settings .full-row {
+      grid-column: 1 / -1;
+    }
+
     .checkrow {
       display: flex;
       align-items: center;
@@ -647,7 +651,7 @@
         </div>
 
         <div class="settings">
-          <div>
+          <div class="full-row">
             <label for="tournamentSelect">대회 선택</label>
             <select id="tournamentSelect">
               <option value="">대회 목록을 불러오는 중입니다</option>
@@ -1165,9 +1169,13 @@
     }
 
     async function endTournament() {
-      const confirmText = "종료";
-      const input = window.prompt(`대회를 종료하면 사용자 화면에서 대회 내용이 보이지 않습니다. 계속하려면 '${confirmText}'라고 입력하세요.`);
-      if (input !== confirmText) {
+      const eventId = el("supabaseEventId").value.trim();
+      if (!eventId) {
+        setMessage("종료할 대회 ID를 먼저 선택하세요.", true);
+        return;
+      }
+      const ok = window.confirm(`대회 ID '${eventId}'를 종료하시겠습니까?\n\n대회를 종료하면 다시 시작할 수 없습니다.`);
+      if (!ok) {
         setMessage("대회 종료를 취소했습니다.");
         return;
       }
@@ -1230,14 +1238,18 @@
     }
 
     async function deleteCloudData() {
-      const confirmText = "삭제";
-      const input = window.prompt(`서버에 저장된 대회 데이터를 삭제합니다. 계속하려면 '${confirmText}'라고 입력하세요.`);
-      if (input !== confirmText) {
+      const eventId = el("supabaseEventId").value.trim();
+      if (!eventId) {
+        setMessage("삭제할 대회 ID를 먼저 선택하세요.", true);
+        return;
+      }
+      const ok = window.confirm(`대회 ID '${eventId}'를 삭제하시겠습니까?\n\n삭제하면 이 대회 데이터는 다시 불러올 수 없습니다.`);
+      if (!ok) {
         setMessage("서버 삭제를 취소했습니다.");
         return;
       }
       try {
-        const { client, eventId } = await getSupabaseClient();
+        const { client } = await getSupabaseClient();
         const { error } = await client
           .from("badminton_events")
           .delete()
