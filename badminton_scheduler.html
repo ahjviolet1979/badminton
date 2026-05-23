@@ -1010,8 +1010,8 @@
     function defaultCloudConfig() {
       const globalConfig = window.BADMINTON_SUPABASE || {};
       return {
-        url: localStorage.getItem("badminton_supabase_url") || globalConfig.url || "",
-        anonKey: localStorage.getItem("badminton_supabase_anon_key") || globalConfig.anonKey || "",
+        url: globalConfig.url || localStorage.getItem("badminton_supabase_url") || "",
+        anonKey: globalConfig.anonKey || localStorage.getItem("badminton_supabase_anon_key") || "",
         eventId: localStorage.getItem("badminton_supabase_event_id") || globalConfig.eventId || "main",
         viewerPassword: localStorage.getItem("badminton_viewer_password") || ""
       };
@@ -1055,8 +1055,8 @@
 
     async function getSupabaseClientForList() {
       const globalConfig = window.BADMINTON_SUPABASE || {};
-      const url = el("supabaseUrl")?.value.trim() || localStorage.getItem("badminton_supabase_url") || globalConfig.url || "";
-      const anonKey = el("supabaseAnonKey")?.value.trim() || localStorage.getItem("badminton_supabase_anon_key") || globalConfig.anonKey || "";
+      const url = globalConfig.url || el("supabaseUrl")?.value.trim() || localStorage.getItem("badminton_supabase_url") || "";
+      const anonKey = globalConfig.anonKey || el("supabaseAnonKey")?.value.trim() || localStorage.getItem("badminton_supabase_anon_key") || "";
       if (!url || !anonKey) throw new Error("Supabase URL과 anon key가 필요합니다.");
       if (!supabaseClient || supabaseClient.__url !== url || supabaseClient.__key !== anonKey) {
         const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
