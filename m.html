@@ -247,7 +247,7 @@
       border-radius: 8px;
       padding: 9px;
       display: grid;
-      grid-template-columns: 42px 1fr;
+      grid-template-columns: 42px 1fr 28px;
       gap: 8px;
       align-items: center;
     }
@@ -270,19 +270,44 @@
       word-break: keep-all;
     }
 
-    .result {
-      margin-top: 10px;
-      display: inline-flex;
+    .win-mark {
+      min-height: 24px;
+      display: inline-grid;
+      place-items: center;
       border-radius: 999px;
-      padding: 4px 10px;
       font-size: 12px;
       font-weight: 900;
-      background: #fffbeb;
-      color: var(--warn);
+      background: var(--accent);
+      color: #fff;
     }
 
-    .result.a { background: #dbeafe; color: var(--blue); }
-    .result.b { background: #fce7f3; color: var(--pink); }
+    .rank-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .rank-row {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      gap: 8px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .rank-no {
+      color: var(--accent);
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .record {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
 
     .player-picker {
       margin-bottom: 10px;
@@ -375,24 +400,20 @@
 
     <div class="tabs">
       <button class="tab active" data-view="scheduleView" type="button">대진</button>
-      <button class="tab" data-view="mineView" type="button">내 기록</button>
-      <button class="tab" data-view="playersView" type="button">전체</button>
+      <button class="tab" data-view="playersView" type="button">선수기록</button>
+      <button class="tab" data-view="rankingView" type="button">대회기록</button>
     </div>
 
     <section class="view active" id="scheduleView">
       <div id="scheduleOutput" class="empty">대진 데이터를 기다리고 있습니다.</div>
     </section>
 
-    <section class="view" id="mineView">
-      <div class="section">
-        <h2 class="section-title">내 기록</h2>
-        <select class="player-picker" id="playerSelect"></select>
-        <div id="mineOutput" class="empty">선수를 선택하세요.</div>
-      </div>
-    </section>
-
     <section class="view" id="playersView">
       <div id="playersOutput" class="empty">선수별 데이터를 기다리고 있습니다.</div>
+    </section>
+
+    <section class="view" id="rankingView">
+      <div id="rankingOutput" class="empty">개인순위 데이터를 기다리고 있습니다.</div>
     </section>
   </main>
 
@@ -502,17 +523,17 @@
           { code: "B", label: "B팀", players: match.teamB, opponents: match.teamA }
         ];
         for (const team of teams) {
-          const status = !result ? "미입력" : result === team.code ? "승" : "패";
+          const status = !result ? "미진행" : result === team.code ? "승" : "패";
           for (const player of team.players) {
             if (!stats.has(player)) {
               stats.set(player, { name: player, games: 0, wins: 0, losses: 0, pending: 0, partners: new Map(), matches: [] });
             }
-            const partner = team.players.find(name => name !== player);
+            const partner = team.players.find(name => name !== player) || "";
             const row = stats.get(player);
             row.games++;
             if (status === "승") row.wins++;
             if (status === "패") row.losses++;
-            if (status === "미입력") row.pending++;
+            if (status === "미진행") row.pending++;
             row.partners.set(partner, (row.partners.get(partner) || 0) + 1);
             row.matches.push({
               id: match.id,
@@ -532,13 +553,21 @@
       if (matches.length <= 1) return ["첫 출전만 있음"];
       return matches.slice(1).map((match, index) => {
         const prev = matches[index];
-        return `${prev.id}->${match.id}경기 사이 ${match.id - prev.id - 1}게임 쉼`;
+        return prev.id + "->" + match.id + "경기 사이 " + (match.id - prev.id - 1) + "게임 쉼";
       });
     }
 
-    function partnerLines(partners) {
-      const rows = [...partners.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"));
-      return rows.length ? rows.map(([name, count]) => `${name} (${count}회)`) : ["없음"];
+    function partnerDetailLines(row) {
+      const grouped = new Map();
+      for (const match of row.matches) {
+        if (!grouped.has(match.partner)) grouped.set(match.partner, []);
+        grouped.get(match.partner).push(match);
+      }
+      const rows = [...grouped.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "ko-KR"));
+      return rows.length ? rows.map(([partner, matches]) => {
+        const details = matches.map(match => match.opponents + " - " + match.status).join(", ");
+        return partner + "(" + matches.length + "회) : " + details;
+      }) : ["파트너 기록 없음"];
     }
 
     function renderStats() {
@@ -546,8 +575,8 @@
       el("matchCount").textContent = state.schedule.length;
       el("roundCount").textContent = state.schedule.length ? Math.max(...state.schedule.map(m => m.round)) : 0;
       el("completeCount").textContent = Object.values(state.results).filter(Boolean).length;
-      const updated = state.updatedAt ? new Date(state.updatedAt).toLocaleString("ko-KR") : "알 수 없음";
-      el("statusText").textContent = `마지막 업데이트: ${updated}`;
+      const updated = state.updatedAt ? new Date(state.updatedAt).toLocaleString("ko-KR") : "기록 없음";
+      el("statusText").textContent = "마지막 업데이트: " + updated;
     }
 
     function renderSchedule() {
@@ -559,53 +588,23 @@
       el("scheduleOutput").className = "match-list";
       el("scheduleOutput").innerHTML = state.schedule.map(match => {
         const result = state.results[match.id] || "";
-        return `
-          <article class="match-card">
-            <div class="match-head">
-              <span>${match.id}경기 · ${match.round}R · ${match.court}코트</span>
-            </div>
-            <div class="teams">
-              <div class="team-row ${result === "A" ? "win-a" : ""}">
-                <div class="team-label">A팀</div>
-                <div class="names">${match.teamA[0]} / ${match.teamA[1]}</div>
-              </div>
-              <div class="team-row ${result === "B" ? "win-b" : ""}">
-                <div class="team-label">B팀</div>
-                <div class="names">${match.teamB[0]} / ${match.teamB[1]}</div>
-              </div>
-            </div>
-            <span class="result ${result === "A" ? "a" : result === "B" ? "b" : ""}">${resultText(result)}</span>
-          </article>`;
+        return '<article class="match-card">' +
+          '<div class="match-head"><span>' + match.id + '경기 · ' + match.round + 'R · ' + match.court + '코트</span></div>' +
+          '<div class="teams">' +
+          '<div class="team-row ' + (result === "A" ? "win-a" : "") + '"><div class="team-label">A팀</div><div class="names">' + match.teamA[0] + ' / ' + match.teamA[1] + '</div><div>' + (result === "A" ? '<span class="win-mark">승</span>' : '') + '</div></div>' +
+          '<div class="team-row ' + (result === "B" ? "win-b" : "") + '"><div class="team-label">B팀</div><div class="names">' + match.teamB[0] + ' / ' + match.teamB[1] + '</div><div>' + (result === "B" ? '<span class="win-mark">승</span>' : '') + '</div></div>' +
+          '</div></article>';
       }).join("");
     }
 
-    function renderPlayerSelect(stats) {
-      const current = el("playerSelect").value || stats[0]?.name || "";
-      el("playerSelect").innerHTML = stats.map(row => `<option value="${row.name}" ${row.name === current ? "selected" : ""}>${row.name}</option>`).join("");
-    }
-
     function playerCard(row) {
-      return `
-        <article class="player-card">
-          <h3 class="section-title">${row.name}</h3>
-          <div class="mini-grid">
-            <div class="mini"><b>${row.games}</b><span>경기</span></div>
-            <div class="mini"><b>${row.wins}</b><span>승</span></div>
-            <div class="mini"><b>${row.losses}</b><span>패</span></div>
-          </div>
-          <b>파트너</b>
-          <ul class="line-list">${partnerLines(row.partners).map(line => `<li>${line}</li>`).join("")}</ul>
-          <b style="display:block;margin-top:10px;">휴식 텀</b>
-          <ul class="line-list">${restGaps(row.matches).map(line => `<li>${line}</li>`).join("")}</ul>
-        </article>`;
-    }
-
-    function renderMine(stats) {
-      renderPlayerSelect(stats);
-      const selected = el("playerSelect").value || stats[0]?.name;
-      const row = stats.find(item => item.name === selected);
-      el("mineOutput").className = row ? "" : "empty";
-      el("mineOutput").innerHTML = row ? playerCard(row) : "선수를 선택하세요.";
+      return '<article class="player-card">' +
+        '<h3 class="section-title">' + row.name + ' (' + row.games + '경기/' + row.wins + '승/' + row.losses + '패/미진행' + row.pending + ')</h3>' +
+        '<b>파트너</b>' +
+        '<ul class="line-list">' + partnerDetailLines(row).map(line => '<li>' + line + '</li>').join("") + '</ul>' +
+        '<b style="display:block;margin-top:10px;">휴식 텀</b>' +
+        '<ul class="line-list">' + restGaps(row.matches).map(line => '<li>' + line + '</li>').join("") + '</ul>' +
+        '</article>';
     }
 
     function renderPlayers(stats) {
@@ -618,12 +617,30 @@
       el("playersOutput").innerHTML = stats.map(playerCard).join("");
     }
 
+    function renderRanking(stats) {
+      if (!stats.length) {
+        el("rankingOutput").className = "empty";
+        el("rankingOutput").textContent = "개인순위 데이터가 아직 없습니다.";
+        return;
+      }
+      const ranked = [...stats].sort((a, b) =>
+        b.wins - a.wins ||
+        a.losses - b.losses ||
+        b.games - a.games ||
+        a.name.localeCompare(b.name, "ko-KR")
+      );
+      el("rankingOutput").className = "rank-list";
+      el("rankingOutput").innerHTML = ranked.map((row, index) =>
+        '<div class="rank-row"><div class="rank-no">' + (index + 1) + '</div><strong>' + row.name + '</strong><div class="record">' + row.games + '경기 ' + row.wins + '승 ' + row.losses + '패 미진행' + row.pending + '</div></div>'
+      ).join("");
+    }
+
     function renderAll() {
       const stats = statsForPlayers();
       renderStats();
       renderSchedule();
-      renderMine(stats);
       renderPlayers(stats);
+      renderRanking(stats);
     }
 
     async function loadData() {
@@ -671,7 +688,6 @@
     el("loginForm").addEventListener("submit", login);
     el("reloadBtn").addEventListener("click", loadData);
     el("logoutBtn").addEventListener("click", logout);
-    el("playerSelect").addEventListener("change", () => renderMine(statsForPlayers()));
 
     if (sessionStorage.getItem("badminton_mobile_ok") === "1") {
       document.body.classList.remove("locked");
