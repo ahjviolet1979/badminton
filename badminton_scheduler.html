@@ -599,7 +599,10 @@
       header { align-items: start; flex-direction: column; }
       .toolbar { justify-content: flex-start; }
       .grid { grid-template-columns: 1fr; }
-      .stats { grid-template-columns: repeat(2, 1fr); }
+      .stats { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+      .stat { min-height: 58px; padding: 9px 7px; }
+      .stat b { font-size: 18px; white-space: nowrap; }
+      .stat span { font-size: 11px; white-space: nowrap; }
     }
 
     @media (max-width: 540px) {
