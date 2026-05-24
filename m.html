@@ -222,8 +222,58 @@
       gap: 9px;
     }
 
-    .match-card, .player-card {
+    .match-card {
       padding: 12px;
+    }
+
+    .player-card {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .player-head {
+      display: grid;
+      grid-template-columns: 88px 1fr;
+      align-items: center;
+      background: #fde7d8;
+      border-bottom: 1px solid #f4cfba;
+    }
+
+    .player-name {
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      padding: 7px 9px;
+      background: #edf8df;
+      font-size: 15px;
+      font-weight: 900;
+    }
+
+    .player-record {
+      padding: 7px 9px;
+      font-size: 15px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .player-block {
+      padding: 7px 9px 8px;
+      border-bottom: 1px solid rgba(18, 32, 25, 0.08);
+    }
+
+    .player-block.partner {
+      background: #e4f3ff;
+    }
+
+    .player-block.rest {
+      background: #fff3c9;
+      border-bottom: 0;
+    }
+
+    .player-block-title {
+      margin-bottom: 5px;
+      font-size: 13px;
+      font-weight: 900;
     }
 
     .match-head {
@@ -281,39 +331,44 @@
       color: #fff;
     }
 
-    .record-list {
+    .rank-list {
       display: grid;
       gap: 8px;
     }
 
-    .record-card {
+    .rank-row {
       display: grid;
-      gap: 7px;
+      grid-template-columns: 30px 1fr auto;
+      gap: 8px;
+      align-items: center;
       padding: 10px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
     }
 
-    .record-title {
+    .rank-main {
       display: flex;
-      justify-content: space-between;
-      gap: 8px;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 900;
+      flex-direction: column;
+      gap: 3px;
     }
 
-    .record-teams {
-      display: grid;
-      gap: 4px;
-      font-size: 13px;
-      font-weight: 900;
-    }
-
-    .record-result {
+    .rank-no {
       color: var(--accent);
       font-weight: 900;
+      text-align: center;
+    }
+
+    .rank-name {
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .rank-sub, .rank-rate {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
     }
 
     .player-picker {
@@ -349,9 +404,10 @@
 
     .line-list {
       margin: 0;
-      padding-left: 18px;
-      line-height: 1.7;
-      font-size: 13px;
+      padding-left: 0;
+      list-style: none;
+      line-height: 1.65;
+      font-size: 14px;
       font-weight: 800;
     }
 
@@ -420,7 +476,7 @@
     </section>
 
     <section class="view" id="rankingView">
-      <div id="rankingOutput" class="empty">경기기록 데이터를 기다리고 있습니다.</div>
+      <div id="rankingOutput" class="empty">개인순위 데이터를 기다리고 있습니다.</div>
     </section>
   </main>
 
@@ -606,11 +662,18 @@
 
     function playerCard(row) {
       return '<article class="player-card">' +
-        '<h3 class="section-title">' + row.name + ' (' + row.games + '경기/' + row.wins + '승/' + row.losses + '패/미진행' + row.pending + ')</h3>' +
-        '<b>파트너</b>' +
+        '<div class="player-head">' +
+        '<div class="player-name">' + row.name + '</div>' +
+        '<div class="player-record">' + row.games + '경기/' + row.wins + '승/' + row.losses + '패/' + row.pending + '미진행</div>' +
+        '</div>' +
+        '<div class="player-block partner">' +
+        '<div class="player-block-title">* 파트너별 기록</div>' +
         '<ul class="line-list">' + partnerDetailLines(row).map(line => '<li>' + line + '</li>').join("") + '</ul>' +
-        '<b style="display:block;margin-top:10px;">휴식 텀</b>' +
+        '</div>' +
+        '<div class="player-block rest">' +
+        '<div class="player-block-title">* 게임한 휴식텀</div>' +
         '<ul class="line-list">' + restGaps(row.matches).map(line => '<li>' + line + '</li>').join("") + '</ul>' +
+        '</div>' +
         '</article>';
     }
 
@@ -624,26 +687,31 @@
       el("playersOutput").innerHTML = stats.map(playerCard).join("");
     }
 
-    function renderTournamentRecords() {
-      if (!state.schedule.length) {
+    function renderRanking(stats) {
+      if (!stats.length) {
         el("rankingOutput").className = "empty";
-        el("rankingOutput").textContent = "경기기록 데이터가 아직 없습니다.";
+        el("rankingOutput").textContent = "개인순위 데이터가 아직 없습니다.";
         return;
       }
-      el("rankingOutput").className = "record-list";
-      el("rankingOutput").innerHTML = state.schedule.map(match => {
-        const result = state.results[match.id] || "";
-        const resultLabel = result ? result + "팀 승" : "미진행";
-        return '<article class="record-card">' +
-          '<div class="record-title"><span>' + match.id + '경기</span><span>' + match.round + 'R · ' + match.court + '코트</span></div>' +
-          '<div class="record-teams">' +
-          '<div>A팀 ' + match.teamA[0] + ' / ' + match.teamA[1] + '</div>' +
-          '<div>B팀 ' + match.teamB[0] + ' / ' + match.teamB[1] + '</div>' +
+      const ranked = [...stats].sort((a, b) =>
+        b.wins - a.wins ||
+        a.losses - b.losses ||
+        b.games - a.games ||
+        b.partners.size - a.partners.size ||
+        a.name.localeCompare(b.name, "ko-KR")
+      );
+      el("rankingOutput").className = "rank-list";
+      el("rankingOutput").innerHTML = ranked.map((row, index) => {
+        const winRate = row.games ? Math.round((row.wins / row.games) * 100) : 0;
+        return '<div class="rank-row">' +
+          '<div class="rank-no">' + (index + 1) + '</div>' +
+          '<div class="rank-main">' +
+          '<div class="rank-name">' + row.name + '</div>' +
+          '<div class="rank-sub">' + row.games + '경기 · ' + row.wins + '승 · ' + row.losses + '패 · 파트너 ' + row.partners.size + '</div>' +
           '</div>' +
-          '<div class="record-result">결과: ' + resultLabel + '</div>' +
-          '</article>';
-      }
-      ).join("");
+          '<div class="rank-rate">' + winRate + '%</div>' +
+          '</div>';
+      }).join("");
     }
 
     function renderAll() {
@@ -651,7 +719,7 @@
       renderStats();
       renderSchedule();
       renderPlayers(stats);
-      renderTournamentRecords();
+      renderRanking(stats);
     }
 
     async function loadData() {
