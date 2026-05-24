@@ -183,6 +183,25 @@
       white-space: nowrap;
     }
 
+    .player-search {
+      margin: 8px 0 6px;
+    }
+
+    .player-search input {
+      width: 100%;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 11px;
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .player-search input::placeholder {
+      color: #8a9a91;
+    }
+
     .tabs {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -502,6 +521,10 @@
       <div class="chip"><b id="winnerCount">A 0 / B 0</b><span>승리팀</span></div>
     </div>
 
+    <div class="player-search">
+      <input id="playerSearch" type="search" placeholder="선수 이름 검색" autocomplete="off">
+    </div>
+
     <div class="tabs">
       <button class="tab active" data-view="scheduleView" type="button">대진</button>
       <button class="tab" data-view="playersView" type="button">출전이력</button>
@@ -686,14 +709,27 @@
       el("statusText").textContent = "마지막 업데이트: " + updated;
     }
 
+    function searchText() {
+      return (el("playerSearch")?.value || "").trim().toLowerCase();
+    }
+
     function renderSchedule() {
       if (!state.schedule.length) {
         el("scheduleOutput").className = "empty";
         el("scheduleOutput").textContent = "대진 데이터가 아직 없습니다.";
         return;
       }
+      const search = searchText();
+      const schedule = search
+        ? state.schedule.filter(match => [...match.teamA, ...match.teamB].some(name => name.toLowerCase().includes(search)))
+        : state.schedule;
+      if (!schedule.length) {
+        el("scheduleOutput").className = "empty";
+        el("scheduleOutput").textContent = "검색된 선수의 대진이 없습니다.";
+        return;
+      }
       el("scheduleOutput").className = "match-list";
-      el("scheduleOutput").innerHTML = state.schedule.map(match => {
+      el("scheduleOutput").innerHTML = schedule.map(match => {
         const result = state.results[match.id] || "";
         return '<article class="match-card">' +
           '<div class="match-head"><span>' + match.id + '경기 · ' + match.round + 'R · ' + match.court + '코트</span></div>' +
@@ -722,13 +758,20 @@
     }
 
     function renderPlayers(stats) {
+      const search = searchText();
+      const visibleStats = search ? stats.filter(row => row.name.toLowerCase().includes(search)) : stats;
       if (!stats.length) {
         el("playersOutput").className = "empty";
         el("playersOutput").textContent = "선수 데이터가 아직 없습니다.";
         return;
       }
+      if (!visibleStats.length) {
+        el("playersOutput").className = "empty";
+        el("playersOutput").textContent = "검색된 선수의 출전이력이 없습니다.";
+        return;
+      }
       el("playersOutput").className = "player-list";
-      el("playersOutput").innerHTML = stats.map(playerCard).join("");
+      el("playersOutput").innerHTML = visibleStats.map(playerCard).join("");
     }
 
     function renderRanking(stats) {
@@ -744,8 +787,16 @@
         b.partners.size - a.partners.size ||
         a.name.localeCompare(b.name, "ko-KR")
       );
+      const search = searchText();
+      const visibleRanked = search ? ranked.filter(row => row.name.toLowerCase().includes(search)) : ranked;
+      if (!visibleRanked.length) {
+        el("rankingOutput").className = "empty";
+        el("rankingOutput").textContent = "검색된 선수의 개인순위가 없습니다.";
+        return;
+      }
       el("rankingOutput").className = "rank-list";
-      el("rankingOutput").innerHTML = ranked.map((row, index) => {
+      el("rankingOutput").innerHTML = visibleRanked.map(row => {
+        const index = ranked.findIndex(item => item.name === row.name);
         const winRate = row.games ? Math.round((row.wins / row.games) * 100) : 0;
         return '<div class="rank-row top-' + (index + 1) + '">' +
           '<div class="rank-no">' + (index + 1) + '</div>' +
@@ -810,6 +861,7 @@
     el("loginForm").addEventListener("submit", login);
     el("reloadBtn").addEventListener("click", loadData);
     el("logoutBtn").addEventListener("click", logout);
+    el("playerSearch").addEventListener("input", renderAll);
 
     if (sessionStorage.getItem("badminton_mobile_ok") === "1") {
       document.body.classList.remove("locked");
