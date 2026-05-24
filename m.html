@@ -281,31 +281,38 @@
       color: #fff;
     }
 
-    .rank-list {
+    .record-list {
       display: grid;
       gap: 8px;
     }
 
-    .rank-row {
+    .record-card {
       display: grid;
-      grid-template-columns: 34px 1fr auto;
-      gap: 8px;
-      align-items: center;
+      gap: 7px;
       padding: 10px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
     }
 
-    .rank-no {
-      color: var(--accent);
-      font-weight: 900;
-      text-align: center;
-    }
-
-    .record {
+    .record-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
       color: var(--muted);
       font-size: 12px;
+      font-weight: 900;
+    }
+
+    .record-teams {
+      display: grid;
+      gap: 4px;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .record-result {
+      color: var(--accent);
       font-weight: 900;
     }
 
@@ -413,7 +420,7 @@
     </section>
 
     <section class="view" id="rankingView">
-      <div id="rankingOutput" class="empty">개인순위 데이터를 기다리고 있습니다.</div>
+      <div id="rankingOutput" class="empty">경기기록 데이터를 기다리고 있습니다.</div>
     </section>
   </main>
 
@@ -617,21 +624,25 @@
       el("playersOutput").innerHTML = stats.map(playerCard).join("");
     }
 
-    function renderRanking(stats) {
-      if (!stats.length) {
+    function renderTournamentRecords() {
+      if (!state.schedule.length) {
         el("rankingOutput").className = "empty";
-        el("rankingOutput").textContent = "개인순위 데이터가 아직 없습니다.";
+        el("rankingOutput").textContent = "경기기록 데이터가 아직 없습니다.";
         return;
       }
-      const ranked = [...stats].sort((a, b) =>
-        b.wins - a.wins ||
-        a.losses - b.losses ||
-        b.games - a.games ||
-        a.name.localeCompare(b.name, "ko-KR")
-      );
-      el("rankingOutput").className = "rank-list";
-      el("rankingOutput").innerHTML = ranked.map((row, index) =>
-        '<div class="rank-row"><div class="rank-no">' + (index + 1) + '</div><strong>' + row.name + '</strong><div class="record">' + row.games + '경기 ' + row.wins + '승 ' + row.losses + '패 미진행' + row.pending + '</div></div>'
+      el("rankingOutput").className = "record-list";
+      el("rankingOutput").innerHTML = state.schedule.map(match => {
+        const result = state.results[match.id] || "";
+        const resultLabel = result ? result + "팀 승" : "미진행";
+        return '<article class="record-card">' +
+          '<div class="record-title"><span>' + match.id + '경기</span><span>' + match.round + 'R · ' + match.court + '코트</span></div>' +
+          '<div class="record-teams">' +
+          '<div>A팀 ' + match.teamA[0] + ' / ' + match.teamA[1] + '</div>' +
+          '<div>B팀 ' + match.teamB[0] + ' / ' + match.teamB[1] + '</div>' +
+          '</div>' +
+          '<div class="record-result">결과: ' + resultLabel + '</div>' +
+          '</article>';
+      }
       ).join("");
     }
 
@@ -640,7 +651,7 @@
       renderStats();
       renderSchedule();
       renderPlayers(stats);
-      renderRanking(stats);
+      renderTournamentRecords();
     }
 
     async function loadData() {
