@@ -147,7 +147,7 @@
 
     .chips {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 6px;
       margin: 12px 0;
     }
@@ -492,6 +492,7 @@
       <div class="chip"><b id="matchCount">0</b><span>경기</span></div>
       <div class="chip"><b id="roundCount">0</b><span>라운드</span></div>
       <div class="chip"><b id="completeCount">0</b><span>결과</span></div>
+      <div class="chip"><b id="winnerCount">A 0 / B 0</b><span>승리팀</span></div>
     </div>
 
     <div class="tabs">
@@ -671,6 +672,9 @@
       el("matchCount").textContent = state.schedule.length;
       el("roundCount").textContent = state.schedule.length ? Math.max(...state.schedule.map(m => m.round)) : 0;
       el("completeCount").textContent = Object.values(state.results).filter(Boolean).length;
+      const aWins = Object.values(state.results).filter(value => value === "A").length;
+      const bWins = Object.values(state.results).filter(value => value === "B").length;
+      el("winnerCount").textContent = "A " + aWins + " / B " + bWins;
       const updated = state.updatedAt ? new Date(state.updatedAt).toLocaleString("ko-KR") : "기록 없음";
       el("statusText").textContent = "마지막 업데이트: " + updated;
     }
