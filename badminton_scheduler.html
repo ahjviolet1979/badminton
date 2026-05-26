@@ -2180,6 +2180,7 @@
             <td data-label="결과">
               <label class="winner"><input type="radio" name="winner-${match.id}" value="A" ${result === "A" ? "checked" : ""}> ${match.teamALabel || "A"}승</label>
               <label class="winner"><input type="radio" name="winner-${match.id}" value="B" ${result === "B" ? "checked" : ""}> ${match.teamBLabel || "B"}승</label>
+              <label class="winner"><input type="radio" name="winner-${match.id}" value="D" ${result === "D" ? "checked" : ""}> 완료</label>
             </td>
             <td data-label="다음게임"><label class="next-check"><input type="checkbox" class="next-match-check" data-match-id="${match.id}" ${isNext ? "checked" : ""}> 다음게임</label></td>
             <td data-label="삭제"><button class="row-button danger delete-match" type="button" data-match-id="${match.id}">삭제</button></td>
@@ -2311,6 +2312,7 @@
         ensure(match.teamB[1], teamBType).partners.add(match.teamB[0]);
         const result = state.results[match.id];
         if (!result) continue;
+        if (result === "D") continue;
         const winners = result === "A" ? match.teamA : match.teamB;
         const losers = result === "A" ? match.teamB : match.teamA;
         winners.forEach(name => ensure(name).wins++);
@@ -2467,7 +2469,7 @@
         ];
 
         for (const team of teams) {
-          const status = !result ? "미입력" : result === team.code ? "승" : "패";
+          const status = !result ? "미입력" : result === "D" ? "완료" : result === team.code ? "승" : "패";
           for (const player of team.players) {
             const partner = team.players.find(name => name !== player);
             const history = histories.get(player);
