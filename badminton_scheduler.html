@@ -1104,6 +1104,7 @@
     }
 
     function prepareBlueWhitePlayers(players) {
+      players = players.filter(name => !/^청팀대타\d+$/.test(name) && !/^백팀대타\d+$/.test(name));
       const teamMap = syncTeamAssignments(players);
       const blue = [];
       const white = [];
@@ -1731,7 +1732,9 @@
         [...match.teamA, ...match.teamB].forEach(add);
       });
       state.players = names;
-      el("players").value = names.join("\n");
+      el("players").value = names
+        .filter(name => !/^청팀대타\d+$/.test(name) && !/^백팀대타\d+$/.test(name))
+        .join("\n");
       renderPlayerNameOptions();
     }
 
@@ -2158,8 +2161,11 @@
           return;
         }
       }
-      const enteredPlayers = parsePlayers();
+      let enteredPlayers = parsePlayers();
       const blueWhiteMode = el("blueWhiteMode").checked;
+      if (blueWhiteMode) {
+        enteredPlayers = enteredPlayers.filter(name => !/^청팀대타\d+$/.test(name) && !/^백팀대타\d+$/.test(name));
+      }
       const targetGames = Number(el("targetGames").value);
       const courtCount = Number(el("courtCount").value);
       const tries = Number(el("tries").value);
