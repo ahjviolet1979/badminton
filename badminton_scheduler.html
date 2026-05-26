@@ -1026,6 +1026,7 @@
         .split(/\n|,|;/)
         .map(name => name.trim())
         .filter(Boolean)
+        .filter(name => !/^청팀대타\d+$/.test(name) && !/^백팀대타\d+$/.test(name))
         .filter(name => {
           const key = name.toLocaleLowerCase("ko-KR");
           if (seen.has(key)) return false;
@@ -1540,7 +1541,9 @@
       state.seed = data.seed || state.seed;
       state.teamMode = data.teamMode === "blueWhite";
       state.teamMap = data.teamMap || {};
-      el("players").value = state.players.join("\n");
+      el("players").value = state.players
+        .filter(name => !/^청팀대타\d+$/.test(name) && !/^백팀대타\d+$/.test(name))
+        .join("\n");
       el("blueWhiteMode").checked = state.teamMode;
       renderTeamAssignments();
       el("viewerAccessPassword").value = data.viewerPassword || "";
