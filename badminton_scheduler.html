@@ -1162,6 +1162,10 @@
       el("playerCountSummary").textContent = `선수 ${counts.players}명 / 대타 ${counts.substitutes}명 / 총 ${counts.total}명`;
     }
 
+    function visibleRosterNames(names = state.players) {
+      return state.teamMode ? names.filter(name => !isAutoSubstituteName(name)) : names;
+    }
+
     function addSubstitutePlayers(players) {
       const filled = players.slice();
       const needed = (4 - (filled.length % 4)) % 4;
@@ -1677,9 +1681,7 @@
       state.seed = data.seed || state.seed;
       state.teamMode = data.teamMode === "blueWhite";
       state.teamMap = data.teamMap || {};
-      el("players").value = state.players
-        .filter(name => !isAutoSubstituteName(name))
-        .join("\n");
+      el("players").value = visibleRosterNames(state.players).join("\n");
       el("blueWhiteMode").checked = state.teamMode;
       renderTeamAssignments();
       el("viewerAccessPassword").value = data.viewerPassword || "";
@@ -1875,9 +1877,7 @@
         [...match.teamA, ...match.teamB].forEach(add);
       });
       state.players = names;
-      el("players").value = names
-        .filter(name => !isAutoSubstituteName(name))
-        .join("\n");
+      el("players").value = visibleRosterNames(names).join("\n");
       renderPlayerNameOptions();
     }
 
@@ -2376,7 +2376,7 @@
         state.schedule = schedule;
         state.results = {};
         state.seed = seed;
-        el("players").value = players.filter(name => !isAutoSubstituteName(name)).join("\n");
+        el("players").value = visibleRosterNames(players).join("\n");
         renderTeamAssignments();
         renderAll(true);
         if (el("autoCloudSave").checked) saveCloudData(true);
