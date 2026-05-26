@@ -2107,7 +2107,7 @@
               <label class="winner"><input type="radio" name="winner-${match.id}" value="A" ${result === "A" ? "checked" : ""}> ${match.teamALabel || "A"}승</label>
               <label class="winner"><input type="radio" name="winner-${match.id}" value="B" ${result === "B" ? "checked" : ""}> ${match.teamBLabel || "B"}승</label>
             </td>
-            <td data-label="다음경기"><label class="next-check"><input type="checkbox" class="next-match-check" data-match-id="${match.id}" ${isNext ? "checked" : ""}> 다음</label></td>
+            <td data-label="다음게임"><label class="next-check"><input type="checkbox" class="next-match-check" data-match-id="${match.id}" ${isNext ? "checked" : ""}> 다음</label></td>
             <td data-label="삭제"><button class="row-button danger delete-match" type="button" data-match-id="${match.id}">삭제</button></td>
           </tr>`;
       }).join("");
@@ -2115,7 +2115,7 @@
       const headerB = schedule.some(match => match.teamBLabel) ? "백팀" : "B팀";
       el("scheduleOutput").innerHTML = `
         <table class="responsive-card">
-          <thead><tr><th>경기</th><th>라운드</th><th>코트</th><th>${headerA}</th><th></th><th>${headerB}</th><th>결과</th><th>다음경기</th><th>삭제</th></tr></thead>
+          <thead><tr><th>경기</th><th>라운드</th><th>코트</th><th>${headerA}</th><th></th><th>${headerB}</th><th>결과</th><th>다음게임</th><th>삭제</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>`;
 
