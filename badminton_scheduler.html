@@ -1021,11 +1021,15 @@
         </div>
 
         <div class="settings">
-          <div class="full-row">
+          <div>
             <label for="tournamentSelect">대회 선택</label>
             <select id="tournamentSelect">
               <option value="">대회 목록을 불러오는 중입니다</option>
             </select>
+          </div>
+          <div>
+            <label for="viewerAccessPassword">사용자 접속 비밀번호</label>
+            <input id="viewerAccessPassword" type="text" placeholder="참가자 비밀번호">
           </div>
         </div>
 
@@ -1036,12 +1040,6 @@
           <input id="supabaseAnonKey" type="password" placeholder="eyJhbGciOi..." readonly>
         </div>
 
-        <div class="settings">
-          <div>
-            <label for="viewerAccessPassword">사용자 접속 비밀번호</label>
-            <input id="viewerAccessPassword" type="text" placeholder="참가자 비밀번호">
-          </div>
-        </div>
         <input id="supabaseEventId" list="adminEventOptions" type="hidden" value="main">
 
         <div class="settings">
