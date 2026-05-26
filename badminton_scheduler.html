@@ -208,6 +208,14 @@
       accent-color: var(--accent);
     }
 
+    .compact-checks {
+      margin-top: 8px;
+    }
+
+    .compact-checks .checkrow {
+      margin-top: 6px;
+    }
+
     .button {
       border: 0;
       border-radius: 8px;
@@ -292,8 +300,19 @@
 
     .manual-match-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
       gap: 8px;
+      align-items: stretch;
+    }
+
+    .manual-match-grid .manual-add-button {
+      grid-column: 3;
+      grid-row: 1 / span 2;
+      min-width: 88px;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.15;
+      padding: 0 10px;
     }
 
     .row-button {
@@ -981,6 +1000,34 @@
         <button class="button" id="togglePlayersBtn" type="button" style="width: 100%; justify-content: center; margin-bottom: 8px;">명단 숨기기</button>
         <textarea id="players" spellcheck="false" placeholder="한 줄에 한 명씩 입력하세요.&#10;예)&#10;김민수&#10;이지훈&#10;박서연"></textarea>
         <div class="player-count-summary" id="playerCountSummary">선수 0명 / 대타 0명 / 총 0명</div>
+
+        <div class="compact-checks">
+          <label class="checkrow">
+            <input id="autoCloudSave" type="checkbox" checked>
+            결과 변경 시 서버 저장
+          </label>
+
+          <label class="checkrow">
+            <input id="allowShortfall" type="checkbox" checked>
+            인원/경기 수가 딱 맞지 않으면 가능한 만큼 생성
+          </label>
+        </div>
+
+        <div class="actions">
+          <button class="button primary" id="generateBtn" type="button">
+            대진<br>생성
+          </button>
+          <button class="button" id="regenerateBtn" type="button">
+            대진<br>재생성
+          </button>
+          <button class="button" id="deleteScheduleBtn" type="button">
+            대진<br>삭제
+          </button>
+          <button class="button" id="clearResultsBtn" type="button">
+            초기화
+          </button>
+        </div>
+
         <label class="checkrow">
           <input id="blueWhiteMode" type="checkbox">
           청백전 모드
@@ -1042,42 +1089,15 @@
 
         <input id="supabaseEventId" list="adminEventOptions" type="hidden" value="main">
 
-        <div class="settings">
-          <label class="checkrow">
-            <input id="autoCloudSave" type="checkbox" checked>
-            결과 변경 시 서버 저장
-          </label>
-        </div>
-
-        <label class="checkrow">
-          <input id="allowShortfall" type="checkbox" checked>
-          인원/경기 수가 딱 맞지 않으면 가능한 만큼 생성
-        </label>
-
-        <div class="actions">
-          <button class="button primary" id="generateBtn" type="button">
-            대진<br>생성
-          </button>
-          <button class="button" id="regenerateBtn" type="button">
-            대진<br>재생성
-          </button>
-          <button class="button" id="deleteScheduleBtn" type="button">
-            대진<br>삭제
-          </button>
-          <button class="button" id="clearResultsBtn" type="button">
-            초기화
-          </button>
-        </div>
-
         <div class="manual-match">
           <div class="manual-match-title">대진 수동추가</div>
           <div class="manual-match-grid">
             <input id="manualA1" list="playerNameOptions" type="text" placeholder="A팀 선수1">
-            <input id="manualA2" list="playerNameOptions" type="text" placeholder="A팀 선수2">
             <input id="manualB1" list="playerNameOptions" type="text" placeholder="B팀 선수1">
+            <button class="button manual-add-button" id="manualAddBtn" type="button">대진<br>수동추가</button>
+            <input id="manualA2" list="playerNameOptions" type="text" placeholder="A팀 선수2">
             <input id="manualB2" list="playerNameOptions" type="text" placeholder="B팀 선수2">
           </div>
-          <button class="button" id="manualAddBtn" type="button" style="width: 100%; justify-content: center; margin-top: 8px;">대진 수동추가</button>
         </div>
 
         <div class="notice" id="message">
