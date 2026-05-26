@@ -345,8 +345,30 @@
       line-height: 1.5;
     }
 
-    .rank-1 td:first-child { color: var(--amber); font-weight: 900; }
-    .rank-2 td:first-child, .rank-3 td:first-child { font-weight: 900; }
+    .rank-1 {
+      background: #fff8dd;
+      box-shadow: inset 4px 0 0 #f1c94b;
+    }
+
+    .rank-2 {
+      background: #f3f7fb;
+      box-shadow: inset 4px 0 0 #b8c5d6;
+    }
+
+    .rank-3 {
+      background: #fff1e8;
+      box-shadow: inset 4px 0 0 #f0a36b;
+    }
+
+    .rank-1 td:first-child,
+    .rank-2 td:first-child,
+    .rank-3 td:first-child {
+      font-weight: 900;
+    }
+
+    .rank-1 td:first-child { color: #b45309; }
+    .rank-2 td:first-child { color: #475569; }
+    .rank-3 td:first-child { color: #c2410c; }
 
     .history-name {
       font-weight: 900;
@@ -803,9 +825,11 @@
                 </td>
                 <td class="history-text history-partners">${summarizePartnersByMatch(history.matches)}</td>
                 <td class="history-text history-summary-text">
-                  ${history.matches.map(match =>
-                    `${match.id}경기 ${match.round}R/${match.court}코트: 팀 ${match.partner}, 상대 ${match.opponents}, ${match.status}`
-                  ).join("<br>")}
+                  ${history.matches.map((match, index) => {
+                    const next = history.matches[index + 1];
+                    const restText = next ? `, ${next.id - match.id - 1}게임쉼` : "";
+                    return `${match.id}경기 ${match.round}R/${match.court}코트: 팀 ${match.partner}, 상대 ${match.opponents}, ${match.status}${restText}`;
+                  }).join("<br>")}
                 </td>
               </tr>`).join("")}
           </tbody>

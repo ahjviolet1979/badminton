@@ -429,17 +429,24 @@
     .rank-row.top-1 {
       background: #fff7dc;
       border-color: #f2d685;
+      box-shadow: inset 4px 0 0 #f1c94b;
     }
 
     .rank-row.top-2 {
       background: #f1f5f9;
       border-color: #cbd5e1;
+      box-shadow: inset 4px 0 0 #b8c5d6;
     }
 
     .rank-row.top-3 {
       background: #fff0e5;
       border-color: #fdba74;
+      box-shadow: inset 4px 0 0 #f0a36b;
     }
+
+    .rank-row.top-1 .rank-no { color: #b45309; }
+    .rank-row.top-2 .rank-no { color: #475569; }
+    .rank-row.top-3 .rank-no { color: #c2410c; }
 
     .player-picker {
       margin-bottom: 10px;
@@ -552,7 +559,7 @@
     </section>
 
     <section class="view" id="playersView">
-      <div id="playersOutput" class="empty">선수별 데이터를 기다리고 있습니다.</div>
+      <div id="playersOutput" class="empty">출전이력 데이터를 기다리고 있습니다.</div>
     </section>
 
     <section class="view" id="rankingView">
@@ -695,16 +702,6 @@
       return [...stats.values()].sort((a, b) => a.name.localeCompare(b.name, "ko-KR"));
     }
 
-    function gameOrderLine(matches) {
-      if (!matches.length) return "출전 기록 없음";
-      const sorted = [...matches].sort((a, b) => a.id - b.id);
-      return sorted.map((match, index) => {
-        if (index === sorted.length - 1) return String(match.id);
-        const next = sorted[index + 1];
-        return match.id + " (" + (next.id - match.id - 1) + "게임쉼)";
-      }).join(" -> ");
-    }
-
     function partnerDetailLines(row) {
       return row.matches.length ? [...row.matches]
         .sort((a, b) => a.id - b.id)
@@ -769,10 +766,6 @@
         '<div class="player-block partner">' +
         '<div class="player-block-title">* 경기별 이력</div>' +
         '<ul class="line-list">' + partnerDetailLines(row).map(line => '<li>' + line + '</li>').join("") + '</ul>' +
-        '</div>' +
-        '<div class="player-block rest">' +
-        '<div class="player-block-title">* 게임순서</div>' +
-        '<ul class="line-list"><li>' + gameOrderLine(row.matches) + '</li></ul>' +
         '</div>' +
         '</article>';
     }
