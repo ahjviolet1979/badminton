@@ -676,25 +676,25 @@
       return [...stats.values()].sort((a, b) => a.name.localeCompare(b.name, "ko-KR"));
     }
 
-    function restGaps(matches) {
-      if (matches.length <= 1) return ["첫 출전만 있음"];
-      return matches.slice(1).map((match, index) => {
-        const prev = matches[index];
-        return prev.id + "->" + match.id + "경기 사이 " + (match.id - prev.id - 1) + "게임 쉼";
-      });
+    function gameOrderLine(matches) {
+      if (!matches.length) return "출전 기록 없음";
+      const sorted = [...matches].sort((a, b) => a.id - b.id);
+      return sorted.map((match, index) => {
+        if (index === sorted.length - 1) return String(match.id);
+        const next = sorted[index + 1];
+        return match.id + " (" + (next.id - match.id - 1) + "게임쉼)";
+      }).join(" -> ");
     }
 
     function partnerDetailLines(row) {
-      const grouped = new Map();
+      const partnerCounts = new Map();
       for (const match of row.matches) {
-        if (!grouped.has(match.partner)) grouped.set(match.partner, []);
-        grouped.get(match.partner).push(match);
+        partnerCounts.set(match.partner, (partnerCounts.get(match.partner) || 0) + 1);
       }
-      const rows = [...grouped.entries()].sort((a, b) => b[1].length - a[1].length || a[0].localeCompare(b[0], "ko-KR"));
-      return rows.length ? rows.map(([partner, matches]) => {
-        const details = matches.map(match => "VS " + match.opponents + " -> " + match.status).join(", ");
-        return partner + "(" + matches.length + "회) " + details;
-      }) : ["파트너 기록 없음"];
+      return row.matches.length ? [...row.matches]
+        .sort((a, b) => a.id - b.id)
+        .map(match => match.id + "번게임 / " + match.partner + "(" + partnerCounts.get(match.partner) + "회) VS " + match.opponents + " -> " + match.status)
+        : ["파트너 기록 없음"];
     }
 
     function renderStats() {
@@ -751,8 +751,8 @@
         '<ul class="line-list">' + partnerDetailLines(row).map(line => '<li>' + line + '</li>').join("") + '</ul>' +
         '</div>' +
         '<div class="player-block rest">' +
-        '<div class="player-block-title">* 게임한 휴식텀</div>' +
-        '<ul class="line-list">' + restGaps(row.matches).map(line => '<li>' + line + '</li>').join("") + '</ul>' +
+        '<div class="player-block-title">* 게임순서</div>' +
+        '<ul class="line-list"><li>' + gameOrderLine(row.matches) + '</li></ul>' +
         '</div>' +
         '</article>';
     }
