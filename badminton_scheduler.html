@@ -1046,13 +1046,21 @@
       return best;
     }
 
-    function evaluateGroup(group, ctx, target, roundUsed, rand) {
+    function evaluateGroup(group, ctx, target, roundUsed, rand, nextMatchId, idealRest) {
       const games = group.map(p => ctx.games.get(p) || 0);
       const minGame = Math.min(...games);
       const maxGame = Math.max(...games);
       const overTarget = group.filter(p => (ctx.games.get(p) || 0) >= target).length;
       let recentPenalty = group.reduce((sum, p) => sum + (roundUsed.has(p) ? 50 : 0), 0);
       let score = overTarget * 150 + maxGame * 16 + (maxGame - minGame) * 12 + recentPenalty;
+      for (const player of group) {
+        const played = ctx.games.get(player) || 0;
+        if (!played) continue;
+        const rest = nextMatchId - (ctx.lastPlayed.get(player) || 0) - 1;
+        const delta = Math.abs(rest - idealRest);
+        score += delta * 18;
+        if (rest < idealRest) score += (idealRest - rest) * 24;
+      }
       for (let i = 0; i < group.length; i++) {
         for (let j = i + 1; j < group.length; j++) {
           score += (ctx.partners.get(keyOf(group[i], group[j])) || 0) * 11;
@@ -1074,8 +1082,11 @@
         games: new Map(players.map(p => [p, 0])),
         wins: new Map(players.map(p => [p, 0])),
         partners: new Map(),
-        opponents: new Map()
+        opponents: new Map(),
+        lastPlayed: new Map(players.map(p => [p, 0])),
+        restGaps: new Map(players.map(p => [p, []]))
       };
+      const idealRest = Math.max(0, Math.round(players.length / 4) - 1);
       const schedule = [];
       let round = 1;
       let court = 1;
@@ -1089,7 +1100,11 @@
           if (eligible.length < 4) break;
 
           const basePool = eligible
-            .sort((a, b) => (ctx.games.get(a) || 0) - (ctx.games.get(b) || 0) || a.localeCompare(b, "ko-KR"))
+            .sort((a, b) =>
+              (ctx.games.get(a) || 0) - (ctx.games.get(b) || 0) ||
+              (ctx.lastPlayed.get(a) || 0) - (ctx.lastPlayed.get(b) || 0) ||
+              a.localeCompare(b, "ko-KR")
+            )
             .slice(0, Math.min(12, eligible.length));
 
           let groups = combinations(basePool, 4);
@@ -1098,7 +1113,7 @@
           let bestGroup = null;
           let bestScore = Infinity;
           for (const group of shuffle(groups, rand)) {
-            const score = evaluateGroup(group, ctx, targetGames, roundUsed, rand);
+            const score = evaluateGroup(group, ctx, targetGames, roundUsed, rand, schedule.length + 1, idealRest);
             if (score < bestScore) {
               bestScore = score;
               bestGroup = group;
@@ -1120,6 +1135,11 @@
 
           for (const p of bestGroup) {
             roundUsed.add(p);
+            const previous = ctx.lastPlayed.get(p) || 0;
+            if (previous) {
+              ctx.restGaps.get(p).push(match.id - previous - 1);
+            }
+            ctx.lastPlayed.set(p, match.id);
             ctx.games.set(p, (ctx.games.get(p) || 0) + 1);
           }
 
