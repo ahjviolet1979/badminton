@@ -245,9 +245,34 @@
 
     .actions {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 8px;
       margin-top: 14px;
+    }
+
+    .actions .button {
+      justify-content: center;
+      text-align: center;
+      line-height: 1.15;
+      padding: 0 8px;
+    }
+
+    .rename-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: end;
+      margin-top: 10px;
+    }
+
+    .rename-row .button {
+      min-width: 86px;
+      justify-content: center;
+      padding: 0 10px;
+    }
+
+    .cloud-hidden {
+      display: none;
     }
 
     .manual-match {
@@ -965,18 +990,12 @@
           <div class="team-assign-summary" id="teamAssignSummary">청팀 0명 / 백팀 0명</div>
           <div id="teamAssignList"></div>
         </div>
-        <div class="settings">
-          <div>
-            <label for="renameFrom">기존 이름</label>
-            <input id="renameFrom" list="playerNameOptions" type="text" placeholder="예: 대타1">
-            <datalist id="playerNameOptions"></datalist>
-          </div>
-          <div>
-            <label for="renameTo">변경 이름</label>
-            <input id="renameTo" type="text" placeholder="예: 홍길동">
-          </div>
+        <div class="rename-row">
+          <input id="renameFrom" list="playerNameOptions" type="text" placeholder="기존이름">
+          <datalist id="playerNameOptions"></datalist>
+          <input id="renameTo" type="text" placeholder="변경이름">
+          <button class="button" id="applyRenameBtn" type="button">선수변경</button>
         </div>
-        <button class="button" id="applyRenameBtn" type="button" style="width: 100%; justify-content: center; margin-top: 8px;">선수명 변경 적용</button>
 
         <div class="settings four-cols">
           <div>
@@ -1010,11 +1029,12 @@
           </div>
         </div>
 
-        <label for="supabaseUrl">Supabase URL</label>
-        <input id="supabaseUrl" type="text" placeholder="https://프로젝트.supabase.co" readonly>
-
-        <label for="supabaseAnonKey">Supabase anon key</label>
-        <input id="supabaseAnonKey" type="password" placeholder="eyJhbGciOi..." readonly>
+        <div class="cloud-hidden">
+          <label for="supabaseUrl">Supabase URL</label>
+          <input id="supabaseUrl" type="text" placeholder="https://프로젝트.supabase.co" readonly>
+          <label for="supabaseAnonKey">Supabase anon key</label>
+          <input id="supabaseAnonKey" type="password" placeholder="eyJhbGciOi..." readonly>
+        </div>
 
         <div class="settings">
           <div>
@@ -1038,10 +1058,13 @@
 
         <div class="actions">
           <button class="button primary" id="generateBtn" type="button">
-            대진생성
+            대진<br>생성
+          </button>
+          <button class="button" id="regenerateBtn" type="button">
+            대진<br>재생성
           </button>
           <button class="button" id="deleteScheduleBtn" type="button">
-            대진삭제
+            대진<br>삭제
           </button>
           <button class="button" id="clearResultsBtn" type="button">
             초기화
@@ -2973,6 +2996,7 @@
       await loadCloudData(false);
     });
     el("generateBtn").addEventListener("click", generate);
+    el("regenerateBtn").addEventListener("click", generate);
     el("deleteScheduleBtn").addEventListener("click", deleteAllSchedule);
     el("manualAddBtn").addEventListener("click", addManualMatch);
     el("clearResultsBtn").addEventListener("click", () => {
