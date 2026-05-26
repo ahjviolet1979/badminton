@@ -1147,9 +1147,9 @@
         el("supabaseAnonKey").value = savedConfig.anonKey;
         el("supabaseEventId").value = savedConfig.eventId;
         el("viewerAccessPassword").value = localStorage.getItem("badminton_viewer_password") || "";
-        window.setTimeout(() => {
-          loadAdminEventOptions();
-          if (savedConfig.eventId) loadCloudData(true);
+        window.setTimeout(async () => {
+          const selectedEventId = await loadAdminEventOptions();
+          if (selectedEventId) loadCloudData(true);
         }, 0);
         return;
       }
@@ -1166,8 +1166,7 @@
           sessionStorage.setItem("badminton_admin_ok", "1");
           document.body.classList.remove("locked");
           el("adminLoginPassword").value = "";
-          await loadAdminEventOptions();
-          const selectedEventId = el("supabaseEventId").value.trim();
+          const selectedEventId = await loadAdminEventOptions();
           if (selectedEventId) {
             await loadCloudData(true);
             setMessage("관리자로 로그인했습니다. 선택된 대회 데이터를 불러왔습니다.");
@@ -1722,26 +1721,42 @@
           .order("updated_at", { ascending: false });
         if (error) throw error;
         const rows = data || [];
+        const visibleRows = rows.filter(row =>
+          row.id &&
+          row.data &&
+          row.data.ended !== true &&
+          row.data.viewerPassword
+        );
         const labelForEvent = row => {
-          if (row.data?.ended) return `${row.id} (종료)`;
-          if (!row.data?.viewerPassword) return `${row.id} (진행중/비번 없음)`;
-          return `${row.id} (진행중)`;
+          const name = row.data?.eventId || row.id;
+          if (row.data?.ended) return `${name} (종료)`;
+          if (!row.data?.viewerPassword) return `${name} (비번 없음)`;
+          return name;
         };
-        el("adminEventOptions").innerHTML = rows.map(row => {
+        el("adminEventOptions").innerHTML = visibleRows.map(row => {
           const label = labelForEvent(row);
           return `<option value="${row.id}" label="${label}"></option>`;
         }).join("");
+        const currentEventId = el("supabaseEventId").value || localStorage.getItem("badminton_supabase_event_id") || "";
+        const selectedEventId = visibleRows.find(row => row.id === currentEventId)?.id
+          || visibleRows[0]?.id
+          || "";
         if (select) {
-          if (!rows.length) {
-            select.innerHTML = `<option value="">생성된 대회가 없습니다</option>`;
+          if (!visibleRows.length) {
+            select.innerHTML = `<option value="">진행 중인 공개 대회가 없습니다</option>`;
+            el("supabaseEventId").value = "";
           } else {
-            const current = el("supabaseEventId").value || localStorage.getItem("badminton_supabase_event_id") || "";
-            select.innerHTML = `<option value="">대회 선택</option>` + rows.map(row => {
+            select.innerHTML = `<option value="">대회 선택</option>` + visibleRows.map(row => {
               const label = labelForEvent(row);
-              const selected = row.id === current ? "selected" : "";
+              const selected = row.id === selectedEventId ? "selected" : "";
               return `<option value="${row.id}" ${selected}>${label}</option>`;
             }).join("");
+            select.value = selectedEventId;
           }
+        }
+        if (selectedEventId) {
+          el("supabaseEventId").value = selectedEventId;
+          localStorage.setItem("badminton_supabase_event_id", selectedEventId);
         }
         if (document.body.classList.contains("locked") === false) {
           const activeCount = rows.filter(row => row.data?.ended !== true).length;
@@ -1750,6 +1765,7 @@
           const missingPasswordCount = activeCount - visibleCount;
           setMessage(rows.length ? `대회 목록 ${rows.length}개를 불러왔습니다. 진행중 ${activeCount}개, 사용자 표시 ${visibleCount}개, 비번 없음 ${missingPasswordCount}개, 종료 ${endedCount}개입니다.` : "생성된 대회가 없습니다.");
         }
+        return selectedEventId;
       } catch (error) {
         if (select) {
           select.innerHTML = `<option value="">대회 목록 불러오기 실패</option>`;
@@ -1759,6 +1775,7 @@
         } else {
           setMessage(`대회 목록 불러오기 실패: ${error.message}`, true);
         }
+        return "";
       }
     }
 
