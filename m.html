@@ -249,7 +249,8 @@
     }
 
     .match-card {
-      padding: 12px;
+      padding: 8px;
+      overflow: hidden;
     }
 
     .player-card {
@@ -307,32 +308,32 @@
 
     .match-line {
       display: grid;
-      grid-template-columns: 42px minmax(0, 1fr) 18px minmax(0, 1fr);
-      gap: 5px;
+      grid-template-columns: 68px minmax(0, 1fr) 16px minmax(0, 1fr);
+      gap: 4px;
       align-items: stretch;
     }
 
     .match-meta {
       display: grid;
       place-items: center;
-      border: 1px solid var(--line);
       border-radius: 8px;
       color: #42534a;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 900;
       line-height: 1.25;
       text-align: center;
-      background: #fbfcfa;
+      background: #f4faf6;
     }
 
     .team-row {
-      border: 1px solid var(--line);
+      border: 1px solid transparent;
       border-radius: 8px;
-      padding: 7px 6px;
+      padding: 8px 6px;
       display: flex;
-      gap: 4px;
+      gap: 5px;
       align-items: center;
       min-width: 0;
+      background: #fbfcfa;
     }
 
     .team-row.win-a {
@@ -348,14 +349,14 @@
     .team-label {
       flex: 0 0 auto;
       color: var(--muted);
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 900;
     }
 
     .names {
       min-width: 0;
       flex: 1 1 auto;
-      font-size: 13px;
+      font-size: 14px;
       font-weight: 900;
       line-height: 1.2;
       white-space: nowrap;
@@ -365,12 +366,12 @@
 
     .win-mark {
       flex: 0 0 auto;
-      min-width: 22px;
-      min-height: 20px;
+      min-width: 24px;
+      min-height: 21px;
       display: inline-grid;
       place-items: center;
       border-radius: 999px;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 900;
       color: #fff;
     }
