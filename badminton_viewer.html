@@ -313,9 +313,15 @@
       border-radius: 8px;
     }
 
-    .team-cell.win {
-      background: #ecfdf5;
-      color: #065f46;
+    .team-cell.win-a {
+      background: #eef6ff;
+      border-color: #bfdbfe;
+      font-weight: 900;
+    }
+
+    .team-cell.win-b {
+      background: #fff1f7;
+      border-color: #fbcfe8;
       font-weight: 900;
     }
 
@@ -686,8 +692,8 @@
               const labelA = match.teamALabel || "A";
               const labelB = match.teamBLabel || "B";
               const resultText = result === "A" ? labelA + "팀 승" : result === "B" ? labelB + "팀 승" : "미입력";
-              const teamAClass = result === "A" ? "win" : "";
-              const teamBClass = result === "B" ? "win" : "";
+              const teamAClass = result === "A" ? "win-a" : "";
+              const teamBClass = result === "B" ? "win-b" : "";
               const resultClass = result === "A" ? "result-a" : result === "B" ? "result-b" : "warn";
               const isNext = (state.nextMatchIds || []).map(Number).includes(Number(match.id));
               return `
