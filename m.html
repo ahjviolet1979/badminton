@@ -346,6 +346,12 @@
       border-color: #fbcfe8;
     }
 
+    .match-card.next-match {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      box-shadow: inset 4px 0 0 #10b981, 0 8px 24px rgba(18, 32, 25, 0.06);
+    }
+
     .team-label {
       flex: 0 0 auto;
       color: var(--muted);
@@ -386,6 +392,18 @@
 
     .win-mark.a { background: #2563eb; }
     .win-mark.b { background: #be185d; }
+
+    .next-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: #dcfce7;
+      color: #047857;
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
 
     .rank-list {
       display: grid;
@@ -589,7 +607,7 @@
   </main>
 
   <script>
-    const state = { players: [], schedule: [], results: {}, updatedAt: "", teamMap: {}, teamMode: false, eventName: "" };
+    const state = { players: [], schedule: [], results: {}, updatedAt: "", teamMap: {}, teamMode: false, eventName: "", nextMatchIds: [] };
     const el = id => document.getElementById(id);
     let supabaseClient = null;
     let realtimeChannel = null;
@@ -681,6 +699,7 @@
       state.results = data.results || {};
       state.teamMap = data.teamMap || {};
       state.teamMode = data.teamMode === "blueWhite";
+      state.nextMatchIds = Array.isArray(data.nextMatchIds) ? data.nextMatchIds.map(Number).filter(Boolean) : [];
       state.updatedAt = data.updatedAt || "";
       state.eventName = data.eventId || sessionStorage.getItem("badminton_mobile_event_id") || "";
       renderAll();
@@ -771,9 +790,10 @@
       el("scheduleOutput").className = "match-list";
       el("scheduleOutput").innerHTML = schedule.map(match => {
         const result = state.results[match.id] || "";
-        return '<article class="match-card">' +
+        const isNext = (state.nextMatchIds || []).map(Number).includes(Number(match.id));
+        return '<article class="match-card ' + (isNext ? 'next-match' : '') + '">' +
           '<div class="match-line">' +
-          '<div class="match-meta">' + match.id + '경기<br>' + match.round + 'R/' + match.court + '코트</div>' +
+          '<div class="match-meta">' + match.id + '경기<br>' + match.round + 'R/' + match.court + '코트' + (isNext ? '<br><span class="next-badge">다음</span>' : '') + '</div>' +
           '<div class="team-row ' + (result === "A" ? "win-a" : "") + '"><span class="team-label">' + (match.teamALabel || "A") + '팀</span><span class="names">' + match.teamA[0] + ' / ' + match.teamA[1] + '</span>' + (result === "A" ? '<span class="win-mark a">승</span>' : '') + '</div>' +
           '<div class="match-vs">vs</div>' +
           '<div class="team-row ' + (result === "B" ? "win-b" : "") + '"><span class="team-label">' + (match.teamBLabel || "B") + '팀</span><span class="names">' + match.teamB[0] + ' / ' + match.teamB[1] + '</span>' + (result === "B" ? '<span class="win-mark b">승</span>' : '') + '</div>' +

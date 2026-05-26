@@ -245,9 +245,73 @@
 
     .actions {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(3, 1fr);
       gap: 8px;
       margin-top: 14px;
+    }
+
+    .manual-match {
+      margin-top: 12px;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfa;
+    }
+
+    .manual-match-title {
+      margin-bottom: 8px;
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--accent-dark);
+    }
+
+    .manual-match-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .row-button {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      padding: 6px 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .row-button.danger {
+      color: #b91c1c;
+      border-color: #fecaca;
+      background: #fff5f5;
+    }
+
+    .next-check {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .next-match-row {
+      background: #f0fdf4;
+      box-shadow: inset 4px 0 0 #10b981;
+    }
+
+    .next-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: #dcfce7;
+      color: #047857;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
     }
 
     .player-list-collapsed #players {
@@ -980,10 +1044,25 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
             대진 생성
           </button>
+          <button class="button" id="deleteScheduleBtn" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
+            대진 삭제
+          </button>
           <button class="button" id="clearResultsBtn" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
             결과만 초기화
           </button>
+        </div>
+
+        <div class="manual-match">
+          <div class="manual-match-title">대진 수동추가</div>
+          <div class="manual-match-grid">
+            <input id="manualA1" list="playerNameOptions" type="text" placeholder="A팀 선수1">
+            <input id="manualA2" list="playerNameOptions" type="text" placeholder="A팀 선수2">
+            <input id="manualB1" list="playerNameOptions" type="text" placeholder="B팀 선수1">
+            <input id="manualB2" list="playerNameOptions" type="text" placeholder="B팀 선수2">
+          </div>
+          <button class="button" id="manualAddBtn" type="button" style="width: 100%; justify-content: center; margin-top: 8px;">대진 수동추가</button>
         </div>
 
         <div class="notice" id="message">
@@ -1055,7 +1134,8 @@
       results: {},
       seed: 1,
       teamMode: false,
-      teamMap: {}
+      teamMap: {},
+      nextMatchIds: []
     };
 
     const el = id => document.getElementById(id);
@@ -1164,6 +1244,34 @@
 
     function visibleRosterNames(names = state.players) {
       return state.teamMode ? names.filter(name => !isAutoSubstituteName(name)) : names;
+    }
+
+    function clearManualMatchInputs() {
+      ["manualA1", "manualA2", "manualB1", "manualB2"].forEach(id => el(id).value = "");
+    }
+
+    function normalizeSchedule() {
+      const oldResults = { ...state.results };
+      const oldNext = new Set((state.nextMatchIds || []).map(Number));
+      const nextResults = {};
+      const nextIds = [];
+      state.schedule.forEach((match, index) => {
+        const oldId = Number(match.id);
+        const newId = index + 1;
+        match.id = newId;
+        if (oldResults[oldId]) nextResults[newId] = oldResults[oldId];
+        if (oldNext.has(oldId)) nextIds.push(newId);
+      });
+      state.results = nextResults;
+      state.nextMatchIds = nextIds;
+    }
+
+    function refreshAfterScheduleEdit(message, save = true) {
+      rebuildPlayersFromSchedule();
+      normalizeSchedule();
+      renderAll(true);
+      if (message) setMessage(message);
+      if (save && el("autoCloudSave").checked) saveCloudData(true);
     }
 
     function addSubstitutePlayers(players) {
@@ -1669,7 +1777,8 @@
         results: state.results,
         seed: state.seed,
         teamMode: state.teamMode,
-        teamMap: state.teamMap
+        teamMap: state.teamMap,
+        nextMatchIds: state.nextMatchIds
       };
     }
 
@@ -1681,6 +1790,7 @@
       state.seed = data.seed || state.seed;
       state.teamMode = data.teamMode === "blueWhite";
       state.teamMap = data.teamMap || {};
+      state.nextMatchIds = Array.isArray(data.nextMatchIds) ? data.nextMatchIds.map(Number).filter(Boolean) : [];
       el("players").value = visibleRosterNames(state.players).join("\n");
       el("blueWhiteMode").checked = state.teamMode;
       renderTeamAssignments();
@@ -1806,6 +1916,7 @@
         state.players = [];
         state.schedule = [];
         state.results = {};
+        state.nextMatchIds = [];
         el("players").value = "";
         el("supabaseEventId").value = "";
         el("viewerAccessPassword").value = "";
@@ -1833,6 +1944,7 @@
       state.players = [];
       state.schedule = [];
       state.results = {};
+      state.nextMatchIds = [];
       el("players").value = "";
       el("supabaseEventId").value = eventId.trim();
       el("viewerAccessPassword").value = viewerPassword.trim();
@@ -1985,8 +2097,9 @@
         const result = state.results[match.id] || "";
         const labelA = match.teamALabel ? `${match.teamALabel}팀` : "A팀";
         const labelB = match.teamBLabel ? `${match.teamBLabel}팀` : "B팀";
+        const isNext = (state.nextMatchIds || []).map(Number).includes(Number(match.id));
         return `
-          <tr>
+          <tr class="${isNext ? "next-match-row" : ""}">
             <td data-label="경기">${match.id}</td>
             <td data-label="라운드"><span class="badge">${match.round}R</span></td>
             <td data-label="코트">${match.court}코트</td>
@@ -1997,13 +2110,15 @@
               <label class="winner"><input type="radio" name="winner-${match.id}" value="A" ${result === "A" ? "checked" : ""}> ${match.teamALabel || "A"}승</label>
               <label class="winner"><input type="radio" name="winner-${match.id}" value="B" ${result === "B" ? "checked" : ""}> ${match.teamBLabel || "B"}승</label>
             </td>
+            <td data-label="다음"><label class="next-check"><input type="checkbox" class="next-match-check" data-match-id="${match.id}" ${isNext ? "checked" : ""}> 다음</label></td>
+            <td data-label="삭제"><button class="row-button danger delete-match" type="button" data-match-id="${match.id}">삭제</button></td>
           </tr>`;
       }).join("");
       const headerA = schedule.some(match => match.teamALabel) ? "청팀" : "A팀";
       const headerB = schedule.some(match => match.teamBLabel) ? "백팀" : "B팀";
       el("scheduleOutput").innerHTML = `
         <table class="responsive-card">
-          <thead><tr><th>경기</th><th>라운드</th><th>코트</th><th>${headerA}</th><th></th><th>${headerB}</th><th>결과</th></tr></thead>
+          <thead><tr><th>경기</th><th>라운드</th><th>코트</th><th>${headerA}</th><th></th><th>${headerB}</th><th>결과</th><th>다음</th><th>삭제</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>`;
 
@@ -2026,6 +2141,80 @@
           );
         });
       });
+      el("scheduleOutput").querySelectorAll(".next-match-check").forEach(input => {
+        input.addEventListener("change", event => {
+          const matchId = Number(event.target.dataset.matchId);
+          const set = new Set((state.nextMatchIds || []).map(Number));
+          if (event.target.checked) set.add(matchId);
+          else set.delete(matchId);
+          state.nextMatchIds = [...set].sort((a, b) => a - b);
+          renderAll(true);
+          if (el("autoCloudSave").checked) saveCloudData(true);
+        });
+      });
+      el("scheduleOutput").querySelectorAll(".delete-match").forEach(button => {
+        button.addEventListener("click", event => deleteMatch(Number(event.currentTarget.dataset.matchId)));
+      });
+    }
+
+    function deleteAllSchedule() {
+      if (!state.schedule.length) {
+        setMessage("삭제할 대진표가 없습니다.", true);
+        return;
+      }
+      if (!window.confirm("기존에 있던 대진표와 결과가 모두 삭제됩니다. 계속 하시겠습니까?")) return;
+      state.schedule = [];
+      state.results = {};
+      state.nextMatchIds = [];
+      state.players = parsePlayers();
+      el("players").value = visibleRosterNames(state.players).join("\n");
+      clearManualMatchInputs();
+      renderAll(true);
+      setMessage("대진표와 결과를 모두 삭제했습니다.");
+      if (el("autoCloudSave").checked) saveCloudData(true);
+    }
+
+    function deleteMatch(matchId) {
+      if (!window.confirm(`${matchId}경기를 삭제하시겠습니까?`)) return;
+      state.schedule = state.schedule.filter(match => Number(match.id) !== matchId);
+      delete state.results[matchId];
+      state.nextMatchIds = (state.nextMatchIds || []).filter(id => Number(id) !== matchId);
+      refreshAfterScheduleEdit(`${matchId}경기를 삭제했습니다.`);
+    }
+
+    function addManualMatch() {
+      const names = ["manualA1", "manualA2", "manualB1", "manualB2"].map(id => el(id).value.trim());
+      if (names.some(name => !name)) {
+        window.alert("수동 추가할 선수 4명을 모두 입력하세요.");
+        return;
+      }
+      const normalized = names.map(name => name.toLocaleLowerCase("ko-KR"));
+      if (new Set(normalized).size !== names.length) {
+        window.alert("한 경기 안에서는 같은 선수를 중복 배치할 수 없습니다.");
+        return;
+      }
+      const courtCount = Math.max(1, Number(el("courtCount").value) || 1);
+      const last = state.schedule[state.schedule.length - 1];
+      const nextCourt = last ? (last.court % courtCount) + 1 : 1;
+      const nextRound = last ? last.round + (nextCourt === 1 ? 1 : 0) : 1;
+      state.schedule.push({
+        id: state.schedule.length + 1,
+        round: nextRound,
+        court: nextCourt,
+        teamA: [names[0], names[1]],
+        teamB: [names[2], names[3]],
+        teamALabel: state.teamMode ? "청" : "",
+        teamBLabel: state.teamMode ? "백" : "",
+        mode: state.teamMode ? "blueWhite" : "normal"
+      });
+      if (state.teamMode) {
+        state.teamMap[names[0]] = "blue";
+        state.teamMap[names[1]] = "blue";
+        state.teamMap[names[2]] = "white";
+        state.teamMap[names[3]] = "white";
+      }
+      clearManualMatchInputs();
+      refreshAfterScheduleEdit("대진을 1경기 수동 추가했습니다.");
     }
 
     function calculateRanking() {
@@ -2375,6 +2564,7 @@
         state.players = players;
         state.schedule = schedule;
         state.results = {};
+        state.nextMatchIds = [];
         state.seed = seed;
         el("players").value = visibleRosterNames(players).join("\n");
         renderTeamAssignments();
@@ -2750,6 +2940,8 @@
       await loadCloudData(false);
     });
     el("generateBtn").addEventListener("click", generate);
+    el("deleteScheduleBtn").addEventListener("click", deleteAllSchedule);
+    el("manualAddBtn").addEventListener("click", addManualMatch);
     el("clearResultsBtn").addEventListener("click", () => {
       state.results = {};
       renderAll(true);

@@ -385,6 +385,24 @@
     .rank-2 td:first-child { color: #475569; }
     .rank-3 td:first-child { color: #c2410c; }
 
+    .next-match-row {
+      background: #f0fdf4;
+      box-shadow: inset 4px 0 0 #10b981;
+    }
+
+    .next-badge {
+      display: inline-flex;
+      align-items: center;
+      margin-left: 6px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: #dcfce7;
+      color: #047857;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
     .history-name {
       font-weight: 900;
       min-width: 88px;
@@ -551,7 +569,8 @@
       results: {},
       updatedAt: "",
       teamMap: {},
-      teamMode: false
+      teamMode: false,
+      nextMatchIds: []
     };
 
     const el = id => document.getElementById(id);
@@ -669,15 +688,16 @@
               const teamAClass = result === "A" ? "win" : "";
               const teamBClass = result === "B" ? "win" : "";
               const resultClass = result === "A" ? "result-a" : result === "B" ? "result-b" : "warn";
+              const isNext = (state.nextMatchIds || []).map(Number).includes(Number(match.id));
               return `
-                <tr>
+                <tr class="${isNext ? "next-match-row" : ""}">
                   <td data-label="경기">${match.id}</td>
                   <td data-label="라운드"><span class="badge">${match.round}R</span></td>
                   <td data-label="코트">${match.court}코트</td>
                   <td data-label="${labelA}팀" class="team-cell ${teamAClass}"><div class="team"><span class="pair">${match.teamA[0]}</span><span class="pair">${match.teamA[1]}</span></div></td>
                   <td data-label="" class="versus">VS</td>
                   <td data-label="${labelB}팀" class="team-cell ${teamBClass}"><div class="team"><span class="pair">${match.teamB[0]}</span><span class="pair">${match.teamB[1]}</span></div></td>
-                  <td data-label="결과"><span class="badge ${resultClass}">${resultText}</span></td>
+                  <td data-label="결과"><span class="badge ${resultClass}">${resultText}</span>${isNext ? '<span class="next-badge">다음게임</span>' : ''}</td>
                 </tr>`;
             }).join("")}
           </tbody>
@@ -1027,6 +1047,7 @@
         state.players = [];
         state.schedule = [];
         state.results = {};
+        state.nextMatchIds = [];
         renderAll();
         el("statusText").textContent = "대회가 종료되었습니다.";
         document.body.classList.add("locked");
@@ -1039,6 +1060,7 @@
       state.results = data.results || {};
       state.teamMap = data.teamMap || {};
       state.teamMode = data.teamMode === "blueWhite";
+      state.nextMatchIds = Array.isArray(data.nextMatchIds) ? data.nextMatchIds.map(Number).filter(Boolean) : [];
       state.updatedAt = data.updatedAt || "";
       renderAll();
       const updated = state.updatedAt ? new Date(state.updatedAt).toLocaleString("ko-KR") : "알 수 없음";
@@ -1069,6 +1091,7 @@
         state.players = [];
         state.schedule = [];
         state.results = {};
+        state.nextMatchIds = [];
         renderAll();
         el("statusText").textContent = "Supabase 설정 또는 badminton_data.json을 찾을 수 없습니다.";
       }
@@ -1129,6 +1152,7 @@
               state.players = [];
               state.schedule = [];
         state.results = {};
+        state.nextMatchIds = [];
         renderAll();
         el("statusText").textContent = "대회 데이터가 삭제되었습니다.";
         loadTournamentOptions();
