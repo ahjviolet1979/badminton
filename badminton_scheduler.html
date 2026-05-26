@@ -1041,16 +1041,13 @@
 
         <div class="actions">
           <button class="button primary" id="generateBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
-            대진 생성
+            대진생성
           </button>
           <button class="button" id="deleteScheduleBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>
-            대진 삭제
+            대진삭제
           </button>
           <button class="button" id="clearResultsBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-            결과만 초기화
+            초기화
           </button>
         </div>
 
@@ -2110,7 +2107,7 @@
               <label class="winner"><input type="radio" name="winner-${match.id}" value="A" ${result === "A" ? "checked" : ""}> ${match.teamALabel || "A"}승</label>
               <label class="winner"><input type="radio" name="winner-${match.id}" value="B" ${result === "B" ? "checked" : ""}> ${match.teamBLabel || "B"}승</label>
             </td>
-            <td data-label="다음"><label class="next-check"><input type="checkbox" class="next-match-check" data-match-id="${match.id}" ${isNext ? "checked" : ""}> 다음</label></td>
+            <td data-label="다음경기"><label class="next-check"><input type="checkbox" class="next-match-check" data-match-id="${match.id}" ${isNext ? "checked" : ""}> 다음</label></td>
             <td data-label="삭제"><button class="row-button danger delete-match" type="button" data-match-id="${match.id}">삭제</button></td>
           </tr>`;
       }).join("");
@@ -2118,7 +2115,7 @@
       const headerB = schedule.some(match => match.teamBLabel) ? "백팀" : "B팀";
       el("scheduleOutput").innerHTML = `
         <table class="responsive-card">
-          <thead><tr><th>경기</th><th>라운드</th><th>코트</th><th>${headerA}</th><th></th><th>${headerB}</th><th>결과</th><th>다음</th><th>삭제</th></tr></thead>
+          <thead><tr><th>경기</th><th>라운드</th><th>코트</th><th>${headerA}</th><th></th><th>${headerB}</th><th>결과</th><th>다음경기</th><th>삭제</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>`;
 

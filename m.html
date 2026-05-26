@@ -328,8 +328,9 @@
     .team-row {
       border: 1px solid transparent;
       border-radius: 8px;
-      padding: 8px 6px;
-      display: flex;
+      padding: 7px 6px;
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
       gap: 5px;
       align-items: center;
       min-width: 0;
@@ -372,10 +373,15 @@
 
     .names {
       min-width: 0;
-      flex: 1 1 auto;
       font-size: 14px;
       font-weight: 900;
       line-height: 1.2;
+      display: grid;
+      gap: 2px;
+    }
+
+    .player-name-line {
+      min-width: 0;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -802,13 +808,15 @@
       el("scheduleOutput").innerHTML = schedule.map(match => {
         const result = state.results[match.id] || "";
         const isNext = (state.nextMatchIds || []).map(Number).includes(Number(match.id));
+        const teamAPlayers = '<span class="player-name-line">' + match.teamA[0] + '</span><span class="player-name-line">' + match.teamA[1] + '</span>';
+        const teamBPlayers = '<span class="player-name-line">' + match.teamB[0] + '</span><span class="player-name-line">' + match.teamB[1] + '</span>';
         return '<article class="match-card ' + (isNext ? 'next-match' : '') + '">' +
           (isNext ? '<div class="next-banner">다음게임</div>' : '') +
           '<div class="match-line">' +
           '<div class="match-meta">' + match.id + '경기<br>' + match.round + 'R/' + match.court + '코트' + (isNext ? '<br><span class="next-badge">다음</span>' : '') + '</div>' +
-          '<div class="team-row ' + (result === "A" ? "win-a" : "") + '"><span class="team-label">' + (match.teamALabel || "A") + '팀</span><span class="names">' + match.teamA[0] + ' / ' + match.teamA[1] + '</span>' + (result === "A" ? '<span class="win-mark a">승</span>' : '') + '</div>' +
+          '<div class="team-row ' + (result === "A" ? "win-a" : "") + '"><span class="team-label">' + (match.teamALabel || "A") + '팀</span><span class="names">' + teamAPlayers + '</span>' + (result === "A" ? '<span class="win-mark a">승</span>' : '') + '</div>' +
           '<div class="match-vs">vs</div>' +
-          '<div class="team-row ' + (result === "B" ? "win-b" : "") + '"><span class="team-label">' + (match.teamBLabel || "B") + '팀</span><span class="names">' + match.teamB[0] + ' / ' + match.teamB[1] + '</span>' + (result === "B" ? '<span class="win-mark b">승</span>' : '') + '</div>' +
+          '<div class="team-row ' + (result === "B" ? "win-b" : "") + '"><span class="team-label">' + (match.teamBLabel || "B") + '팀</span><span class="names">' + teamBPlayers + '</span>' + (result === "B" ? '<span class="win-mark b">승</span>' : '') + '</div>' +
           '</div></article>';
       }).join("");
     }
