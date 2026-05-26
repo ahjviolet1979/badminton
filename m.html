@@ -305,30 +305,34 @@
       font-weight: 600;
     }
 
-    .match-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      align-items: center;
-      margin-bottom: 10px;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 900;
+    .match-line {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr) 18px minmax(0, 1fr);
+      gap: 5px;
+      align-items: stretch;
     }
 
-    .teams {
+    .match-meta {
       display: grid;
-      gap: 8px;
+      place-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: #42534a;
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1.25;
+      text-align: center;
+      background: #fbfcfa;
     }
 
     .team-row {
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 9px;
-      display: grid;
-      grid-template-columns: 42px 1fr 28px;
-      gap: 8px;
+      padding: 7px 6px;
+      display: flex;
+      gap: 4px;
       align-items: center;
+      min-width: 0;
     }
 
     .team-row.win-a {
@@ -342,26 +346,41 @@
     }
 
     .team-label {
+      flex: 0 0 auto;
       color: var(--muted);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 900;
     }
 
     .names {
-      font-size: 15px;
+      min-width: 0;
+      flex: 1 1 auto;
+      font-size: 13px;
       font-weight: 900;
-      line-height: 1.35;
-      word-break: keep-all;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .win-mark {
-      min-height: 24px;
+      flex: 0 0 auto;
+      min-width: 22px;
+      min-height: 20px;
       display: inline-grid;
       place-items: center;
       border-radius: 999px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 900;
       color: #fff;
+    }
+
+    .match-vs {
+      display: grid;
+      place-items: center;
+      color: #6b5d38;
+      font-size: 11px;
+      font-weight: 900;
     }
 
     .win-mark.a { background: #2563eb; }
@@ -523,7 +542,7 @@
   <main class="app">
     <header>
       <div>
-        <h1>배드민턴 대진표</h1>
+        <h1 id="eventTitle">배드민턴 대진표</h1>
         <p class="sub" id="statusText">대회 데이터를 불러오는 중입니다.</p>
       </div>
       <div class="tools">
@@ -569,7 +588,7 @@
   </main>
 
   <script>
-    const state = { players: [], schedule: [], results: {}, updatedAt: "", teamMap: {}, teamMode: false };
+    const state = { players: [], schedule: [], results: {}, updatedAt: "", teamMap: {}, teamMode: false, eventName: "" };
     const el = id => document.getElementById(id);
     let supabaseClient = null;
     let realtimeChannel = null;
@@ -662,6 +681,7 @@
       state.teamMap = data.teamMap || {};
       state.teamMode = data.teamMode === "blueWhite";
       state.updatedAt = data.updatedAt || "";
+      state.eventName = data.eventId || sessionStorage.getItem("badminton_mobile_event_id") || "";
       renderAll();
     }
 
@@ -724,6 +744,7 @@
       const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
       el("winnerCount").textContent = blueWhite ? "청 " + aWins + " / 백 " + bWins : "A " + aWins + " / B " + bWins;
       const updated = state.updatedAt ? new Date(state.updatedAt).toLocaleString("ko-KR") : "기록 없음";
+      el("eventTitle").textContent = state.eventName ? state.eventName + " 대진표" : "배드민턴 대진표";
       el("statusText").textContent = "마지막 업데이트: " + updated;
     }
 
@@ -750,10 +771,11 @@
       el("scheduleOutput").innerHTML = schedule.map(match => {
         const result = state.results[match.id] || "";
         return '<article class="match-card">' +
-          '<div class="match-head"><span>' + match.id + '경기 · ' + match.round + 'R · ' + match.court + '코트</span></div>' +
-          '<div class="teams">' +
-          '<div class="team-row ' + (result === "A" ? "win-a" : "") + '"><div class="team-label">' + (match.teamALabel || "A") + '팀</div><div class="names">' + match.teamA[0] + ' / ' + match.teamA[1] + '</div><div>' + (result === "A" ? '<span class="win-mark a">승</span>' : '') + '</div></div>' +
-          '<div class="team-row ' + (result === "B" ? "win-b" : "") + '"><div class="team-label">' + (match.teamBLabel || "B") + '팀</div><div class="names">' + match.teamB[0] + ' / ' + match.teamB[1] + '</div><div>' + (result === "B" ? '<span class="win-mark b">승</span>' : '') + '</div></div>' +
+          '<div class="match-line">' +
+          '<div class="match-meta">' + match.id + '경기<br>' + match.round + 'R/' + match.court + '코트</div>' +
+          '<div class="team-row ' + (result === "A" ? "win-a" : "") + '"><span class="team-label">' + (match.teamALabel || "A") + '팀</span><span class="names">' + match.teamA[0] + ' / ' + match.teamA[1] + '</span>' + (result === "A" ? '<span class="win-mark a">승</span>' : '') + '</div>' +
+          '<div class="match-vs">vs</div>' +
+          '<div class="team-row ' + (result === "B" ? "win-b" : "") + '"><span class="team-label">' + (match.teamBLabel || "B") + '팀</span><span class="names">' + match.teamB[0] + ' / ' + match.teamB[1] + '</span>' + (result === "B" ? '<span class="win-mark b">승</span>' : '') + '</div>' +
           '</div></article>';
       }).join("");
     }
