@@ -511,7 +511,6 @@
         <button class="tab active" data-view="scheduleView" type="button">대진표</button>
         <button class="tab" data-view="historyView" type="button">선수별이력</button>
         <button class="tab" data-view="rankingView" type="button">순위</button>
-        <button class="tab" data-view="matrixView" type="button">중복점검</button>
       </div>
 
       <div class="stats">
@@ -540,10 +539,6 @@
 
       <div class="view" id="historyView">
         <div id="historyOutput" class="empty">선수별이력 데이터를 기다리고 있습니다.</div>
-      </div>
-
-      <div class="view" id="matrixView">
-        <div id="matrixOutput" class="empty">중복점검 데이터가 아직 없습니다.</div>
       </div>
 
     </section>
@@ -936,7 +931,6 @@
       renderAppearanceSummary();
       renderRanking();
       renderPlayerHistory();
-      renderMatrix();
     }
 
     function activateView(viewId) {

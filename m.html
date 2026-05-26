@@ -204,7 +204,7 @@
 
     .tabs {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       gap: 6px;
       margin: 12px 0;
       position: sticky;
@@ -552,7 +552,6 @@
       <button class="tab active" data-view="scheduleView" type="button">대진표</button>
       <button class="tab" data-view="playersView" type="button">선수별이력</button>
       <button class="tab" data-view="rankingView" type="button">순위</button>
-      <button class="tab" data-view="matrixView" type="button">중복점검</button>
     </div>
 
     <section class="view active" id="scheduleView">
@@ -567,9 +566,6 @@
       <div id="rankingOutput" class="empty">순위 데이터를 기다리고 있습니다.</div>
     </section>
 
-    <section class="view" id="matrixView">
-      <div id="matrixOutput" class="empty">중복점검 데이터가 아직 없습니다.</div>
-    </section>
   </main>
 
   <script>
@@ -882,7 +878,6 @@
       renderSchedule();
       renderPlayers(stats);
       renderRanking(stats);
-      renderMatrix();
     }
 
     async function loadData() {
