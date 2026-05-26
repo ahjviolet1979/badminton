@@ -545,7 +545,7 @@
   </main>
 
   <script>
-    const state = { players: [], schedule: [], results: {}, updatedAt: "" };
+    const state = { players: [], schedule: [], results: {}, updatedAt: "", teamMap: {}, teamMode: false };
     const el = id => document.getElementById(id);
     let supabaseClient = null;
     let realtimeChannel = null;
@@ -635,28 +635,31 @@
       state.players = Array.isArray(data.players) ? data.players : [];
       state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
       state.results = data.results || {};
+      state.teamMap = data.teamMap || {};
+      state.teamMode = data.teamMode === "blueWhite";
       state.updatedAt = data.updatedAt || "";
       renderAll();
     }
 
     function statsForPlayers() {
       const stats = new Map(state.players.map(name => [name, {
-        name, games: 0, wins: 0, losses: 0, pending: 0, partners: new Map(), matches: []
+        name, games: 0, wins: 0, losses: 0, pending: 0, partners: new Map(), matches: [], team: state.teamMap[name] || ""
       }]));
       for (const match of state.schedule) {
         const result = state.results[match.id] || "";
         const teams = [
-          { code: "A", label: "A팀", players: match.teamA, opponents: match.teamB },
-          { code: "B", label: "B팀", players: match.teamB, opponents: match.teamA }
+          { code: "A", label: (match.teamALabel || "A") + "팀", team: match.teamALabel === "청" ? "blue" : match.teamALabel === "백" ? "white" : "", players: match.teamA, opponents: match.teamB },
+          { code: "B", label: (match.teamBLabel || "B") + "팀", team: match.teamBLabel === "청" ? "blue" : match.teamBLabel === "백" ? "white" : "", players: match.teamB, opponents: match.teamA }
         ];
         for (const team of teams) {
           const status = !result ? "미진행" : result === team.code ? "승" : "패";
           for (const player of team.players) {
             if (!stats.has(player)) {
-              stats.set(player, { name: player, games: 0, wins: 0, losses: 0, pending: 0, partners: new Map(), matches: [] });
+              stats.set(player, { name: player, games: 0, wins: 0, losses: 0, pending: 0, partners: new Map(), matches: [], team: team.team });
             }
             const partner = team.players.find(name => name !== player) || "";
             const row = stats.get(player);
+            if (team.team && !row.team) row.team = team.team;
             row.games++;
             if (status === "승") row.wins++;
             if (status === "패") row.losses++;
@@ -704,7 +707,8 @@
       el("completeCount").textContent = Object.values(state.results).filter(Boolean).length;
       const aWins = Object.values(state.results).filter(value => value === "A").length;
       const bWins = Object.values(state.results).filter(value => value === "B").length;
-      el("winnerCount").textContent = "A " + aWins + " / B " + bWins;
+      const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
+      el("winnerCount").textContent = blueWhite ? "청 " + aWins + " / 백 " + bWins : "A " + aWins + " / B " + bWins;
       const updated = state.updatedAt ? new Date(state.updatedAt).toLocaleString("ko-KR") : "기록 없음";
       el("statusText").textContent = "마지막 업데이트: " + updated;
     }
@@ -734,8 +738,8 @@
         return '<article class="match-card">' +
           '<div class="match-head"><span>' + match.id + '경기 · ' + match.round + 'R · ' + match.court + '코트</span></div>' +
           '<div class="teams">' +
-          '<div class="team-row ' + (result === "A" ? "win-a" : "") + '"><div class="team-label">A팀</div><div class="names">' + match.teamA[0] + ' / ' + match.teamA[1] + '</div><div>' + (result === "A" ? '<span class="win-mark a">승</span>' : '') + '</div></div>' +
-          '<div class="team-row ' + (result === "B" ? "win-b" : "") + '"><div class="team-label">B팀</div><div class="names">' + match.teamB[0] + ' / ' + match.teamB[1] + '</div><div>' + (result === "B" ? '<span class="win-mark b">승</span>' : '') + '</div></div>' +
+          '<div class="team-row ' + (result === "A" ? "win-a" : "") + '"><div class="team-label">' + (match.teamALabel || "A") + '팀</div><div class="names">' + match.teamA[0] + ' / ' + match.teamA[1] + '</div><div>' + (result === "A" ? '<span class="win-mark a">승</span>' : '') + '</div></div>' +
+          '<div class="team-row ' + (result === "B" ? "win-b" : "") + '"><div class="team-label">' + (match.teamBLabel || "B") + '팀</div><div class="names">' + match.teamB[0] + ' / ' + match.teamB[1] + '</div><div>' + (result === "B" ? '<span class="win-mark b">승</span>' : '') + '</div></div>' +
           '</div></article>';
       }).join("");
     }

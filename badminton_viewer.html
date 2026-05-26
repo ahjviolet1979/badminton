@@ -509,7 +509,9 @@
       players: [],
       schedule: [],
       results: {},
-      updatedAt: ""
+      updatedAt: "",
+      teamMap: {},
+      teamMode: false
     };
 
     const el = id => document.getElementById(id);
@@ -590,7 +592,8 @@
       el("completeCount").textContent = Object.values(state.results).filter(Boolean).length;
       const aWins = Object.values(state.results).filter(value => value === "A").length;
       const bWins = Object.values(state.results).filter(value => value === "B").length;
-      el("winnerCount").textContent = `A ${aWins} / B ${bWins}`;
+      const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
+      el("winnerCount").textContent = blueWhite ? `청 ${aWins} / 백 ${bWins}` : `A ${aWins} / B ${bWins}`;
     }
 
     function renderSchedule() {
@@ -599,14 +602,17 @@
         el("scheduleOutput").textContent = "대진 데이터가 아직 없습니다.";
         return;
       }
+      const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
       el("scheduleOutput").className = "tablewrap";
       el("scheduleOutput").innerHTML = `
         <table class="responsive-card">
-          <thead><tr><th>경기</th><th>라운드</th><th>코트</th><th>A팀</th><th></th><th>B팀</th><th>결과</th></tr></thead>
+          <thead><tr><th>경기</th><th>라운드</th><th>코트</th><th>${blueWhite ? "청팀" : "A팀"}</th><th></th><th>${blueWhite ? "백팀" : "B팀"}</th><th>결과</th></tr></thead>
           <tbody>
             ${state.schedule.map(match => {
               const result = state.results[match.id] || "";
-              const resultText = result === "A" ? "A팀 승" : result === "B" ? "B팀 승" : "미입력";
+              const labelA = match.teamALabel || "A";
+              const labelB = match.teamBLabel || "B";
+              const resultText = result === "A" ? labelA + "팀 승" : result === "B" ? labelB + "팀 승" : "미입력";
               const teamAClass = result === "A" ? "win" : "";
               const teamBClass = result === "B" ? "win" : "";
               const resultClass = result === "A" ? "result-a" : result === "B" ? "result-b" : "warn";
@@ -615,9 +621,9 @@
                   <td data-label="경기">${match.id}</td>
                   <td data-label="라운드"><span class="badge">${match.round}R</span></td>
                   <td data-label="코트">${match.court}코트</td>
-                  <td data-label="A팀" class="team-cell ${teamAClass}"><div class="team"><span class="pair">${match.teamA[0]}</span><span class="pair">${match.teamA[1]}</span></div></td>
+                  <td data-label="${labelA}팀" class="team-cell ${teamAClass}"><div class="team"><span class="pair">${match.teamA[0]}</span><span class="pair">${match.teamA[1]}</span></div></td>
                   <td data-label="" class="versus">VS</td>
-                  <td data-label="B팀" class="team-cell ${teamBClass}"><div class="team"><span class="pair">${match.teamB[0]}</span><span class="pair">${match.teamB[1]}</span></div></td>
+                  <td data-label="${labelB}팀" class="team-cell ${teamBClass}"><div class="team"><span class="pair">${match.teamB[0]}</span><span class="pair">${match.teamB[1]}</span></div></td>
                   <td data-label="결과"><span class="badge ${resultClass}">${resultText}</span></td>
                 </tr>`;
             }).join("")}
@@ -627,35 +633,32 @@
 
     function calculateRanking() {
       const stats = new Map(state.players.map(name => [name, {
-        name, games: 0, wins: 0, losses: 0, winRate: 0, partners: new Set()
+        name, games: 0, wins: 0, losses: 0, winRate: 0, partners: new Set(), team: state.teamMap[name] || ""
       }]));
+      const ensure = (name, team = "") => {
+        if (!stats.has(name)) stats.set(name, { name, games: 0, wins: 0, losses: 0, winRate: 0, partners: new Set(), team });
+        if (team && !stats.get(name).team) stats.get(name).team = team;
+        return stats.get(name);
+      };
       for (const match of state.schedule) {
-        [...match.teamA, ...match.teamB].forEach(name => stats.get(name).games++);
-        stats.get(match.teamA[0]).partners.add(match.teamA[1]);
-        stats.get(match.teamA[1]).partners.add(match.teamA[0]);
-        stats.get(match.teamB[0]).partners.add(match.teamB[1]);
-        stats.get(match.teamB[1]).partners.add(match.teamB[0]);
-
+        const teamAType = match.teamALabel === "청" ? "blue" : match.teamALabel === "백" ? "white" : "";
+        const teamBType = match.teamBLabel === "청" ? "blue" : match.teamBLabel === "백" ? "white" : "";
+        match.teamA.forEach(name => ensure(name, teamAType).games++);
+        match.teamB.forEach(name => ensure(name, teamBType).games++);
+        ensure(match.teamA[0], teamAType).partners.add(match.teamA[1]);
+        ensure(match.teamA[1], teamAType).partners.add(match.teamA[0]);
+        ensure(match.teamB[0], teamBType).partners.add(match.teamB[1]);
+        ensure(match.teamB[1], teamBType).partners.add(match.teamB[0]);
         const result = state.results[match.id];
         if (!result) continue;
         const winners = result === "A" ? match.teamA : match.teamB;
         const losers = result === "A" ? match.teamB : match.teamA;
-        winners.forEach(name => stats.get(name).wins++);
-        losers.forEach(name => stats.get(name).losses++);
+        winners.forEach(name => ensure(name).wins++);
+        losers.forEach(name => ensure(name).losses++);
       }
       return [...stats.values()]
-        .map(row => ({
-          ...row,
-          winRate: row.games ? row.wins / row.games : 0,
-          partnerCount: row.partners.size
-        }))
-        .sort((a, b) =>
-          b.wins - a.wins ||
-          b.winRate - a.winRate ||
-          b.games - a.games ||
-          b.partnerCount - a.partnerCount ||
-          a.name.localeCompare(b.name, "ko-KR")
-        );
+        .map(row => ({ ...row, winRate: row.games ? row.wins / row.games : 0, partnerCount: row.partners.size }))
+        .sort((a, b) => b.wins - a.wins || b.winRate - a.winRate || b.games - a.games || b.partnerCount - a.partnerCount || a.name.localeCompare(b.name, "ko-KR"));
     }
 
     function renderRanking() {
@@ -665,23 +668,30 @@
         return;
       }
       const ranking = calculateRanking();
+      const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
+      const renderRows = rows => rows.map((row, i) =>
+        '<tr class="rank-' + (i + 1) + '">' +
+        '<td>' + (i + 1) + '</td>' +
+        '<td>' + row.name + '</td>' +
+        '<td>' + row.games + '</td>' +
+        '<td>' + row.wins + '</td>' +
+        '<td>' + row.losses + '</td>' +
+        '<td>' + Math.round(row.winRate * 100) + '%</td>' +
+        '<td>' + row.partnerCount + '</td>' +
+        '</tr>'
+      ).join("");
       el("rankingOutput").className = "tablewrap";
-      el("rankingOutput").innerHTML = `
-        <table>
-          <thead><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead>
-          <tbody>
-            ${ranking.map((row, i) => `
-              <tr class="rank-${i + 1}">
-                <td>${i + 1}</td>
-                <td>${row.name}</td>
-                <td>${row.games}</td>
-                <td>${row.wins}</td>
-                <td>${row.losses}</td>
-                <td>${Math.round(row.winRate * 100)}%</td>
-                <td>${row.partnerCount}</td>
-              </tr>`).join("")}
-          </tbody>
-        </table>`;
+      if (blueWhite) {
+        const blueRows = ranking.filter(row => row.team === "blue");
+        const whiteRows = ranking.filter(row => row.team === "white");
+        el("rankingOutput").innerHTML = '<table>' +
+          '<thead><tr><th colspan="7">청팀 순위</th></tr><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead>' +
+          '<tbody>' + renderRows(blueRows) + '</tbody>' +
+          '<thead><tr><th colspan="7">백팀 순위</th></tr><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead>' +
+          '<tbody>' + renderRows(whiteRows) + '</tbody></table>';
+        return;
+      }
+      el("rankingOutput").innerHTML = '<table><thead><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead><tbody>' + renderRows(ranking) + '</tbody></table>';
     }
 
     function calculatePlayerHistories() {
@@ -950,6 +960,8 @@
       state.players = Array.isArray(data.players) ? data.players : [];
       state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
       state.results = data.results || {};
+      state.teamMap = data.teamMap || {};
+      state.teamMode = data.teamMode === "blueWhite";
       state.updatedAt = data.updatedAt || "";
       renderAll();
       const updated = state.updatedAt ? new Date(state.updatedAt).toLocaleString("ko-KR") : "알 수 없음";

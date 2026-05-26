@@ -254,6 +254,46 @@
       display: none;
     }
 
+    .team-assign {
+      display: none;
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .team-assign.active { display: block; }
+
+    .team-assign-head,
+    .team-assign-row {
+      display: grid;
+      grid-template-columns: 1fr 54px 54px;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 9px;
+      font-size: 13px;
+    }
+
+    .team-assign-head {
+      background: #f3f7f4;
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    .team-assign-row {
+      border-top: 1px solid var(--line);
+      font-weight: 700;
+    }
+
+    .team-assign-row label {
+      margin: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 800;
+    }
+
     .stats {
       display: grid;
       grid-template-columns: repeat(5, minmax(100px, 1fr));
@@ -749,6 +789,14 @@
         <label for="players">출전 선수 명단</label>
         <button class="button" id="togglePlayersBtn" type="button" style="width: 100%; justify-content: center; margin-bottom: 8px;">명단 숨기기</button>
         <textarea id="players" spellcheck="false" placeholder="한 줄에 한 명씩 입력하세요.&#10;예)&#10;김민수&#10;이지훈&#10;박서연"></textarea>
+        <label class="checkrow">
+          <input id="blueWhiteMode" type="checkbox">
+          청백전 모드
+        </label>
+        <div class="team-assign" id="teamAssignPanel">
+          <div class="team-assign-head"><span>선수</span><span>청팀</span><span>백팀</span></div>
+          <div id="teamAssignList"></div>
+        </div>
         <div class="settings">
           <div>
             <label for="renameFrom">기존 이름</label>
@@ -902,7 +950,9 @@
       players: [],
       schedule: [],
       results: {},
-      seed: 1
+      seed: 1,
+      teamMode: false,
+      teamMap: {}
     };
 
     const el = id => document.getElementById(id);
@@ -982,6 +1032,74 @@
         filled.push(`대타${i}`);
       }
       return filled;
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function syncTeamAssignments(players = parsePlayers()) {
+      const half = Math.ceil(players.length / 2);
+      const nextMap = {};
+      players.forEach((name, index) => {
+        nextMap[name] = state.teamMap[name] || (index < half ? "blue" : "white");
+      });
+      state.teamMap = nextMap;
+      return nextMap;
+    }
+
+    function renderTeamAssignments() {
+      const enabled = el("blueWhiteMode").checked;
+      const players = parsePlayers();
+      el("teamAssignPanel").classList.toggle("active", enabled);
+      if (!enabled) return;
+      const teamMap = syncTeamAssignments(players);
+      el("teamAssignList").innerHTML = players.length ? players.map((name, index) => `
+        <div class="team-assign-row">
+          <span>${escapeHtml(name)}</span>
+          <label><input type="radio" name="team-${index}" data-player="${escapeHtml(name)}" value="blue" ${teamMap[name] === "blue" ? "checked" : ""}> 청</label>
+          <label><input type="radio" name="team-${index}" data-player="${escapeHtml(name)}" value="white" ${teamMap[name] === "white" ? "checked" : ""}> 백</label>
+        </div>
+      `).join("") : `<div class="team-assign-row"><span>명단을 입력하세요.</span><span></span><span></span></div>`;
+      el("teamAssignList").querySelectorAll("input[type='radio']").forEach(input => {
+        input.addEventListener("change", event => {
+          state.teamMap[event.target.dataset.player] = event.target.value;
+        });
+      });
+    }
+
+    function addTeamSubstitutes(blue, white) {
+      const blueList = blue.slice();
+      const whiteList = white.slice();
+      let blueSub = 1;
+      let whiteSub = 1;
+      const addBlue = () => blueList.push(`청팀대타${blueSub++}`);
+      const addWhite = () => whiteList.push(`백팀대타${whiteSub++}`);
+      if (blueList.length % 2) addBlue();
+      if (whiteList.length % 2) addWhite();
+      while (blueList.length < whiteList.length) addBlue();
+      while (whiteList.length < blueList.length) addWhite();
+      return { blue: blueList, white: whiteList };
+    }
+
+    function prepareBlueWhitePlayers(players) {
+      const teamMap = syncTeamAssignments(players);
+      const blue = [];
+      const white = [];
+      players.forEach(name => (teamMap[name] === "white" ? white : blue).push(name));
+      if (blue.length < 2 || white.length < 2) {
+        throw new Error("청백전은 청팀과 백팀에 각각 최소 2명 이상 필요합니다.");
+      }
+      const filled = addTeamSubstitutes(blue, white);
+      const finalMap = {};
+      filled.blue.forEach(name => finalMap[name] = "blue");
+      filled.white.forEach(name => finalMap[name] = "white");
+      state.teamMap = finalMap;
+      return { players: [...filled.blue, ...filled.white], blue: filled.blue, white: filled.white, teamMap: finalMap };
     }
 
     function keyOf(a, b) {
@@ -1160,6 +1278,104 @@
       return { schedule, ctx };
     }
 
+    function generateBlueWhiteSchedule(bluePlayers, whitePlayers, targetGames, courtCount, tries, seed) {
+      if (bluePlayers.length !== whitePlayers.length) {
+        throw new Error("청팀과 백팀 인원을 맞춘 뒤 대진을 생성해야 합니다.");
+      }
+      const players = [...bluePlayers, ...whitePlayers];
+      const maxMatches = bluePlayers.length * targetGames / 2;
+      const rand = mulberry32(seed);
+      const ctx = {
+        games: new Map(players.map(p => [p, 0])),
+        wins: new Map(players.map(p => [p, 0])),
+        partners: new Map(),
+        opponents: new Map(),
+        lastPlayed: new Map(players.map(p => [p, 0])),
+        restGaps: new Map(players.map(p => [p, []]))
+      };
+      const idealRest = Math.max(0, Math.round(players.length / 4) - 1);
+      const schedule = [];
+      let round = 1;
+      let idleGuard = 0;
+
+      while (schedule.length < maxMatches && idleGuard < players.length * targetGames * 6) {
+        const roundUsed = new Set();
+        let madeThisRound = 0;
+        for (let court = 1; court <= courtCount && schedule.length < maxMatches; court++) {
+          const eligibleBlue = bluePlayers.filter(p => !roundUsed.has(p) && (ctx.games.get(p) || 0) < targetGames);
+          const eligibleWhite = whitePlayers.filter(p => !roundUsed.has(p) && (ctx.games.get(p) || 0) < targetGames);
+          if (eligibleBlue.length < 2 || eligibleWhite.length < 2) break;
+
+          const sortByNeed = (a, b) =>
+            (ctx.games.get(a) || 0) - (ctx.games.get(b) || 0) ||
+            (ctx.lastPlayed.get(a) || 0) - (ctx.lastPlayed.get(b) || 0) ||
+            a.localeCompare(b, "ko-KR");
+          const bluePool = eligibleBlue.sort(sortByNeed).slice(0, Math.min(10, eligibleBlue.length));
+          const whitePool = eligibleWhite.sort(sortByNeed).slice(0, Math.min(10, eligibleWhite.length));
+          let bluePairs = combinations(bluePool, 2);
+          let whitePairs = combinations(whitePool, 2);
+          if (bluePairs.length > tries) bluePairs = shuffle(bluePairs, rand).slice(0, tries);
+          if (whitePairs.length > tries) whitePairs = shuffle(whitePairs, rand).slice(0, tries);
+
+          let best = null;
+          let bestScore = Infinity;
+          for (const bluePair of shuffle(bluePairs, rand)) {
+            for (const whitePair of shuffle(whitePairs, rand)) {
+              const group = [...bluePair, ...whitePair];
+              let score = evaluateGroup(group, ctx, targetGames, roundUsed, rand, schedule.length + 1, idealRest);
+              score += (ctx.partners.get(keyOf(bluePair[0], bluePair[1])) || 0) * 120;
+              score += (ctx.partners.get(keyOf(whitePair[0], whitePair[1])) || 0) * 120;
+              for (const blue of bluePair) {
+                for (const white of whitePair) {
+                  score += (ctx.opponents.get(keyOf(blue, white)) || 0) * 8;
+                }
+              }
+              if (score < bestScore) {
+                bestScore = score;
+                best = { bluePair, whitePair };
+              }
+            }
+          }
+          if (!best) break;
+
+          const match = {
+            id: schedule.length + 1,
+            round,
+            court,
+            teamA: best.bluePair,
+            teamB: best.whitePair,
+            teamALabel: "청",
+            teamBLabel: "백",
+            mode: "blueWhite"
+          };
+          schedule.push(match);
+          madeThisRound++;
+
+          const group = [...best.bluePair, ...best.whitePair];
+          for (const p of group) {
+            roundUsed.add(p);
+            const previous = ctx.lastPlayed.get(p) || 0;
+            if (previous) ctx.restGaps.get(p).push(match.id - previous - 1);
+            ctx.lastPlayed.set(p, match.id);
+            ctx.games.set(p, (ctx.games.get(p) || 0) + 1);
+          }
+          [best.bluePair, best.whitePair].forEach(pair => {
+            const key = keyOf(pair[0], pair[1]);
+            ctx.partners.set(key, (ctx.partners.get(key) || 0) + 1);
+          });
+          for (const blue of best.bluePair) {
+            for (const white of best.whitePair) {
+              const key = keyOf(blue, white);
+              ctx.opponents.set(key, (ctx.opponents.get(key) || 0) + 1);
+            }
+          }
+        }
+        if (madeThisRound === 0) idleGuard++;
+        round++;
+      }
+      return { schedule, ctx };
+    }
+
     function setMessage(text, isWarning = false) {
       el("message").textContent = text;
       el("message").style.borderColor = isWarning ? "#f59e0b" : "#cbd5e1";
@@ -1292,7 +1508,9 @@
         players: state.players,
         schedule: state.schedule,
         results: state.results,
-        seed: state.seed
+        seed: state.seed,
+        teamMode: state.teamMode,
+        teamMap: state.teamMap
       };
     }
 
@@ -1302,7 +1520,11 @@
       state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
       state.results = data.results || {};
       state.seed = data.seed || state.seed;
+      state.teamMode = data.teamMode === "blueWhite";
+      state.teamMap = data.teamMap || {};
       el("players").value = state.players.join("\n");
+      el("blueWhiteMode").checked = state.teamMode;
+      renderTeamAssignments();
       el("viewerAccessPassword").value = data.viewerPassword || "";
       localStorage.setItem("badminton_viewer_password", data.viewerPassword || "");
       renderAll(true);
@@ -1469,7 +1691,8 @@
       el("completeCount").textContent = Object.values(state.results).filter(Boolean).length;
       const aWins = Object.values(state.results).filter(value => value === "A").length;
       const bWins = Object.values(state.results).filter(value => value === "B").length;
-      el("winnerCount").textContent = `A ${aWins} / B ${bWins}`;
+      const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
+      el("winnerCount").textContent = blueWhite ? `청 ${aWins} / 백 ${bWins}` : `A ${aWins} / B ${bWins}`;
     }
 
     function schedulePlayerButton(matchId, teamKey, index, name) {
@@ -1588,23 +1811,27 @@
       el("scheduleOutput").className = "tablewrap";
       const rows = state.schedule.map(match => {
         const result = state.results[match.id] || "";
+        const labelA = match.teamALabel ? `${match.teamALabel}팀` : "A팀";
+        const labelB = match.teamBLabel ? `${match.teamBLabel}팀` : "B팀";
         return `
           <tr>
             <td data-label="경기">${match.id}</td>
             <td data-label="라운드"><span class="badge">${match.round}R</span></td>
             <td data-label="코트">${match.court}코트</td>
-            <td data-label="A팀"><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamA", 0, match.teamA[0])}</span><span class="pair">${schedulePlayerButton(match.id, "teamA", 1, match.teamA[1])}</span></div></td>
+            <td data-label="${labelA}"><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamA", 0, match.teamA[0])}</span><span class="pair">${schedulePlayerButton(match.id, "teamA", 1, match.teamA[1])}</span></div></td>
             <td data-label="" class="versus">VS</td>
-            <td data-label="B팀"><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamB", 0, match.teamB[0])}</span><span class="pair">${schedulePlayerButton(match.id, "teamB", 1, match.teamB[1])}</span></div></td>
+            <td data-label="${labelB}"><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamB", 0, match.teamB[0])}</span><span class="pair">${schedulePlayerButton(match.id, "teamB", 1, match.teamB[1])}</span></div></td>
             <td data-label="결과">
-              <label class="winner"><input type="radio" name="winner-${match.id}" value="A" ${result === "A" ? "checked" : ""}> A승</label>
-              <label class="winner"><input type="radio" name="winner-${match.id}" value="B" ${result === "B" ? "checked" : ""}> B승</label>
+              <label class="winner"><input type="radio" name="winner-${match.id}" value="A" ${result === "A" ? "checked" : ""}> ${match.teamALabel || "A"}승</label>
+              <label class="winner"><input type="radio" name="winner-${match.id}" value="B" ${result === "B" ? "checked" : ""}> ${match.teamBLabel || "B"}승</label>
             </td>
           </tr>`;
       }).join("");
+      const headerA = state.schedule.some(match => match.teamALabel) ? "청팀" : "A팀";
+      const headerB = state.schedule.some(match => match.teamBLabel) ? "백팀" : "B팀";
       el("scheduleOutput").innerHTML = `
         <table class="responsive-card">
-          <thead><tr><th>경기</th><th>라운드</th><th>코트</th><th>A팀</th><th></th><th>B팀</th><th>결과</th></tr></thead>
+          <thead><tr><th>경기</th><th>라운드</th><th>코트</th><th>${headerA}</th><th></th><th>${headerB}</th><th>결과</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>`;
 
@@ -1631,35 +1858,32 @@
 
     function calculateRanking() {
       const stats = new Map(state.players.map(name => [name, {
-        name, games: 0, wins: 0, losses: 0, winRate: 0, partners: new Set()
+        name, games: 0, wins: 0, losses: 0, winRate: 0, partners: new Set(), team: state.teamMap[name] || ""
       }]));
+      const ensure = (name, team = "") => {
+        if (!stats.has(name)) stats.set(name, { name, games: 0, wins: 0, losses: 0, winRate: 0, partners: new Set(), team });
+        if (team && !stats.get(name).team) stats.get(name).team = team;
+        return stats.get(name);
+      };
       for (const match of state.schedule) {
-        [...match.teamA, ...match.teamB].forEach(name => stats.get(name).games++);
-        stats.get(match.teamA[0]).partners.add(match.teamA[1]);
-        stats.get(match.teamA[1]).partners.add(match.teamA[0]);
-        stats.get(match.teamB[0]).partners.add(match.teamB[1]);
-        stats.get(match.teamB[1]).partners.add(match.teamB[0]);
-
+        const teamAType = match.teamALabel === "청" ? "blue" : match.teamALabel === "백" ? "white" : "";
+        const teamBType = match.teamBLabel === "청" ? "blue" : match.teamBLabel === "백" ? "white" : "";
+        match.teamA.forEach(name => ensure(name, teamAType).games++);
+        match.teamB.forEach(name => ensure(name, teamBType).games++);
+        ensure(match.teamA[0], teamAType).partners.add(match.teamA[1]);
+        ensure(match.teamA[1], teamAType).partners.add(match.teamA[0]);
+        ensure(match.teamB[0], teamBType).partners.add(match.teamB[1]);
+        ensure(match.teamB[1], teamBType).partners.add(match.teamB[0]);
         const result = state.results[match.id];
         if (!result) continue;
         const winners = result === "A" ? match.teamA : match.teamB;
         const losers = result === "A" ? match.teamB : match.teamA;
-        winners.forEach(name => stats.get(name).wins++);
-        losers.forEach(name => stats.get(name).losses++);
+        winners.forEach(name => ensure(name).wins++);
+        losers.forEach(name => ensure(name).losses++);
       }
       return [...stats.values()]
-        .map(row => ({
-          ...row,
-          winRate: row.games ? row.wins / row.games : 0,
-          partnerCount: row.partners.size
-        }))
-        .sort((a, b) =>
-          b.wins - a.wins ||
-          b.winRate - a.winRate ||
-          b.games - a.games ||
-          b.partnerCount - a.partnerCount ||
-          a.name.localeCompare(b.name, "ko-KR")
-        );
+        .map(row => ({ ...row, winRate: row.games ? row.wins / row.games : 0, partnerCount: row.partners.size }))
+        .sort((a, b) => b.wins - a.wins || b.winRate - a.winRate || b.games - a.games || b.partnerCount - a.partnerCount || a.name.localeCompare(b.name, "ko-KR"));
     }
 
     function renderRanking() {
@@ -1669,23 +1893,36 @@
         return;
       }
       const ranking = calculateRanking();
+      const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
+      const renderRows = rows => rows.map((row, i) =>
+        '<tr class="rank-' + (i + 1) + '">' +
+        '<td>' + (i + 1) + '</td>' +
+        '<td>' + row.name + '</td>' +
+        '<td>' + row.games + '</td>' +
+        '<td>' + row.wins + '</td>' +
+        '<td>' + row.losses + '</td>' +
+        '<td>' + Math.round(row.winRate * 100) + '%</td>' +
+        '<td>' + row.partnerCount + '</td>' +
+        '</tr>'
+      ).join("");
       el("rankingOutput").className = "tablewrap";
-      el("rankingOutput").innerHTML = `
-        <table>
-          <thead><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead>
-          <tbody>
-            ${ranking.map((row, i) => `
-              <tr class="rank-${i + 1}">
-                <td>${i + 1}</td>
-                <td>${row.name}</td>
-                <td>${row.games}</td>
-                <td>${row.wins}</td>
-                <td>${row.losses}</td>
-                <td>${Math.round(row.winRate * 100)}%</td>
-                <td>${row.partnerCount}</td>
-              </tr>`).join("")}
-          </tbody>
-        </table>`;
+      if (blueWhite) {
+        const blueRows = ranking.filter(row => row.team === "blue");
+        const whiteRows = ranking.filter(row => row.team === "white");
+        el("rankingOutput").innerHTML =
+          '<table>' +
+          '<thead><tr><th colspan="7">청팀 순위</th></tr><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead>' +
+          '<tbody>' + renderRows(blueRows) + '</tbody>' +
+          '<thead><tr><th colspan="7">백팀 순위</th></tr><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead>' +
+          '<tbody>' + renderRows(whiteRows) + '</tbody>' +
+          '</table>';
+        return;
+      }
+      el("rankingOutput").innerHTML =
+        '<table>' +
+        '<thead><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead>' +
+        '<tbody>' + renderRows(ranking) + '</tbody>' +
+        '</table>';
     }
 
     function renderMatrix() {
@@ -1902,7 +2139,7 @@
         }
       }
       const enteredPlayers = parsePlayers();
-      const players = addSubstitutePlayers(enteredPlayers);
+      const blueWhiteMode = el("blueWhiteMode").checked;
       const targetGames = Number(el("targetGames").value);
       const courtCount = Number(el("courtCount").value);
       const tries = Number(el("tries").value);
@@ -1918,22 +2155,38 @@
       }
 
       try {
-        const { schedule } = generateSchedule(players, targetGames, courtCount, tries, allowShortfall, seed);
+        let players;
+        let schedule;
+        let substituteCount = 0;
+        state.teamMode = blueWhiteMode;
+        if (blueWhiteMode) {
+          const prepared = prepareBlueWhitePlayers(enteredPlayers);
+          players = prepared.players;
+          substituteCount = players.length - enteredPlayers.length;
+          schedule = generateBlueWhiteSchedule(prepared.blue, prepared.white, targetGames, courtCount, tries, seed).schedule;
+        } else {
+          players = addSubstitutePlayers(enteredPlayers);
+          substituteCount = players.length - enteredPlayers.length;
+          state.teamMap = {};
+          schedule = generateSchedule(players, targetGames, courtCount, tries, allowShortfall, seed).schedule;
+        }
         state.players = players;
         state.schedule = schedule;
         state.results = {};
         state.seed = seed;
+        el("players").value = players.filter(name => !/^청팀대타\d+$/.test(name) && !/^백팀대타\d+$/.test(name)).join("\n");
+        renderTeamAssignments();
         renderAll(true);
         if (el("autoCloudSave").checked) saveCloudData(true);
 
         const totalSlots = players.length * targetGames;
         const madeSlots = schedule.length * 4;
         const short = totalSlots - madeSlots;
-        const substituteCount = players.length - enteredPlayers.length;
-        const substituteText = substituteCount ? ` 대타 ${substituteCount}명을 자동 추가했습니다.` : "";
+        const substituteText = substituteCount ? " 대타 " + substituteCount + "명을 자동 추가했습니다." : "";
+        const modeText = blueWhiteMode ? " 청백전 방식으로" : "";
         setMessage(short > 0
-          ? `${schedule.length}경기를 생성했습니다.${substituteText} 총 ${short}회 출전 슬롯은 인원/조건 때문에 비워졌습니다.`
-          : `${schedule.length}경기를 생성했습니다.${substituteText} 파트너 중복이 생기면 랜덤 시드를 바꿔 다시 생성해보세요.`
+          ? schedule.length + "경기를" + modeText + " 생성했습니다." + substituteText + " 총 " + short + "회 출전 슬롯은 인원/조건 때문에 비워졌습니다."
+          : schedule.length + "경기를" + modeText + " 생성했습니다." + substituteText + " 파트너 중복이 생기면 랜덤 시드를 바꿔 다시 생성해보세요."
         , short > 0 || substituteCount > 0);
       } catch (error) {
         setMessage(error.message, true);
@@ -2267,6 +2520,12 @@
     el("sampleBtn").addEventListener("click", () => {
       el("players").value = sampleNames.join("\n");
       el("seed").value = Math.floor(Math.random() * 900000) + 100000;
+      renderTeamAssignments();
+    });
+    el("players").addEventListener("input", renderTeamAssignments);
+    el("blueWhiteMode").addEventListener("change", () => {
+      state.teamMode = el("blueWhiteMode").checked;
+      renderTeamAssignments();
     });
     el("applyRenameBtn").addEventListener("click", applyExplicitPlayerRename);
     el("togglePlayersBtn").addEventListener("click", () => {
