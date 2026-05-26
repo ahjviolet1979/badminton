@@ -2157,7 +2157,9 @@
           const matchId = Number(event.target.name.replace("winner-", ""));
           state.results[matchId] = event.target.value;
           state.nextMatchIds = (state.nextMatchIds || []).filter(id => Number(id) !== matchId);
-          renderAll(false);
+          const nextCheck = event.target.closest("tr")?.querySelector(".next-match-check");
+          if (nextCheck) nextCheck.checked = false;
+          renderAll(true);
           if (el("autoCloudSave").checked) saveCloudData(true);
         });
       });
