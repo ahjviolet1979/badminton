@@ -266,6 +266,7 @@
     .team-assign.active { display: block; }
 
     .team-assign-head,
+    .team-assign-summary,
     .team-assign-row {
       display: grid;
       grid-template-columns: 1fr 54px 54px;
@@ -279,6 +280,14 @@
       background: #f3f7f4;
       color: var(--muted);
       font-weight: 900;
+    }
+
+    .team-assign-summary {
+      grid-template-columns: 1fr;
+      background: #f8fafc;
+      color: #475569;
+      font-weight: 900;
+      border-top: 1px solid var(--line);
     }
 
     .team-assign-row {
@@ -795,6 +804,7 @@
         </label>
         <div class="team-assign" id="teamAssignPanel">
           <div class="team-assign-head"><span>선수</span><span>청팀</span><span>백팀</span></div>
+          <div class="team-assign-summary" id="teamAssignSummary">청팀 0명 / 백팀 0명</div>
           <div id="teamAssignList"></div>
         </div>
         <div class="settings">
@@ -1058,6 +1068,9 @@
       el("teamAssignPanel").classList.toggle("active", enabled);
       if (!enabled) return;
       const teamMap = syncTeamAssignments(players);
+      const blueCount = players.filter(name => teamMap[name] === "blue").length;
+      const whiteCount = players.filter(name => teamMap[name] === "white").length;
+      el("teamAssignSummary").textContent = `청팀 ${blueCount}명 / 백팀 ${whiteCount}명`;
       el("teamAssignList").innerHTML = players.length ? players.map((name, index) => `
         <div class="team-assign-row">
           <span>${escapeHtml(name)}</span>
@@ -1068,6 +1081,10 @@
       el("teamAssignList").querySelectorAll("input[type='radio']").forEach(input => {
         input.addEventListener("change", event => {
           state.teamMap[event.target.dataset.player] = event.target.value;
+          const players = parsePlayers();
+          const blueCount = players.filter(name => state.teamMap[name] === "blue").length;
+          const whiteCount = players.filter(name => state.teamMap[name] === "white").length;
+          el("teamAssignSummary").textContent = `청팀 ${blueCount}명 / 백팀 ${whiteCount}명`;
         });
       });
     }
@@ -1909,11 +1926,14 @@
       if (blueWhite) {
         const blueRows = ranking.filter(row => row.team === "blue");
         const whiteRows = ranking.filter(row => row.team === "white");
+        const header = '<tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr>';
         el("rankingOutput").innerHTML =
           '<table>' +
-          '<thead><tr><th colspan="7">청팀 순위</th></tr><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead>' +
+          '<thead><tr><th colspan="7">전체 순위</th></tr>' + header + '</thead>' +
+          '<tbody>' + renderRows(ranking) + '</tbody>' +
+          '<thead><tr><th colspan="7">청팀 순위 (' + blueRows.length + '명)</th></tr>' + header + '</thead>' +
           '<tbody>' + renderRows(blueRows) + '</tbody>' +
-          '<thead><tr><th colspan="7">백팀 순위</th></tr><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead>' +
+          '<thead><tr><th colspan="7">백팀 순위 (' + whiteRows.length + '명)</th></tr>' + header + '</thead>' +
           '<tbody>' + renderRows(whiteRows) + '</tbody>' +
           '</table>';
         return;
