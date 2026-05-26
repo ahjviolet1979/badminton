@@ -512,6 +512,43 @@
       color: #b45309;
     }
 
+    .duplicate-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      max-height: 78px;
+      overflow: auto;
+      line-height: 1.3;
+    }
+
+    .duplicate-chip {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 7px;
+      border-radius: 999px;
+      background: #fff7ed;
+      color: #9a3412;
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .matrix-table {
+      table-layout: fixed;
+    }
+
+    .matrix-table th:nth-child(1),
+    .matrix-table td:nth-child(1) { width: 70px; }
+
+    .matrix-table th:nth-child(2),
+    .matrix-table td:nth-child(2) { width: 82px; }
+
+    .matrix-table th:nth-child(4),
+    .matrix-table td:nth-child(4) {
+      width: 76px;
+      text-align: center;
+    }
+
     .notice {
       margin-top: 12px;
       padding: 11px 12px;
@@ -2094,13 +2131,16 @@
       const gameRows = [...games.entries()]
         .filter(([name]) => !search || name.toLowerCase().includes(search))
         .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"));
+      const duplicateText = duplicatePartners.length
+        ? '<div class="duplicate-list">' + duplicatePartners.map(([k, c]) => `<span class="duplicate-chip">${k} (${c}회)</span>`).join("") + '</div>'
+        : "없음";
       el("matrixOutput").className = "tablewrap";
       el("matrixOutput").innerHTML = `
-        <table>
+        <table class="matrix-table">
           <thead><tr><th>구분</th><th>항목</th><th>값</th><th>상태</th></tr></thead>
           <tbody>
             <tr><td>경기 수</td><td>최대/최소</td><td>${Math.max(...games.values())} / ${Math.min(...games.values())}</td><td><span class="badge">균형 확인</span></td></tr>
-            <tr><td>파트너 중복</td><td>중복 조합</td><td>${duplicatePartners.length ? duplicatePartners.map(([k, c]) => `${k} (${c}회)`).join(", ") : "없음"}</td><td><span class="badge ${duplicatePartners.length ? "warn" : ""}">${duplicatePartners.length ? "일부 중복" : "좋음"}</span></td></tr>
+            <tr><td>파트너 중복</td><td>중복 조합</td><td>${duplicateText}</td><td><span class="badge ${duplicatePartners.length ? "warn" : ""}">${duplicatePartners.length ? "일부 중복" : "좋음"}</span></td></tr>
             ${gameRows.map(([name, count]) => `<tr><td>선수별 경기</td><td>${name}</td><td>${count}</td><td></td></tr>`).join("")}
           </tbody>
         </table>`;
