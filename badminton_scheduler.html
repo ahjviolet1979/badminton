@@ -1200,7 +1200,9 @@
         const moveCount = diff / 2;
         const from = blue.length > white.length ? "청팀" : "백팀";
         const to = blue.length > white.length ? "백팀" : "청팀";
-        throw new Error(`${from}에서 ${to}으로 ${moveCount}명을 이동 배치한 뒤 대진을 생성하세요. 현재 청팀 ${blue.length}명 / 백팀 ${white.length}명입니다.`);
+        const error = new Error(`${from}에서 ${to}으로 ${moveCount}명을 이동 배치한 뒤 대진을 생성하세요. 현재 청팀 ${blue.length}명 / 백팀 ${white.length}명입니다.`);
+        error.alert = true;
+        throw error;
       }
       const filled = addTeamSubstitutes(blue, white);
       const finalMap = {};
@@ -2341,6 +2343,7 @@
           : schedule.length + "경기를" + modeText + " 생성했습니다." + substituteText + " 파트너 중복이 생기면 랜덤 시드를 바꿔 다시 생성해보세요."
         , short > 0 || substituteCount > 0);
       } catch (error) {
+        if (error.alert) window.alert(error.message);
         setMessage(error.message, true);
       }
     }
