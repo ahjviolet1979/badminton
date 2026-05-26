@@ -254,6 +254,17 @@
       display: none;
     }
 
+    .player-count-summary {
+      margin: -6px 0 10px;
+      padding: 8px 10px;
+      border: 1px solid #cfe3d7;
+      border-radius: 8px;
+      background: #f4faf6;
+      color: #315243;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
     .team-assign {
       display: none;
       margin-top: 10px;
@@ -835,6 +846,7 @@
         <label for="players">출전 선수 명단</label>
         <button class="button" id="togglePlayersBtn" type="button" style="width: 100%; justify-content: center; margin-bottom: 8px;">명단 숨기기</button>
         <textarea id="players" spellcheck="false" placeholder="한 줄에 한 명씩 입력하세요.&#10;예)&#10;김민수&#10;이지훈&#10;박서연"></textarea>
+        <div class="player-count-summary" id="playerCountSummary">선수 0명 / 대타 0명 / 총 0명</div>
         <label class="checkrow">
           <input id="blueWhiteMode" type="checkbox">
           청백전 모드
@@ -1062,13 +1074,17 @@
       };
     }
 
+    function isAutoSubstituteName(name) {
+      return /^대타\d+$/.test(name) || /^청팀대타\d+$/.test(name) || /^백팀대타\d+$/.test(name);
+    }
+
     function parsePlayers() {
       const seen = new Set();
       return el("players").value
         .split(/\n|,|;/)
         .map(name => name.trim())
         .filter(Boolean)
-        .filter(name => !/^청팀대타\d+$/.test(name) && !/^백팀대타\d+$/.test(name))
+        .filter(name => !isAutoSubstituteName(name))
         .filter(name => {
           const key = name.toLocaleLowerCase("ko-KR");
           if (seen.has(key)) return false;
@@ -1076,6 +1092,29 @@
           return true;
         })
         .slice(0, 30);
+    }
+
+    function countRawRosterNames() {
+      const seen = new Set();
+      const counts = { players: 0, substitutes: 0, total: 0 };
+      el("players").value
+        .split(/\n|,|;/)
+        .map(name => name.trim())
+        .filter(Boolean)
+        .forEach(name => {
+          const key = name.toLocaleLowerCase("ko-KR");
+          if (seen.has(key)) return;
+          seen.add(key);
+          counts.total++;
+          if (isAutoSubstituteName(name)) counts.substitutes++;
+          else counts.players++;
+        });
+      return counts;
+    }
+
+    function updatePlayerCountSummary() {
+      const counts = countRawRosterNames();
+      el("playerCountSummary").textContent = `선수 ${counts.players}명 / 대타 ${counts.substitutes}명 / 총 ${counts.total}명`;
     }
 
     function addSubstitutePlayers(players) {
@@ -1108,6 +1147,7 @@
     function renderTeamAssignments() {
       const enabled = el("blueWhiteMode").checked;
       const players = parsePlayers();
+      updatePlayerCountSummary();
       el("teamAssignPanel").classList.toggle("active", enabled);
       if (!enabled) return;
       const teamMap = syncTeamAssignments(players);
@@ -1147,7 +1187,7 @@
     }
 
     function prepareBlueWhitePlayers(players) {
-      players = players.filter(name => !/^청팀대타\d+$/.test(name) && !/^백팀대타\d+$/.test(name));
+      players = players.filter(name => !isAutoSubstituteName(name));
       const teamMap = syncTeamAssignments(players);
       const blue = [];
       const white = [];
@@ -1584,7 +1624,7 @@
       state.teamMode = data.teamMode === "blueWhite";
       state.teamMap = data.teamMap || {};
       el("players").value = state.players
-        .filter(name => !/^청팀대타\d+$/.test(name) && !/^백팀대타\d+$/.test(name))
+        .filter(name => !isAutoSubstituteName(name))
         .join("\n");
       el("blueWhiteMode").checked = state.teamMode;
       renderTeamAssignments();
@@ -1782,7 +1822,7 @@
       });
       state.players = names;
       el("players").value = names
-        .filter(name => !/^청팀대타\d+$/.test(name) && !/^백팀대타\d+$/.test(name))
+        .filter(name => !isAutoSubstituteName(name))
         .join("\n");
       renderPlayerNameOptions();
     }
@@ -2224,6 +2264,7 @@
 
     function renderAll(includeSchedule = true) {
       if (state.schedule.length) rebuildPlayersFromSchedule();
+      updatePlayerCountSummary();
       renderStats();
       if (includeSchedule) renderSchedule();
       renderRanking();
@@ -2242,7 +2283,7 @@
       let enteredPlayers = parsePlayers();
       const blueWhiteMode = el("blueWhiteMode").checked;
       if (blueWhiteMode) {
-        enteredPlayers = enteredPlayers.filter(name => !/^청팀대타\d+$/.test(name) && !/^백팀대타\d+$/.test(name));
+        enteredPlayers = enteredPlayers.filter(name => !isAutoSubstituteName(name));
       }
       const targetGames = Number(el("targetGames").value);
       const courtCount = Number(el("courtCount").value);
@@ -2278,7 +2319,7 @@
         state.schedule = schedule;
         state.results = {};
         state.seed = seed;
-        el("players").value = players.filter(name => !/^청팀대타\d+$/.test(name) && !/^백팀대타\d+$/.test(name)).join("\n");
+        el("players").value = players.filter(name => !isAutoSubstituteName(name)).join("\n");
         renderTeamAssignments();
         renderAll(true);
         if (el("autoCloudSave").checked) saveCloudData(true);
