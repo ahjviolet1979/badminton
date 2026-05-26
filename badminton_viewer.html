@@ -472,9 +472,8 @@
     <section class="panel">
       <div class="tabs">
         <button class="tab active" data-view="scheduleView" type="button">대진표</button>
-        <button class="tab" data-view="summaryView" type="button">출전요약</button>
-        <button class="tab" data-view="rankingView" type="button">개인순위</button>
         <button class="tab" data-view="historyView" type="button">선수별 이력</button>
+        <button class="tab" data-view="rankingView" type="button">개인순위</button>
       </div>
 
       <div class="stats">
@@ -684,10 +683,13 @@
       if (blueWhite) {
         const blueRows = ranking.filter(row => row.team === "blue");
         const whiteRows = ranking.filter(row => row.team === "white");
+        const header = '<tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr>';
         el("rankingOutput").innerHTML = '<table>' +
-          '<thead><tr><th colspan="7">청팀 순위</th></tr><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead>' +
+          '<thead><tr><th colspan="7">전체 순위</th></tr>' + header + '</thead>' +
+          '<tbody>' + renderRows(ranking) + '</tbody>' +
+          '<thead><tr><th colspan="7">청팀 순위 (' + blueRows.length + '명)</th></tr>' + header + '</thead>' +
           '<tbody>' + renderRows(blueRows) + '</tbody>' +
-          '<thead><tr><th colspan="7">백팀 순위</th></tr><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead>' +
+          '<thead><tr><th colspan="7">백팀 순위 (' + whiteRows.length + '명)</th></tr>' + header + '</thead>' +
           '<tbody>' + renderRows(whiteRows) + '</tbody></table>';
         return;
       }
@@ -802,7 +804,7 @@
                 <td class="history-text history-partners">${summarizePartnersByMatch(history.matches)}</td>
                 <td class="history-text history-summary-text">
                   ${history.matches.map(match =>
-                    `${match.id}경기 ${match.round}R/${match.court}코트: ${match.partner}와 팀, 상대 ${match.opponents}, ${match.status}`
+                    `${match.id}경기 ${match.round}R/${match.court}코트: 팀 ${match.partner}, 상대 ${match.opponents}, ${match.status}`
                   ).join("<br>")}
                 </td>
               </tr>`).join("")}

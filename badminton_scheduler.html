@@ -916,13 +916,12 @@
       </aside>
 
       <section class="panel">
-        <div class="tabs no-print">
-          <button class="tab active" data-view="scheduleView" type="button">대진표</button>
-          <button class="tab" data-view="summaryView" type="button">출전요약</button>
-          <button class="tab" data-view="rankingView" type="button">개인순위</button>
-          <button class="tab" data-view="historyView" type="button">선수별 이력</button>
-          <button class="tab" data-view="matrixView" type="button">중복점검</button>
-        </div>
+      <div class="tabs no-print">
+        <button class="tab active" data-view="scheduleView" type="button">대진표</button>
+        <button class="tab" data-view="historyView" type="button">선수별 이력</button>
+        <button class="tab" data-view="rankingView" type="button">개인순위</button>
+        <button class="tab" data-view="matrixView" type="button">중복점검</button>
+      </div>
 
         <div class="stats">
           <div class="stat"><b id="playerCount">0</b><span>선수</span></div>
@@ -942,10 +941,6 @@
 
         <div class="view" id="matrixView">
           <div id="matrixOutput" class="empty">생성된 대진의 파트너 중복과 경기 수 균형을 점검합니다.</div>
-        </div>
-
-        <div class="view" id="summaryView">
-          <div id="summaryOutput" class="empty">선수별 전적, 파트너, 출전 사이 텀이 여기에 표시됩니다.</div>
         </div>
 
         <div class="view" id="historyView">
@@ -984,7 +979,7 @@
         return;
       }
       el("adminLoginId").value = config.adminId || "";
-      el("adminLoginForm").addEventListener("submit", event => {
+      el("adminLoginForm").addEventListener("submit", async event => {
         event.preventDefault();
         if (!config.adminId || !config.adminPassword) {
           el("adminLoginError").textContent = "관리자 로그인 설정이 없습니다. supabase_config.js를 확인하세요.";
@@ -996,8 +991,14 @@
           sessionStorage.setItem("badminton_admin_ok", "1");
           document.body.classList.remove("locked");
           el("adminLoginPassword").value = "";
-          loadAdminEventOptions();
-          setMessage("관리자로 로그인했습니다. 기존 대회를 선택하거나 새 대회를 시작하세요.");
+          await loadAdminEventOptions();
+          const selectedEventId = el("supabaseEventId").value.trim();
+          if (selectedEventId) {
+            await loadCloudData(true);
+            setMessage("관리자로 로그인했습니다. 선택된 대회 데이터를 불러왔습니다.");
+          } else {
+            setMessage("관리자로 로그인했습니다. 기존 대회를 선택하거나 새 대회를 시작하세요.");
+          }
         } else {
           el("adminLoginError").textContent = "아이디 또는 비밀번호가 맞지 않습니다.";
         }
@@ -2099,9 +2100,11 @@
                 </td>
                 <td class="history-text history-partners">${summarizePartnersByMatch(history.matches)}</td>
                 <td class="history-text history-summary-text">
-                  ${history.matches.map(match =>
-                    `${match.id}경기 ${match.round}R/${match.court}코트: ${match.partner}와 팀, 상대 ${match.opponents}, ${match.status}`
-                  ).join("<br>")}
+                  ${history.matches.map((match, index) => {
+                    const next = history.matches[index + 1];
+                    const restText = next ? `, ${next.id - match.id - 1}게임쉼` : "";
+                    return `${match.id}경기 ${match.round}R/${match.court}코트: 팀 ${match.partner}, 상대 ${match.opponents}, ${match.status}${restText}`;
+                  }).join("<br>")}
                 </td>
               </tr>`).join("")}
           </tbody>
@@ -2152,7 +2155,6 @@
       if (includeSchedule) renderSchedule();
       renderRanking();
       renderMatrix();
-      renderAppearanceSummary();
       renderPlayerHistory();
     }
 
@@ -2525,7 +2527,7 @@
         return;
       }
       const before = activeViewId();
-      const views = ["scheduleView", "rankingView", "summaryView", "historyView"];
+      const views = ["scheduleView", "rankingView", "historyView"];
       try {
         for (const viewId of views) {
           activateView(viewId);
@@ -2533,7 +2535,7 @@
           await captureView(viewId, true);
         }
         activateView(before);
-        setMessage("대진표, 개인순위, 출전요약, 선수별이력 이미지를 만들었습니다. 다운로드가 막히면 왼쪽 미리보기에서 저장하세요.");
+        setMessage("대진표, 개인순위, 선수별이력 이미지를 만들었습니다. 다운로드가 막히면 왼쪽 미리보기에서 저장하세요.");
       } catch (error) {
         activateView(before);
         setMessage("전체 탭 이미지 생성 중 문제가 생겼습니다. 현재 탭 이미지로 하나씩 저장해보세요.", true);
