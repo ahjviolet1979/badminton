@@ -511,7 +511,7 @@
   <main class="app">
     <header>
       <div>
-        <h1>배드민턴 대진표</h1>
+        <h1 id="eventTitle">배드민턴 대진표</h1>
         <p class="subtitle" id="statusText">대회 데이터를 불러오는 중입니다.</p>
       </div>
       <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
@@ -570,7 +570,8 @@
       updatedAt: "",
       teamMap: {},
       teamMode: false,
-      nextMatchIds: []
+      nextMatchIds: [],
+      eventName: ""
     };
 
     const el = id => document.getElementById(id);
@@ -1062,8 +1063,10 @@
       state.teamMode = data.teamMode === "blueWhite";
       state.nextMatchIds = Array.isArray(data.nextMatchIds) ? data.nextMatchIds.map(Number).filter(Boolean) : [];
       state.updatedAt = data.updatedAt || "";
+      state.eventName = data.eventId || sessionStorage.getItem("badminton_viewer_event_id") || "";
       renderAll();
       const updated = state.updatedAt ? new Date(state.updatedAt).toLocaleString("ko-KR") : "알 수 없음";
+      el("eventTitle").textContent = state.eventName ? `${state.eventName} 대진표` : "배드민턴 대진표";
       el("statusText").textContent = `마지막 업데이트: ${updated}`;
     }
 

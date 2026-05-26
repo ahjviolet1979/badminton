@@ -352,6 +352,17 @@
       box-shadow: inset 4px 0 0 #10b981, 0 8px 24px rgba(18, 32, 25, 0.06);
     }
 
+    .next-banner {
+      margin: -2px 0 6px;
+      padding: 5px 8px;
+      border-radius: 7px;
+      background: #dcfce7;
+      color: #047857;
+      font-size: 13px;
+      font-weight: 900;
+      text-align: center;
+    }
+
     .team-label {
       flex: 0 0 auto;
       color: var(--muted);
@@ -792,6 +803,7 @@
         const result = state.results[match.id] || "";
         const isNext = (state.nextMatchIds || []).map(Number).includes(Number(match.id));
         return '<article class="match-card ' + (isNext ? 'next-match' : '') + '">' +
+          (isNext ? '<div class="next-banner">다음게임</div>' : '') +
           '<div class="match-line">' +
           '<div class="match-meta">' + match.id + '경기<br>' + match.round + 'R/' + match.court + '코트' + (isNext ? '<br><span class="next-badge">다음</span>' : '') + '</div>' +
           '<div class="team-row ' + (result === "A" ? "win-a" : "") + '"><span class="team-label">' + (match.teamALabel || "A") + '팀</span><span class="names">' + match.teamA[0] + ' / ' + match.teamA[1] + '</span>' + (result === "A" ? '<span class="win-mark a">승</span>' : '') + '</div>' +
