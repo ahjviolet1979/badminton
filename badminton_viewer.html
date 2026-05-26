@@ -169,6 +169,21 @@
       overflow-x: auto;
     }
 
+    .player-search {
+      margin: 0 0 12px;
+    }
+
+    .player-search input {
+      width: 100%;
+      max-width: 320px;
+      padding: 9px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
     .tab {
       border: 0;
       background: transparent;
@@ -494,8 +509,9 @@
     <section class="panel">
       <div class="tabs">
         <button class="tab active" data-view="scheduleView" type="button">대진표</button>
-        <button class="tab" data-view="historyView" type="button">선수별 이력</button>
-        <button class="tab" data-view="rankingView" type="button">개인순위</button>
+        <button class="tab" data-view="historyView" type="button">선수별이력</button>
+        <button class="tab" data-view="rankingView" type="button">순위</button>
+        <button class="tab" data-view="matrixView" type="button">중복점검</button>
       </div>
 
       <div class="stats">
@@ -504,6 +520,10 @@
         <div class="stat"><b id="roundCount">0</b><span>라운드</span></div>
         <div class="stat"><b id="completeCount">0</b><span>결과 입력</span></div>
         <div class="stat"><b id="winnerCount">A 0 / B 0</b><span>승리팀</span></div>
+      </div>
+
+      <div class="player-search">
+        <input id="playerSearch" type="search" placeholder="선수 이름 검색" autocomplete="off">
       </div>
 
       <div class="view active" id="scheduleView">
@@ -519,7 +539,11 @@
       </div>
 
       <div class="view" id="historyView">
-        <div id="historyOutput" class="empty">선수별 이력 데이터를 기다리고 있습니다.</div>
+        <div id="historyOutput" class="empty">선수별이력 데이터를 기다리고 있습니다.</div>
+      </div>
+
+      <div class="view" id="matrixView">
+        <div id="matrixOutput" class="empty">중복점검 데이터가 아직 없습니다.</div>
       </div>
 
     </section>
@@ -617,19 +641,32 @@
       el("winnerCount").textContent = blueWhite ? `청 ${aWins} / 백 ${bWins}` : `A ${aWins} / B ${bWins}`;
     }
 
+    function searchText() {
+      return (el("playerSearch")?.value || "").trim().toLowerCase();
+    }
+
     function renderSchedule() {
       if (!state.schedule.length) {
         el("scheduleOutput").className = "empty";
         el("scheduleOutput").textContent = "대진 데이터가 아직 없습니다.";
         return;
       }
-      const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
+      const search = searchText();
+      const schedule = search
+        ? state.schedule.filter(match => [...match.teamA, ...match.teamB].some(name => name.toLowerCase().includes(search)))
+        : state.schedule;
+      if (!schedule.length) {
+        el("scheduleOutput").className = "empty";
+        el("scheduleOutput").textContent = "검색된 선수의 대진이 없습니다.";
+        return;
+      }
+      const blueWhite = schedule.some(match => match.mode === "blueWhite");
       el("scheduleOutput").className = "tablewrap";
       el("scheduleOutput").innerHTML = `
         <table class="responsive-card">
           <thead><tr><th>경기</th><th>라운드</th><th>코트</th><th>${blueWhite ? "청팀" : "A팀"}</th><th></th><th>${blueWhite ? "백팀" : "B팀"}</th><th>결과</th></tr></thead>
           <tbody>
-            ${state.schedule.map(match => {
+            ${schedule.map(match => {
               const result = state.results[match.id] || "";
               const labelA = match.teamALabel || "A";
               const labelB = match.teamBLabel || "B";
@@ -689,33 +726,43 @@
         return;
       }
       const ranking = calculateRanking();
+      const search = searchText();
+      const visibleRanking = search ? ranking.filter(row => row.name.toLowerCase().includes(search)) : ranking;
+      if (!visibleRanking.length) {
+        el("rankingOutput").className = "empty";
+        el("rankingOutput").textContent = "검색된 선수의 순위가 없습니다.";
+        return;
+      }
       const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
-      const renderRows = rows => rows.map((row, i) =>
-        '<tr class="rank-' + (i + 1) + '">' +
-        '<td>' + (i + 1) + '</td>' +
+      const renderRows = (rows, baseRows = ranking) => rows.map(row => {
+        const rank = baseRows.findIndex(item => item.name === row.name) + 1;
+        return '<tr class="rank-' + rank + '">' +
+        '<td>' + rank + '</td>' +
         '<td>' + row.name + '</td>' +
         '<td>' + row.games + '</td>' +
         '<td>' + row.wins + '</td>' +
         '<td>' + row.losses + '</td>' +
         '<td>' + Math.round(row.winRate * 100) + '%</td>' +
         '<td>' + row.partnerCount + '</td>' +
-        '</tr>'
-      ).join("");
+        '</tr>';
+      }).join("");
       el("rankingOutput").className = "tablewrap";
       if (blueWhite) {
         const blueRows = ranking.filter(row => row.team === "blue");
         const whiteRows = ranking.filter(row => row.team === "white");
+        const visibleBlueRows = search ? blueRows.filter(row => row.name.toLowerCase().includes(search)) : blueRows;
+        const visibleWhiteRows = search ? whiteRows.filter(row => row.name.toLowerCase().includes(search)) : whiteRows;
         const header = '<tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr>';
         el("rankingOutput").innerHTML = '<table>' +
           '<thead><tr><th colspan="7">전체 순위</th></tr>' + header + '</thead>' +
-          '<tbody>' + renderRows(ranking) + '</tbody>' +
+          '<tbody>' + renderRows(visibleRanking, ranking) + '</tbody>' +
           '<thead><tr><th colspan="7">청팀 순위 (' + blueRows.length + '명)</th></tr>' + header + '</thead>' +
-          '<tbody>' + renderRows(blueRows) + '</tbody>' +
+          '<tbody>' + renderRows(visibleBlueRows, blueRows) + '</tbody>' +
           '<thead><tr><th colspan="7">백팀 순위 (' + whiteRows.length + '명)</th></tr>' + header + '</thead>' +
-          '<tbody>' + renderRows(whiteRows) + '</tbody></table>';
+          '<tbody>' + renderRows(visibleWhiteRows, whiteRows) + '</tbody></table>';
         return;
       }
-      el("rankingOutput").innerHTML = '<table><thead><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead><tbody>' + renderRows(ranking) + '</tbody></table>';
+      el("rankingOutput").innerHTML = '<table><thead><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead><tbody>' + renderRows(visibleRanking, ranking) + '</tbody></table>';
     }
 
     function calculatePlayerHistories() {
@@ -797,10 +844,16 @@
     function renderPlayerHistory() {
       if (!state.schedule.length) {
         el("historyOutput").className = "empty";
-        el("historyOutput").textContent = "선수별 이력 데이터가 아직 없습니다.";
+        el("historyOutput").textContent = "선수별이력 데이터가 아직 없습니다.";
         return;
       }
-      const histories = calculatePlayerHistories();
+      const search = searchText();
+      const histories = calculatePlayerHistories().filter(history => !search || history.name.toLowerCase().includes(search));
+      if (!histories.length) {
+        el("historyOutput").className = "empty";
+        el("historyOutput").textContent = "검색된 선수의 선수별이력이 없습니다.";
+        return;
+      }
       el("historyOutput").className = "tablewrap";
       el("historyOutput").innerHTML = `
         <table class="history-table">
@@ -828,7 +881,7 @@
                   ${history.matches.map((match, index) => {
                     const next = history.matches[index + 1];
                     const restText = next ? `, ${next.id - match.id - 1}게임쉼` : "";
-                    return `${match.id}경기 ${match.round}R/${match.court}코트: 팀 ${match.partner}, 상대 ${match.opponents}, ${match.status}${restText}`;
+                    return `${match.id}경기 ${match.round}R/${match.court}코트: 팀 ${match.partner}, vs ${match.opponents}, ${match.status}${restText}`;
                   }).join("<br>")}
                 </td>
               </tr>`).join("")}
@@ -861,7 +914,10 @@
       }
 
       const duplicatePartners = [...partners.entries()].filter(([, count]) => count > 1);
-      const gameRows = [...games.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"));
+      const search = searchText();
+      const gameRows = [...games.entries()]
+        .filter(([name]) => !search || name.toLowerCase().includes(search))
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"));
       el("matrixOutput").className = "tablewrap";
       el("matrixOutput").innerHTML = `
         <table>
@@ -880,6 +936,7 @@
       renderAppearanceSummary();
       renderRanking();
       renderPlayerHistory();
+      renderMatrix();
     }
 
     function activateView(viewId) {
@@ -1090,6 +1147,7 @@
     document.querySelectorAll(".tab").forEach(tab => {
       tab.addEventListener("click", () => activateView(tab.dataset.view));
     });
+    el("playerSearch").addEventListener("input", renderAll);
     el("reloadBtn").addEventListener("click", loadData);
     el("logoutViewerBtn").addEventListener("click", () => {
       sessionStorage.removeItem("badminton_viewer_ok");

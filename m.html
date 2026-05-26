@@ -204,7 +204,7 @@
 
     .tabs {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 6px;
       margin: 12px 0;
       position: sticky;
@@ -549,9 +549,10 @@
     </div>
 
     <div class="tabs">
-      <button class="tab active" data-view="scheduleView" type="button">대진</button>
-      <button class="tab" data-view="playersView" type="button">출전이력</button>
-      <button class="tab" data-view="rankingView" type="button">개인순위</button>
+      <button class="tab active" data-view="scheduleView" type="button">대진표</button>
+      <button class="tab" data-view="playersView" type="button">선수별이력</button>
+      <button class="tab" data-view="rankingView" type="button">순위</button>
+      <button class="tab" data-view="matrixView" type="button">중복점검</button>
     </div>
 
     <section class="view active" id="scheduleView">
@@ -563,7 +564,11 @@
     </section>
 
     <section class="view" id="rankingView">
-      <div id="rankingOutput" class="empty">개인순위 데이터를 기다리고 있습니다.</div>
+      <div id="rankingOutput" class="empty">순위 데이터를 기다리고 있습니다.</div>
+    </section>
+
+    <section class="view" id="matrixView">
+      <div id="matrixOutput" class="empty">중복점검 데이터가 아직 없습니다.</div>
     </section>
   </main>
 
@@ -708,7 +713,7 @@
         .map((match, index, matches) => {
           const next = matches[index + 1];
           const restText = next ? ", " + (next.id - match.id - 1) + "게임쉼" : "";
-          return match.id + "경기 " + match.round + "R/" + match.court + "코트: 팀 " + match.partner + ", 상대 " + match.opponents + ", " + match.status + restText;
+          return match.id + "경기 " + match.round + "R/" + match.court + "코트: 팀 " + match.partner + ", vs " + match.opponents + ", " + match.status + restText;
         })
         : ["경기별 이력 없음"];
     }
@@ -790,7 +795,7 @@
     function renderRanking(stats) {
       if (!stats.length) {
         el("rankingOutput").className = "empty";
-        el("rankingOutput").textContent = "개인순위 데이터가 아직 없습니다.";
+        el("rankingOutput").textContent = "순위 데이터가 아직 없습니다.";
         return;
       }
       const ranked = [...stats].sort((a, b) =>
@@ -804,7 +809,7 @@
       const visibleRanked = search ? ranked.filter(row => row.name.toLowerCase().includes(search)) : ranked;
       if (!visibleRanked.length) {
         el("rankingOutput").className = "empty";
-        el("rankingOutput").textContent = "검색된 선수의 개인순위가 없습니다.";
+        el("rankingOutput").textContent = "검색된 선수의 순위가 없습니다.";
         return;
       }
       const renderRows = (rows, baseRows = ranked) => rows.map(row => {
@@ -834,12 +839,50 @@
       el("rankingOutput").innerHTML = renderRows(visibleRanked, ranked);
     }
 
+    function keyOf(a, b) {
+      return [a, b].sort((x, y) => x.localeCompare(y, "ko-KR")).join(" / ");
+    }
+
+    function renderMatrix() {
+      if (!state.schedule.length) {
+        el("matrixOutput").className = "empty";
+        el("matrixOutput").textContent = "중복점검 데이터가 아직 없습니다.";
+        return;
+      }
+      const games = new Map(state.players.map(name => [name, 0]));
+      const partners = new Map();
+      for (const match of state.schedule) {
+        [...match.teamA, ...match.teamB].forEach(name => games.set(name, (games.get(name) || 0) + 1));
+        [match.teamA, match.teamB].forEach(team => {
+          const key = keyOf(team[0], team[1]);
+          partners.set(key, (partners.get(key) || 0) + 1);
+        });
+      }
+      const duplicatePartners = [...partners.entries()].filter(([, count]) => count > 1);
+      const search = searchText();
+      const gameRows = [...games.entries()]
+        .filter(([name]) => !search || name.toLowerCase().includes(search))
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"));
+      el("matrixOutput").className = "rank-list";
+      el("matrixOutput").innerHTML =
+        '<section class="rank-section"><div class="rank-section-title">경기 수 균형</div>' +
+        '<div class="rank-row"><div class="rank-no">균형</div><div class="rank-main"><span class="rank-name">' + Math.max(...games.values()) + ' / ' + Math.min(...games.values()) + '</span><span class="rank-sub">최대 / 최소 경기 수</span></div></div>' +
+        '</section>' +
+        '<section class="rank-section"><div class="rank-section-title">파트너 중복</div>' +
+        '<div class="rank-row"><div class="rank-no">' + duplicatePartners.length + '</div><div class="rank-main"><span class="rank-name">' + (duplicatePartners.length ? "일부 중복" : "좋음") + '</span><span class="rank-sub">' + (duplicatePartners.length ? duplicatePartners.map(([key, count]) => key + " (" + count + "회)").join(", ") : "중복 조합 없음") + '</span></div></div>' +
+        '</section>' +
+        '<section class="rank-section"><div class="rank-section-title">선수별 경기</div>' +
+        (gameRows.length ? gameRows.map(([name, count]) => '<div class="rank-row"><div class="rank-no">' + count + '</div><div class="rank-main"><span class="rank-name">' + name + '</span><span class="rank-sub">경기</span></div></div>').join("") : '<div class="empty">검색된 선수의 중복점검 데이터가 없습니다.</div>') +
+        '</section>';
+    }
+
     function renderAll() {
       const stats = statsForPlayers();
       renderStats();
       renderSchedule();
       renderPlayers(stats);
       renderRanking(stats);
+      renderMatrix();
     }
 
     async function loadData() {
