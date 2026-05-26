@@ -538,15 +538,23 @@
     }
 
     .matrix-table th:nth-child(1),
-    .matrix-table td:nth-child(1) { width: 70px; }
+    .matrix-table td:nth-child(1) {
+      width: 92px;
+      white-space: nowrap;
+    }
 
     .matrix-table th:nth-child(2),
     .matrix-table td:nth-child(2) { width: 82px; }
 
     .matrix-table th:nth-child(4),
     .matrix-table td:nth-child(4) {
-      width: 76px;
+      width: 104px;
       text-align: center;
+      white-space: nowrap;
+    }
+
+    .matrix-table td:nth-child(4) .badge {
+      white-space: nowrap;
     }
 
     .notice {
