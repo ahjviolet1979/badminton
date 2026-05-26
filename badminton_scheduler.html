@@ -1018,14 +1018,11 @@
 
         <div class="settings">
           <div>
-            <label for="supabaseEventId">대회 ID</label>
-            <input id="supabaseEventId" list="adminEventOptions" type="text" value="main">
-          </div>
-          <div>
             <label for="viewerAccessPassword">사용자 접속 비밀번호</label>
             <input id="viewerAccessPassword" type="text" placeholder="참가자 비밀번호">
           </div>
         </div>
+        <input id="supabaseEventId" list="adminEventOptions" type="hidden" value="main">
 
         <div class="settings">
           <label class="checkrow">
@@ -1944,10 +1941,29 @@
       }
     }
 
-    function startNewTournament() {
+    async function startNewTournament() {
       const eventId = window.prompt("새 대회 ID를 입력하세요. 예: 2026-spring");
       if (!eventId || !eventId.trim()) {
         setMessage("새 대회 생성을 취소했습니다.");
+        return;
+      }
+      const nextEventId = eventId.trim();
+      try {
+        const client = await getSupabaseClientForList();
+        const { data, error } = await client
+          .from("badminton_events")
+          .select("id")
+          .eq("id", nextEventId)
+          .limit(1);
+        if (error) throw error;
+        if ((data || []).length) {
+          window.alert(`대회 ID '${nextEventId}'는 이미 사용 중입니다.\n다른 대회 ID로 만들어주세요.`);
+          setMessage(`대회 ID '${nextEventId}'가 이미 있어 새 대회를 만들지 않았습니다.`, true);
+          return;
+        }
+      } catch (error) {
+        window.alert(`대회 ID 중복 확인에 실패했습니다.\n${error.message}`);
+        setMessage(`대회 ID 중복 확인 실패: ${error.message}`, true);
         return;
       }
       const viewerPassword = window.prompt("사용자 접속 비밀번호를 입력하세요.");
@@ -1960,13 +1976,13 @@
       state.results = {};
       state.nextMatchIds = [];
       el("players").value = "";
-      el("supabaseEventId").value = eventId.trim();
+      el("supabaseEventId").value = nextEventId;
       el("viewerAccessPassword").value = viewerPassword.trim();
-      localStorage.setItem("badminton_supabase_event_id", eventId.trim());
+      localStorage.setItem("badminton_supabase_event_id", nextEventId);
       localStorage.setItem("badminton_viewer_password", viewerPassword.trim());
       renderAll(true);
       saveCloudData(false);
-      setMessage(`새 대회 '${eventId.trim()}'를 시작했습니다. 명단을 입력하고 대진을 생성하세요.`);
+      setMessage(`새 대회 '${nextEventId}'를 시작했습니다. 명단을 입력하고 대진을 생성하세요.`);
     }
 
     function renderStats() {
@@ -2124,7 +2140,7 @@
               <label class="winner"><input type="radio" name="winner-${match.id}" value="A" ${result === "A" ? "checked" : ""}> ${match.teamALabel || "A"}승</label>
               <label class="winner"><input type="radio" name="winner-${match.id}" value="B" ${result === "B" ? "checked" : ""}> ${match.teamBLabel || "B"}승</label>
             </td>
-            <td data-label="다음게임"><label class="next-check"><input type="checkbox" class="next-match-check" data-match-id="${match.id}" ${isNext ? "checked" : ""}> 다음</label></td>
+            <td data-label="다음게임"><label class="next-check"><input type="checkbox" class="next-match-check" data-match-id="${match.id}" ${isNext ? "checked" : ""}> 다음게임</label></td>
             <td data-label="삭제"><button class="row-button danger delete-match" type="button" data-match-id="${match.id}">삭제</button></td>
           </tr>`;
       }).join("");
@@ -2140,6 +2156,7 @@
         input.addEventListener("change", event => {
           const matchId = Number(event.target.name.replace("winner-", ""));
           state.results[matchId] = event.target.value;
+          state.nextMatchIds = (state.nextMatchIds || []).filter(id => Number(id) !== matchId);
           renderAll(false);
           if (el("autoCloudSave").checked) saveCloudData(true);
         });
