@@ -441,6 +441,12 @@
       padding: 2px 8px;
     }
 
+    .team-win-badge.progress {
+      background: #fef3c7;
+      color: #92400e;
+      padding: 2px 8px;
+    }
+
     .history-name {
       font-weight: 900;
       min-width: 88px;
@@ -790,6 +796,7 @@
               const teamAWinBadge = result === "A" ? '<span class="team-win-badge a">승</span>' : '';
               const teamBWinBadge = result === "B" ? '<span class="team-win-badge b">승</span>' : '';
               const doneBadge = result === "D" ? '<span class="team-win-badge done">완료</span>' : '';
+              const progressBadge = result === "P" ? '<span class="team-win-badge progress">게임중</span>' : '';
               return `
                 <tr class="${isNext ? "next-match-row" : ""}">
                   <td data-label="경기">${match.id}</td>
@@ -798,7 +805,7 @@
                   <td data-label="${labelA}팀" class="team-cell ${teamAClass}"><div class="team-result-row"><div class="team"><span class="pair">${match.teamA[0]}</span><span class="pair">${match.teamA[1]}</span></div>${teamAWinBadge}</div></td>
                   <td data-label="" class="versus">VS</td>
                   <td data-label="${labelB}팀" class="team-cell ${teamBClass}"><div class="team-result-row"><div class="team"><span class="pair">${match.teamB[0]}</span><span class="pair">${match.teamB[1]}</span></div>${teamBWinBadge}</div></td>
-                  <td data-label="결과">${doneBadge || (isNext ? '<span class="next-badge">다음</span>' : '<span class="badge warn">미입력</span>')}</td>
+                  <td data-label="결과">${doneBadge || progressBadge || (isNext ? '<span class="next-badge">다음</span>' : '<span class="badge warn">미입력</span>')}</td>
                 </tr>`;
             }).join("")}
           </tbody>
@@ -963,13 +970,12 @@
               <tr>
                 <td class="history-name">${history.name}</td>
                 <td class="history-record">
-                  <div class="record-line"><span class="badge record-total">총 ${history.games}경기</span></div>
+                  <div class="record-line"><span class="badge record-total">총 ${history.games}경기</span><span class="badge record-pending">미입력 ${history.pending || 0}</span></div>
                   <div class="record-line">
                     <span class="badge record-win">승 ${history.wins}</span>
                     <span class="badge record-loss">패 ${history.losses}</span>
                     <span class="badge record-done">완료 ${history.done || 0}</span>
                   </div>
-                  <div class="record-line"><span class="badge record-pending">미입력 ${history.pending || 0}</span></div>
                 </td>
                 <td class="history-text">${summarizeNameCounts(history.partners)}</td>
                 <td class="history-text">${summarizeRestGaps(history.matches)}</td>
@@ -1011,13 +1017,12 @@
               <tr>
                 <td class="history-name">${history.name}</td>
                 <td class="history-record">
-                  <div class="record-line"><span class="badge record-total">총 ${history.games}경기</span></div>
+                  <div class="record-line"><span class="badge record-total">총 ${history.games}경기</span><span class="badge record-pending">미입력 ${history.pending || 0}</span></div>
                   <div class="record-line">
                     <span class="badge record-win">승 ${history.wins}</span>
                     <span class="badge record-loss">패 ${history.losses}</span>
                     <span class="badge record-done">완료 ${history.done || 0}</span>
                   </div>
-                  <div class="record-line"><span class="badge record-pending">미입력 ${history.pending || 0}</span></div>
                 </td>
                 <td class="history-text history-partners">${summarizePartnersByMatch(history.matches)}</td>
                 <td class="history-text history-summary-text">
@@ -1079,6 +1084,10 @@
       renderAppearanceSummary();
       renderRanking();
       renderPlayerHistory();
+    }
+
+    function isSchedulePublic(data) {
+      return data.schedulePublic !== false && data.publicSchedule !== false;
     }
 
     function activateView(viewId) {
@@ -1183,7 +1192,7 @@
         loadTournamentOptions();
         return;
       }
-      state.schedulePublic = data.schedulePublic !== false;
+      state.schedulePublic = isSchedulePublic(data);
       if (!state.schedulePublic) {
         state.players = [];
         state.schedule = [];

@@ -282,6 +282,11 @@
       color: #56645d;
       font-size: 13px;
       font-weight: 500;
+      line-height: 1.45;
+    }
+
+    .player-record-line {
+      display: block;
       white-space: nowrap;
     }
 
@@ -410,6 +415,11 @@
       color: #475569;
       font-size: 12px;
       font-weight: 900;
+    }
+
+    .progress-mark {
+      background: #fef3c7;
+      color: #92400e;
     }
 
     .next-badge {
@@ -720,12 +730,16 @@
       return "미입력";
     }
 
+    function isSchedulePublic(data) {
+      return data.schedulePublic !== false && data.publicSchedule !== false;
+    }
+
     function applyData(data) {
       if (data.ended) {
         logout();
         return;
       }
-      state.schedulePublic = data.schedulePublic !== false;
+      state.schedulePublic = isSchedulePublic(data);
       if (!state.schedulePublic) {
         state.players = [];
         state.schedule = [];
@@ -846,7 +860,7 @@
           '<div class="match-meta">' + match.id + '경기<br>' + match.round + 'R/' + match.court + '코트' + (isNext ? '<br><span class="next-badge">다음</span>' : '') + '</div>' +
           '<div class="team-row ' + (result === "A" ? "win-a" : "") + '"><span class="team-label">' + (match.teamALabel || "A") + '팀</span><span class="names">' + teamAPlayers + '</span>' + (result === "A" ? '<span class="win-mark a">승</span>' : '') + '</div>' +
           '<div class="match-vs">vs</div>' +
-          '<div class="team-row ' + (result === "B" ? "win-b" : "") + '"><span class="team-label">' + (match.teamBLabel || "B") + '팀</span><span class="names">' + teamBPlayers + '</span>' + (result === "B" ? '<span class="win-mark b">승</span>' : '') + (result === "D" ? '<span class="done-mark">완료</span>' : '') + '</div>' +
+          '<div class="team-row ' + (result === "B" ? "win-b" : "") + '"><span class="team-label">' + (match.teamBLabel || "B") + '팀</span><span class="names">' + teamBPlayers + '</span>' + (result === "B" ? '<span class="win-mark b">승</span>' : '') + (result === "D" ? '<span class="done-mark">완료</span>' : '') + (result === "P" ? '<span class="done-mark progress-mark">게임중</span>' : '') + '</div>' +
           '</div></article>';
       }).join("");
     }
@@ -855,7 +869,7 @@
       return '<article class="player-card">' +
         '<div class="player-head">' +
         '<div class="player-name">' + row.name + '</div>' +
-        '<div class="player-record">' + row.games + '경기/' + row.wins + '승/' + row.losses + '패/' + row.done + '완료/' + row.pending + '미진행</div>' +
+        '<div class="player-record"><span class="player-record-line">총 ' + row.games + '경기 / 미입력 ' + row.pending + '</span><span class="player-record-line">승 ' + row.wins + ' / 패 ' + row.losses + ' / 완료 ' + row.done + '</span></div>' +
         '</div>' +
         '<div class="player-block partner">' +
         '<div class="player-block-title">* 경기별 이력</div>' +
