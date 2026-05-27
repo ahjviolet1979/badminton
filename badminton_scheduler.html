@@ -1937,6 +1937,16 @@
       if (attendanceOrder) {
         score += group.reduce((sum, player) => sum + (attendanceOrder.get(player) || 9999), 0) * 8;
       }
+      if (ctx.dailyPriorGames) {
+        const priorGames = group.map(player => ctx.dailyPriorGames.get(player) || 0);
+        const minPrior = Math.min(...priorGames);
+        const maxPrior = Math.max(...priorGames);
+        const priorTotal = priorGames.reduce((sum, value) => sum + value, 0);
+        const idealPriorTotal = ctx.dailyIdealPriorPerGroup ?? priorTotal;
+        score += Math.abs(priorTotal - idealPriorTotal) * 2200;
+        score += priorGames.reduce((sum, value) => sum + value, 0) * 180;
+        score += Math.max(0, maxPrior - minPrior - 1) * 1600;
+      }
       return score + rand() * 0.1;
     }
 
@@ -2022,6 +2032,10 @@
 
     function contextForDailyAppend(players, existingSchedule) {
       const ctx = contextFromExistingSchedule(players, existingSchedule);
+      ctx.dailyPriorGames = new Map(players.map(player => [player, ctx.games.get(player) || 0]));
+      const activeCourts = Math.max(1, Math.min(Number(el("courtCount").value) || 1, Math.floor(players.length / 4)));
+      const totalPriorGames = players.reduce((sum, player) => sum + (ctx.games.get(player) || 0), 0);
+      ctx.dailyIdealPriorPerGroup = totalPriorGames / activeCourts;
       players.forEach(player => {
         ctx.games.set(player, 0);
         ctx.restGaps.set(player, []);
