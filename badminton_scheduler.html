@@ -726,8 +726,8 @@
     .winner {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      margin-right: 8px;
+      gap: 4px;
+      margin-right: 6px;
       font-weight: 700;
       white-space: nowrap;
     }
@@ -736,6 +736,10 @@
       width: 18px;
       height: 18px;
       accent-color: var(--accent);
+    }
+
+    .winner.in-progress input {
+      accent-color: #f59e0b;
     }
 
     .badge {
@@ -1486,6 +1490,15 @@
         panel.classList.toggle("daily-mode", state.adminMode === "daily");
         panel.classList.toggle("tournament-mode", state.adminMode !== "daily");
       }
+      const substituteToggle = el("allowShortfall");
+      if (substituteToggle) {
+        if (state.adminMode === "daily") {
+          substituteToggle.checked = false;
+          substituteToggle.disabled = true;
+        } else {
+          substituteToggle.disabled = false;
+        }
+      }
     }
 
     function renderPlayerStatusList() {
@@ -1512,6 +1525,25 @@
               <label><input type="checkbox" class="player-exclude-check" data-player="${key}" ${status.excluded ? "checked" : ""}></label>
             </div>`;
         }).join("")}`;
+    }
+
+    function dailyEligiblePlayers() {
+      const names = parsePlayers();
+      const statusMap = syncPlayerStatuses(names);
+      const inProgress = inProgressPlayerSet();
+      return names.filter(name => !isAutoSubstituteName(name)).filter(name => {
+        const status = statusMap[name] || { present: true, excluded: false };
+        return status.present && !status.excluded && !inProgress.has(name);
+      });
+    }
+
+    function inProgressPlayerSet() {
+      const players = new Set();
+      state.schedule.forEach(match => {
+        if (state.results[match.id] !== "P") return;
+        [...match.teamA, ...match.teamB].forEach(name => players.add(name));
+      });
+      return players;
     }
 
     function renderAdminRosterControls() {
@@ -2367,7 +2399,7 @@
       el("playerCount").textContent = state.players.length;
       el("matchCount").textContent = state.schedule.length;
       el("roundCount").textContent = state.schedule.length ? Math.max(...state.schedule.map(m => m.round)) : 0;
-      el("completeCount").textContent = Object.values(state.results).filter(Boolean).length;
+      el("completeCount").textContent = Object.values(state.results).filter(value => ["A", "B", "D"].includes(value)).length;
       const aWins = Object.values(state.results).filter(value => value === "A").length;
       const bWins = Object.values(state.results).filter(value => value === "B").length;
       const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
@@ -2397,7 +2429,9 @@
         [...match.teamA, ...match.teamB].forEach(add);
       });
       state.players = names;
-      el("players").value = visibleRosterNames(names).join("\n");
+      if (state.adminMode !== "daily") {
+        el("players").value = visibleRosterNames(names).join("\n");
+      }
       renderPlayerNameOptions();
     }
 
@@ -2503,9 +2537,13 @@
       el("scheduleOutput").className = "tablewrap";
       const rows = schedule.map(match => {
         const result = state.results[match.id] || "";
+        const dailyMode = state.adminMode === "daily";
         const labelA = match.teamALabel ? `${match.teamALabel}팀` : "A팀";
         const labelB = match.teamBLabel ? `${match.teamBLabel}팀` : "B팀";
         const isNext = (state.nextMatchIds || []).map(Number).includes(Number(match.id));
+        const progressOption = dailyMode
+          ? `<label class="winner in-progress"><input type="radio" name="winner-${match.id}" value="P" ${result === "P" ? "checked" : ""}> 게임중</label>`
+          : "";
         return `
           <tr class="${isNext ? "next-match-row" : ""}">
             <td data-label="경기">${match.id}</td>
@@ -2518,6 +2556,7 @@
               <label class="winner"><input type="radio" name="winner-${match.id}" value="A" ${result === "A" ? "checked" : ""}> ${match.teamALabel || "A"}승</label>
               <label class="winner"><input type="radio" name="winner-${match.id}" value="B" ${result === "B" ? "checked" : ""}> ${match.teamBLabel || "B"}승</label>
               <label class="winner"><input type="radio" name="winner-${match.id}" value="D" ${result === "D" ? "checked" : ""}> 완료</label>
+              ${progressOption}
             </td>
             <td data-label="다음게임"><label class="next-check"><input type="checkbox" class="next-match-check" data-match-id="${match.id}" ${isNext ? "checked" : ""}> 다음게임</label></td>
             <td data-label="삭제"><button class="row-button danger delete-match" type="button" data-match-id="${match.id}">삭제</button></td>
@@ -2653,6 +2692,7 @@
           [...match.teamA, ...match.teamB].forEach(name => ensure(name).done++);
           continue;
         }
+        if (result !== "A" && result !== "B") continue;
         const winners = result === "A" ? match.teamA : match.teamB;
         const losers = result === "A" ? match.teamB : match.teamA;
         winners.forEach(name => ensure(name).wins++);
@@ -2811,7 +2851,7 @@
         ];
 
         for (const team of teams) {
-          const status = !result ? "미입력" : result === "D" ? "완료" : result === team.code ? "승" : "패";
+          const status = !result ? "미입력" : result === "P" ? "게임중" : result === "D" ? "완료" : result === team.code ? "승" : "패";
           for (const player of team.players) {
             const partner = team.players.find(name => name !== player);
             const history = histories.get(player);
@@ -2958,8 +2998,15 @@
       const seedText = el("seed").value.trim() || "A01";
       const seed = seedToNumber(seedText);
       const applySubstitutes = el("allowShortfall").checked;
+      const dailyMode = state.adminMode === "daily";
+      const dailyPlayers = dailyMode ? dailyEligiblePlayers() : [];
 
-      if (enteredPlayers.length < 1) {
+      if (dailyMode && dailyPlayers.length < 4) {
+        window.alert("운영모드는 게임중 선수를 제외한 출전 가능 인원이 최소 4명 이상이어야 대진을 생성할 수 있습니다.");
+        setMessage("게임중 선수를 제외한 출전 가능 인원이 4명 미만이라 운영모드 대진을 생성하지 않았습니다.", true);
+        return;
+      }
+      if (!dailyMode && enteredPlayers.length < 1) {
         setMessage("선수는 최소 1명 이상 입력해야 합니다.", true);
         return;
       }
@@ -2971,8 +3018,12 @@
         let players;
         let schedule;
         let substituteCount = 0;
-        state.teamMode = blueWhiteMode;
-        if (blueWhiteMode) {
+        state.teamMode = dailyMode ? false : blueWhiteMode;
+        if (dailyMode) {
+          players = dailyPlayers;
+          state.teamMap = {};
+          schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed).schedule;
+        } else if (blueWhiteMode) {
           const prepared = prepareBlueWhitePlayers(enteredPlayers);
           players = prepared.players;
           substituteCount = players.length - enteredPlayers.length;
@@ -2988,7 +3039,9 @@
         state.results = {};
         state.nextMatchIds = [];
         state.seed = seedText;
-        el("players").value = visibleRosterNames(players).join("\n");
+        if (!dailyMode) {
+          el("players").value = visibleRosterNames(players).join("\n");
+        }
         renderTeamAssignments();
         renderAll(true);
         if (el("autoCloudSave").checked) saveCloudData(true);
@@ -2997,7 +3050,7 @@
         const madeSlots = schedule.length * 4;
         const short = totalSlots - madeSlots;
         const substituteText = substituteCount ? " 대타 " + substituteCount + "명을 자동 추가했습니다." : "";
-        const modeText = blueWhiteMode ? " 청백전 방식으로" : "";
+        const modeText = dailyMode ? " 운영모드 출석자 기준으로" : (blueWhiteMode ? " 청백전 방식으로" : "");
         setMessage(short > 0
           ? schedule.length + "경기를" + modeText + " 생성했습니다." + substituteText + " 총 " + short + "회 출전 슬롯은 인원/조건 때문에 비워졌습니다."
           : schedule.length + "경기를" + modeText + " 생성했습니다." + substituteText + " 파트너 중복이 생기면 랜덤 시드를 바꿔 다시 생성해보세요."
