@@ -705,6 +705,7 @@
     function resultText(result) {
       if (result === "A") return "A팀 승";
       if (result === "B") return "B팀 승";
+      if (result === "D") return "완료";
       return "미입력";
     }
 
@@ -726,7 +727,7 @@
 
     function statsForPlayers() {
       const stats = new Map(state.players.map(name => [name, {
-        name, games: 0, wins: 0, losses: 0, pending: 0, partners: new Map(), matches: [], team: state.teamMap[name] || ""
+        name, games: 0, wins: 0, losses: 0, done: 0, pending: 0, partners: new Map(), matches: [], team: state.teamMap[name] || ""
       }]));
       for (const match of state.schedule) {
         const result = state.results[match.id] || "";
@@ -738,7 +739,7 @@
           const status = !result ? "미진행" : result === "D" ? "완료" : result === team.code ? "승" : "패";
           for (const player of team.players) {
             if (!stats.has(player)) {
-              stats.set(player, { name: player, games: 0, wins: 0, losses: 0, pending: 0, partners: new Map(), matches: [], team: team.team });
+              stats.set(player, { name: player, games: 0, wins: 0, losses: 0, done: 0, pending: 0, partners: new Map(), matches: [], team: team.team });
             }
             const partner = team.players.find(name => name !== player) || "";
             const row = stats.get(player);
@@ -746,6 +747,7 @@
             row.games++;
             if (status === "승") row.wins++;
             if (status === "패") row.losses++;
+            if (status === "완료") row.done++;
             if (status === "미진행") row.pending++;
             row.partners.set(partner, (row.partners.get(partner) || 0) + 1);
             row.matches.push({
@@ -826,7 +828,7 @@
       return '<article class="player-card">' +
         '<div class="player-head">' +
         '<div class="player-name">' + row.name + '</div>' +
-        '<div class="player-record">' + row.games + '경기/' + row.wins + '승/' + row.losses + '패/' + row.pending + '미진행</div>' +
+        '<div class="player-record">' + row.games + '경기/' + row.wins + '승/' + row.losses + '패/' + row.done + '완료/' + row.pending + '미진행</div>' +
         '</div>' +
         '<div class="player-block partner">' +
         '<div class="player-block-title">* 경기별 이력</div>' +
@@ -879,7 +881,7 @@
           '<div class="rank-no">' + (index + 1) + '</div>' +
           '<div class="rank-main">' +
           '<span class="rank-name">' + row.name + '</span>' +
-          '<span class="rank-sub">' + row.games + '경기 · ' + row.wins + '승 · ' + row.losses + '패 · ' + winRate + '% · 파트너 ' + row.partners.size + '</span>' +
+          '<span class="rank-sub">' + row.games + '경기 · ' + row.wins + '승 · ' + row.losses + '패 · ' + row.done + '완료 · ' + winRate + '% · 파트너 ' + row.partners.size + '</span>' +
           '</div>' +
           '</div>';
       }).join("");

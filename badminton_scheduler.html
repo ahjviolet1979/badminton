@@ -253,7 +253,7 @@
 
     .actions {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
       margin-top: 14px;
     }
@@ -1017,14 +1017,11 @@
           <button class="button primary" id="generateBtn" type="button">
             대진<br>생성
           </button>
-          <button class="button" id="regenerateBtn" type="button">
-            대진<br>재생성
-          </button>
           <button class="button" id="deleteScheduleBtn" type="button">
             대진<br>삭제
           </button>
           <button class="button" id="clearResultsBtn" type="button">
-            초기화
+            결과<br>초기화
           </button>
         </div>
 
@@ -1047,7 +1044,11 @@
         <div class="settings four-cols">
           <div>
             <label for="targetGames">1인경기수</label>
-            <input id="targetGames" type="number" min="1" max="20" value="4">
+            <input id="targetGames" type="number" min="1" max="20" step="1" inputmode="numeric" value="4">
+          </div>
+          <div>
+            <label for="courtCount">코트 수</label>
+            <input id="courtCount" type="number" min="1" max="10" step="1" inputmode="numeric" value="3">
           </div>
           <div>
             <label for="seed">랜덤 시드</label>
@@ -1060,10 +1061,6 @@
               <option value="1000" selected>균형</option>
               <option value="2200">꼼꼼하게</option>
             </select>
-          </div>
-          <div>
-            <label for="courtCount">코트 수</label>
-            <input id="courtCount" type="number" min="1" max="10" value="3">
           </div>
         </div>
 
@@ -1412,6 +1409,7 @@
     }
 
     function rememberMatchGroup(group, ctx) {
+      ctx.groupMembers.push(group.slice());
       const groupKeyValue = groupKey(group);
       ctx.groups.set(groupKeyValue, (ctx.groups.get(groupKeyValue) || 0) + 1);
       for (let i = 0; i < group.length; i++) {
@@ -1491,7 +1489,12 @@
       const overTarget = group.filter(p => (ctx.games.get(p) || 0) >= target).length;
       let recentPenalty = group.reduce((sum, p) => sum + (roundUsed.has(p) ? 500 : 0), 0);
       let score = overTarget * 100000 + maxGame * 900 + (maxGame - minGame) * 700 + recentPenalty;
-      score += (ctx.groups.get(groupKey(group)) || 0) * 2500;
+      score += (ctx.groups.get(groupKey(group)) || 0) * 50000;
+      for (const previousGroup of ctx.groupMembers) {
+        const overlap = group.filter(player => previousGroup.includes(player)).length;
+        if (overlap >= 3) score += overlap === 4 ? 50000 : 9000;
+        else if (overlap === 2) score += 80;
+      }
       for (const player of group) {
         const played = ctx.games.get(player) || 0;
         if (!played) continue;
@@ -1505,6 +1508,38 @@
           score += (ctx.partners.get(keyOf(group[i], group[j])) || 0) * 80;
           score += (ctx.opponents.get(keyOf(group[i], group[j])) || 0) * 12;
           score += (ctx.together.get(keyOf(group[i], group[j])) || 0) * 120;
+        }
+      }
+      return score + rand() * 0.1;
+    }
+
+    function evaluateBlueWhiteGroup(group, ctx, target, roundUsed, rand, nextMatchId, idealRest) {
+      const games = group.map(p => ctx.games.get(p) || 0);
+      const minGame = Math.min(...games);
+      const maxGame = Math.max(...games);
+      const overTarget = group.filter(p => (ctx.games.get(p) || 0) >= target).length;
+      let score = overTarget * 100000 + maxGame * 1100 + (maxGame - minGame) * 850;
+      score += group.reduce((sum, p) => sum + (roundUsed.has(p) ? 500 : 0), 0);
+      score += (ctx.groups.get(groupKey(group)) || 0) * 50000;
+      for (const previousGroup of ctx.groupMembers) {
+        const overlap = group.filter(player => previousGroup.includes(player)).length;
+        if (overlap >= 3) score += overlap === 4 ? 50000 : 9000;
+        else if (overlap === 2) score += 80;
+      }
+      for (const player of group) {
+        const played = ctx.games.get(player) || 0;
+        if (!played) continue;
+        const rest = nextMatchId - (ctx.lastPlayed.get(player) || 0) - 1;
+        const delta = Math.abs(rest - idealRest);
+        score += delta * 10;
+        if (rest < idealRest) score += (idealRest - rest) * 16;
+      }
+      for (let i = 0; i < group.length; i++) {
+        for (let j = i + 1; j < group.length; j++) {
+          const key = keyOf(group[i], group[j]);
+          score += (ctx.partners.get(key) || 0) * 100;
+          score += (ctx.opponents.get(key) || 0) * 16;
+          score += (ctx.together.get(key) || 0) * 130;
         }
       }
       return score + rand() * 0.1;
@@ -1526,6 +1561,7 @@
         opponents: new Map(),
         together: new Map(),
         groups: new Map(),
+        groupMembers: [],
         lastPlayed: new Map(players.map(p => [p, 0])),
         restGaps: new Map(players.map(p => [p, []]))
       };
@@ -1543,6 +1579,17 @@
           if (eligible.length < 4) break;
 
           let groups = combinations(eligible, 4);
+          const groupStats = group => {
+            const games = group.map(p => ctx.games.get(p) || 0);
+            return {
+              max: Math.max(...games),
+              total: games.reduce((sum, value) => sum + value, 0)
+            };
+          };
+          const minMaxGames = Math.min(...groups.map(group => groupStats(group).max));
+          groups = groups.filter(group => groupStats(group).max === minMaxGames);
+          const minTotalGames = Math.min(...groups.map(group => groupStats(group).total));
+          groups = groups.filter(group => groupStats(group).total === minTotalGames);
           if (groups.length > 60000) groups = shuffle(groups, rand).slice(0, Math.max(tries, 60000));
 
           let bestGroup = null;
@@ -1611,6 +1658,7 @@
         opponents: new Map(),
         together: new Map(),
         groups: new Map(),
+        groupMembers: [],
         lastPlayed: new Map(players.map(p => [p, 0])),
         restGaps: new Map(players.map(p => [p, []]))
       };
@@ -1636,6 +1684,21 @@
           eligibleWhite.sort(sortByNeed);
           let bluePairs = combinations(eligibleBlue, 2);
           let whitePairs = combinations(eligibleWhite, 2);
+          const pairStats = pair => {
+            const games = pair.map(p => ctx.games.get(p) || 0);
+            return {
+              max: Math.max(...games),
+              total: games.reduce((sum, value) => sum + value, 0)
+            };
+          };
+          const minBlueMax = Math.min(...bluePairs.map(pair => pairStats(pair).max));
+          const minWhiteMax = Math.min(...whitePairs.map(pair => pairStats(pair).max));
+          bluePairs = bluePairs.filter(pair => pairStats(pair).max === minBlueMax);
+          whitePairs = whitePairs.filter(pair => pairStats(pair).max === minWhiteMax);
+          const minBlueTotal = Math.min(...bluePairs.map(pair => pairStats(pair).total));
+          const minWhiteTotal = Math.min(...whitePairs.map(pair => pairStats(pair).total));
+          bluePairs = bluePairs.filter(pair => pairStats(pair).total === minBlueTotal);
+          whitePairs = whitePairs.filter(pair => pairStats(pair).total === minWhiteTotal);
           if (bluePairs.length > 2000) bluePairs = shuffle(bluePairs, rand).slice(0, Math.max(tries, 2000));
           if (whitePairs.length > 2000) whitePairs = shuffle(whitePairs, rand).slice(0, Math.max(tries, 2000));
 
@@ -1644,7 +1707,7 @@
           for (const bluePair of shuffle(bluePairs, rand)) {
             for (const whitePair of shuffle(whitePairs, rand)) {
               const group = [...bluePair, ...whitePair];
-              let score = evaluateGroup(group, ctx, targetGames, roundUsed, rand, schedule.length + 1, idealRest);
+              let score = evaluateBlueWhiteGroup(group, ctx, targetGames, roundUsed, rand, schedule.length + 1, idealRest);
               score += (ctx.partners.get(keyOf(bluePair[0], bluePair[1])) || 0) * 260;
               score += (ctx.partners.get(keyOf(whitePair[0], whitePair[1])) || 0) * 260;
               for (const blue of bluePair) {
@@ -2316,10 +2379,10 @@
 
     function calculateRanking() {
       const stats = new Map(state.players.map(name => [name, {
-        name, games: 0, wins: 0, losses: 0, winRate: 0, partners: new Set(), team: state.teamMap[name] || ""
+        name, games: 0, wins: 0, losses: 0, done: 0, winRate: 0, partners: new Set(), team: state.teamMap[name] || ""
       }]));
       const ensure = (name, team = "") => {
-        if (!stats.has(name)) stats.set(name, { name, games: 0, wins: 0, losses: 0, winRate: 0, partners: new Set(), team });
+        if (!stats.has(name)) stats.set(name, { name, games: 0, wins: 0, losses: 0, done: 0, winRate: 0, partners: new Set(), team });
         if (team && !stats.get(name).team) stats.get(name).team = team;
         return stats.get(name);
       };
@@ -2334,7 +2397,10 @@
         ensure(match.teamB[1], teamBType).partners.add(match.teamB[0]);
         const result = state.results[match.id];
         if (!result) continue;
-        if (result === "D") continue;
+        if (result === "D") {
+          [...match.teamA, ...match.teamB].forEach(name => ensure(name).done++);
+          continue;
+        }
         const winners = result === "A" ? match.teamA : match.teamB;
         const losers = result === "A" ? match.teamB : match.teamA;
         winners.forEach(name => ensure(name).wins++);
@@ -2368,6 +2434,7 @@
         '<td>' + row.games + '</td>' +
         '<td>' + row.wins + '</td>' +
         '<td>' + row.losses + '</td>' +
+        '<td>' + (row.done || 0) + '</td>' +
         '<td>' + Math.round(row.winRate * 100) + '%</td>' +
         '<td>' + row.partnerCount + '</td>' +
         '</tr>';
@@ -2378,21 +2445,21 @@
         const whiteRows = ranking.filter(row => row.team === "white");
         const visibleBlueRows = search ? blueRows.filter(row => row.name.toLowerCase().includes(search)) : blueRows;
         const visibleWhiteRows = search ? whiteRows.filter(row => row.name.toLowerCase().includes(search)) : whiteRows;
-        const header = '<tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr>';
+        const header = '<tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>완료</th><th>승률</th><th>파트너 수</th></tr>';
         el("rankingOutput").innerHTML =
           '<table>' +
-          '<thead><tr><th colspan="7">전체 순위</th></tr>' + header + '</thead>' +
+          '<thead><tr><th colspan="8">전체 순위</th></tr>' + header + '</thead>' +
           '<tbody>' + renderRows(visibleRanking, ranking) + '</tbody>' +
-          '<thead><tr><th colspan="7">청팀 순위 (' + blueRows.length + '명)</th></tr>' + header + '</thead>' +
+          '<thead><tr><th colspan="8">청팀 순위 (' + blueRows.length + '명)</th></tr>' + header + '</thead>' +
           '<tbody>' + renderRows(visibleBlueRows, blueRows) + '</tbody>' +
-          '<thead><tr><th colspan="7">백팀 순위 (' + whiteRows.length + '명)</th></tr>' + header + '</thead>' +
+          '<thead><tr><th colspan="8">백팀 순위 (' + whiteRows.length + '명)</th></tr>' + header + '</thead>' +
           '<tbody>' + renderRows(visibleWhiteRows, whiteRows) + '</tbody>' +
           '</table>';
         return;
       }
       el("rankingOutput").innerHTML =
         '<table>' +
-        '<thead><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead>' +
+        '<thead><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>완료</th><th>승률</th><th>파트너 수</th></tr></thead>' +
         '<tbody>' + renderRows(visibleRanking, ranking) + '</tbody>' +
         '</table>';
     }
@@ -2477,6 +2544,7 @@
         games: 0,
         wins: 0,
         losses: 0,
+        done: 0,
         pending: 0,
         partners: new Map(),
         opponents: new Map(),
@@ -2498,6 +2566,7 @@
             history.games++;
             if (status === "승") history.wins++;
             if (status === "패") history.losses++;
+            if (status === "완료") history.done++;
             if (status === "미입력") history.pending++;
             history.partners.set(partner, (history.partners.get(partner) || 0) + 1);
             for (const opponent of team.opponents) {
@@ -2552,6 +2621,7 @@
                   <div class="record-line">
                     <span class="badge">승 ${history.wins}</span>
                     <span class="badge warn">패 ${history.losses}</span>
+                    ${history.done ? `<span class="badge">완료 ${history.done}</span>` : ""}
                     ${history.pending ? `<span class="badge warn">미입력 ${history.pending}</span>` : ""}
                   </div>
                 </td>
@@ -2597,6 +2667,7 @@
                   <span class="badge">${history.games}경기</span>
                   <span class="badge">승 ${history.wins}</span>
                   <span class="badge warn">패 ${history.losses}</span>
+                  ${history.done ? `<span class="badge">완료 ${history.done}</span>` : ""}
                   ${history.pending ? `<span class="badge warn">미입력 ${history.pending}</span>` : ""}
                 </td>
                 <td class="history-text">${summarizeNameCounts(history.partners)}</td>
@@ -2729,9 +2800,9 @@
         setMessage("먼저 대진을 생성해야 순위 CSV를 만들 수 있습니다.", true);
         return;
       }
-      const rows = [["순위", "선수", "경기", "승", "패", "승률", "파트너수"]];
+      const rows = [["순위", "선수", "경기", "승", "패", "완료", "승률", "파트너수"]];
       calculateRanking().forEach((row, i) => rows.push([
-        i + 1, row.name, row.games, row.wins, row.losses, `${Math.round(row.winRate * 100)}%`, row.partnerCount
+        i + 1, row.name, row.games, row.wins, row.losses, row.done || 0, `${Math.round(row.winRate * 100)}%`, row.partnerCount
       ]));
       downloadCsv("badminton_ranking.csv", rows, "순위 CSV");
     }
@@ -3038,7 +3109,6 @@
       await loadCloudData(false);
     });
     el("generateBtn").addEventListener("click", generate);
-    el("regenerateBtn").addEventListener("click", generate);
     el("deleteScheduleBtn").addEventListener("click", deleteAllSchedule);
     el("manualAddBtn").addEventListener("click", addManualMatch);
     el("clearResultsBtn").addEventListener("click", () => {

@@ -746,10 +746,10 @@
 
     function calculateRanking() {
       const stats = new Map(state.players.map(name => [name, {
-        name, games: 0, wins: 0, losses: 0, winRate: 0, partners: new Set(), team: state.teamMap[name] || ""
+        name, games: 0, wins: 0, losses: 0, done: 0, winRate: 0, partners: new Set(), team: state.teamMap[name] || ""
       }]));
       const ensure = (name, team = "") => {
-        if (!stats.has(name)) stats.set(name, { name, games: 0, wins: 0, losses: 0, winRate: 0, partners: new Set(), team });
+        if (!stats.has(name)) stats.set(name, { name, games: 0, wins: 0, losses: 0, done: 0, winRate: 0, partners: new Set(), team });
         if (team && !stats.get(name).team) stats.get(name).team = team;
         return stats.get(name);
       };
@@ -764,7 +764,10 @@
         ensure(match.teamB[1], teamBType).partners.add(match.teamB[0]);
         const result = state.results[match.id];
         if (!result) continue;
-        if (result === "D") continue;
+        if (result === "D") {
+          [...match.teamA, ...match.teamB].forEach(name => ensure(name).done++);
+          continue;
+        }
         const winners = result === "A" ? match.teamA : match.teamB;
         const losers = result === "A" ? match.teamB : match.teamA;
         winners.forEach(name => ensure(name).wins++);
@@ -798,6 +801,7 @@
         '<td>' + row.games + '</td>' +
         '<td>' + row.wins + '</td>' +
         '<td>' + row.losses + '</td>' +
+        '<td>' + (row.done || 0) + '</td>' +
         '<td>' + Math.round(row.winRate * 100) + '%</td>' +
         '<td>' + row.partnerCount + '</td>' +
         '</tr>';
@@ -808,17 +812,17 @@
         const whiteRows = ranking.filter(row => row.team === "white");
         const visibleBlueRows = search ? blueRows.filter(row => row.name.toLowerCase().includes(search)) : blueRows;
         const visibleWhiteRows = search ? whiteRows.filter(row => row.name.toLowerCase().includes(search)) : whiteRows;
-        const header = '<tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr>';
+        const header = '<tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>완료</th><th>승률</th><th>파트너 수</th></tr>';
         el("rankingOutput").innerHTML = '<table>' +
-          '<thead><tr><th colspan="7">전체 순위</th></tr>' + header + '</thead>' +
+          '<thead><tr><th colspan="8">전체 순위</th></tr>' + header + '</thead>' +
           '<tbody>' + renderRows(visibleRanking, ranking) + '</tbody>' +
-          '<thead><tr><th colspan="7">청팀 순위 (' + blueRows.length + '명)</th></tr>' + header + '</thead>' +
+          '<thead><tr><th colspan="8">청팀 순위 (' + blueRows.length + '명)</th></tr>' + header + '</thead>' +
           '<tbody>' + renderRows(visibleBlueRows, blueRows) + '</tbody>' +
-          '<thead><tr><th colspan="7">백팀 순위 (' + whiteRows.length + '명)</th></tr>' + header + '</thead>' +
+          '<thead><tr><th colspan="8">백팀 순위 (' + whiteRows.length + '명)</th></tr>' + header + '</thead>' +
           '<tbody>' + renderRows(visibleWhiteRows, whiteRows) + '</tbody></table>';
         return;
       }
-      el("rankingOutput").innerHTML = '<table><thead><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>파트너 수</th></tr></thead><tbody>' + renderRows(visibleRanking, ranking) + '</tbody></table>';
+      el("rankingOutput").innerHTML = '<table><thead><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>완료</th><th>승률</th><th>파트너 수</th></tr></thead><tbody>' + renderRows(visibleRanking, ranking) + '</tbody></table>';
     }
 
     function calculatePlayerHistories() {
@@ -827,6 +831,7 @@
         games: 0,
         wins: 0,
         losses: 0,
+        done: 0,
         pending: 0,
         partners: new Map(),
         opponents: new Map(),
@@ -848,6 +853,7 @@
             history.games++;
             if (status === "승") history.wins++;
             if (status === "패") history.losses++;
+            if (status === "완료") history.done++;
             if (status === "미입력") history.pending++;
             history.partners.set(partner, (history.partners.get(partner) || 0) + 1);
             for (const opponent of team.opponents) {
@@ -888,6 +894,7 @@
                   <span class="badge">${history.games}경기</span>
                   <span class="badge">승 ${history.wins}</span>
                   <span class="badge warn">패 ${history.losses}</span>
+                  ${history.done ? `<span class="badge">완료 ${history.done}</span>` : ""}
                   ${history.pending ? `<span class="badge warn">미입력 ${history.pending}</span>` : ""}
                 </td>
                 <td class="history-text">${summarizeNameCounts(history.partners)}</td>
@@ -929,6 +936,7 @@
                   <div class="record-line">
                     <span class="badge">승 ${history.wins}</span>
                     <span class="badge warn">패 ${history.losses}</span>
+                    ${history.done ? `<span class="badge">완료 ${history.done}</span>` : ""}
                     ${history.pending ? `<span class="badge warn">미입력 ${history.pending}</span>` : ""}
                   </div>
                 </td>
