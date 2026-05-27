@@ -1176,7 +1176,7 @@
 
           <label class="checkrow">
             <input id="allowShortfall" type="checkbox" checked>
-            인원/경기 수가 딱 맞지 않으면 가능한 만큼 생성
+            참가인원수 4배수로 맞춰서 대타적용
           </label>
         </div>
 
@@ -1277,7 +1277,7 @@
         </div>
 
         <div class="notice" id="message">
-          명단은 1명부터 입력할 수 있습니다. 4의 배수가 아니면 대타를 자동 추가해서 대진을 만듭니다.
+          명단은 1명부터 입력할 수 있습니다. 대타적용을 켜면 참가인원을 4배수로 맞춰 대진을 만듭니다.
         </div>
 
         <div class="csv-panel" id="csvPanel">
@@ -1795,10 +1795,7 @@
     function generateSchedule(players, targetGames, courtCount, tries, allowShortfall, seed) {
       const neededTotal = players.length * targetGames;
       const targetMatches = Math.floor(neededTotal / 4);
-      if (!allowShortfall && neededTotal % 4 !== 0) {
-        throw new Error("총 출전 횟수가 4의 배수가 아닙니다. 가능한 만큼 생성을 켜거나 경기 수를 바꿔주세요.");
-      }
-      const maxMatches = allowShortfall ? targetMatches : neededTotal / 4;
+      const maxMatches = targetMatches;
       const rand = mulberry32(seed);
       const priority = randomPriority(players, rand);
       const ctx = {
@@ -2960,7 +2957,7 @@
       const tries = Number(el("tries").value);
       const seedText = el("seed").value.trim() || "A01";
       const seed = seedToNumber(seedText);
-      const allowShortfall = el("allowShortfall").checked;
+      const applySubstitutes = el("allowShortfall").checked;
 
       if (enteredPlayers.length < 1) {
         setMessage("선수는 최소 1명 이상 입력해야 합니다.", true);
@@ -2981,10 +2978,10 @@
           substituteCount = players.length - enteredPlayers.length;
           schedule = generateBlueWhiteSchedule(prepared.blue, prepared.white, targetGames, courtCount, tries, seed).schedule;
         } else {
-          players = addSubstitutePlayers(enteredPlayers);
+          players = applySubstitutes ? addSubstitutePlayers(enteredPlayers) : enteredPlayers.slice();
           substituteCount = players.length - enteredPlayers.length;
           state.teamMap = {};
-          schedule = generateSchedule(players, targetGames, courtCount, tries, allowShortfall, seed).schedule;
+          schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed).schedule;
         }
         state.players = players;
         state.schedule = schedule;
