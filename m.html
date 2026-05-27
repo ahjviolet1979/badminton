@@ -626,10 +626,19 @@
   </main>
 
   <script>
-    const state = { players: [], schedule: [], results: {}, updatedAt: "", teamMap: {}, teamMode: false, eventName: "", nextMatchIds: [] };
+    const state = { players: [], schedule: [], results: {}, updatedAt: "", teamMap: {}, teamMode: false, eventName: "", nextMatchIds: [], schedulePublic: true };
     const el = id => document.getElementById(id);
     let supabaseClient = null;
     let realtimeChannel = null;
+    let autoRefreshTimer = null;
+
+    function startAutoRefresh() {
+      if (autoRefreshTimer) window.clearInterval(autoRefreshTimer);
+      autoRefreshTimer = window.setInterval(() => {
+        if (document.body.classList.contains("locked")) return;
+        loadData();
+      }, 5 * 60 * 1000);
+    }
 
     function config() {
       const globalConfig = window.BADMINTON_SUPABASE || {};
@@ -697,6 +706,7 @@
         document.body.classList.remove("locked");
         applyData(data);
         subscribe();
+        startAutoRefresh();
       } catch (error) {
         el("loginError").textContent = error.message;
       }
@@ -706,12 +716,24 @@
       if (result === "A") return "A팀 승";
       if (result === "B") return "B팀 승";
       if (result === "D") return "완료";
+      if (result === "P") return "게임중";
       return "미입력";
     }
 
     function applyData(data) {
       if (data.ended) {
         logout();
+        return;
+      }
+      state.schedulePublic = data.schedulePublic !== false;
+      if (!state.schedulePublic) {
+        state.players = [];
+        state.schedule = [];
+        state.results = {};
+        state.nextMatchIds = [];
+        state.updatedAt = data.updatedAt || "";
+        state.eventName = data.eventId || sessionStorage.getItem("badminton_mobile_event_id") || "";
+        renderAll();
         return;
       }
       state.players = Array.isArray(data.players) ? data.players : [];
@@ -736,7 +758,7 @@
           { code: "B", label: (match.teamBLabel || "B") + "팀", team: match.teamBLabel === "청" ? "blue" : match.teamBLabel === "백" ? "white" : "", players: match.teamB, opponents: match.teamA }
         ];
         for (const team of teams) {
-          const status = !result ? "미진행" : result === "D" ? "완료" : result === team.code ? "승" : "패";
+          const status = !result ? "미진행" : result === "P" ? "게임중" : result === "D" ? "완료" : result === team.code ? "승" : "패";
           for (const player of team.players) {
             if (!stats.has(player)) {
               stats.set(player, { name: player, games: 0, wins: 0, losses: 0, done: 0, pending: 0, partners: new Map(), matches: [], team: team.team });
@@ -779,7 +801,7 @@
       el("playerCount").textContent = state.players.length;
       el("matchCount").textContent = state.schedule.length;
       el("roundCount").textContent = state.schedule.length ? Math.max(...state.schedule.map(m => m.round)) : 0;
-      el("completeCount").textContent = Object.values(state.results).filter(Boolean).length;
+      el("completeCount").textContent = Object.values(state.results).filter(value => ["A", "B", "D"].includes(value)).length;
       const aWins = Object.values(state.results).filter(value => value === "A").length;
       const bWins = Object.values(state.results).filter(value => value === "B").length;
       const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
@@ -794,6 +816,11 @@
     }
 
     function renderSchedule() {
+      if (state.schedulePublic === false) {
+        el("scheduleOutput").className = "empty";
+        el("scheduleOutput").textContent = "관리자가 아직 대진을 공개하지 않았습니다.";
+        return;
+      }
       if (!state.schedule.length) {
         el("scheduleOutput").className = "empty";
         el("scheduleOutput").textContent = "대진 데이터가 아직 없습니다.";
@@ -838,6 +865,11 @@
     }
 
     function renderPlayers(stats) {
+      if (state.schedulePublic === false) {
+        el("playersOutput").className = "empty";
+        el("playersOutput").textContent = "관리자가 아직 선수별이력을 공개하지 않았습니다.";
+        return;
+      }
       const search = searchText();
       const visibleStats = search ? stats.filter(row => row.name.toLowerCase().includes(search)) : stats;
       if (!stats.length) {
@@ -855,6 +887,11 @@
     }
 
     function renderRanking(stats) {
+      if (state.schedulePublic === false) {
+        el("rankingOutput").className = "empty";
+        el("rankingOutput").textContent = "관리자가 아직 순위를 공개하지 않았습니다.";
+        return;
+      }
       if (!stats.length) {
         el("rankingOutput").className = "empty";
         el("rankingOutput").textContent = "순위 데이터가 아직 없습니다.";
@@ -997,6 +1034,7 @@
       document.body.classList.remove("locked");
       loadData();
       subscribe();
+      startAutoRefresh();
     } else {
       loadEvents();
     }

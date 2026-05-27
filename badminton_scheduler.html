@@ -1102,6 +1102,34 @@
       .responsive-card .versus {
         display: none;
       }
+
+      #scheduleOutput .responsive-card {
+        display: table;
+        min-width: 760px;
+        width: 100%;
+        background: #fff;
+      }
+
+      #scheduleOutput .responsive-card thead { display: table-header-group; }
+      #scheduleOutput .responsive-card tbody { display: table-row-group; }
+      #scheduleOutput .responsive-card tr {
+        display: table-row;
+        border: 0;
+        border-radius: 0;
+        margin: 0;
+        padding: 0;
+      }
+      #scheduleOutput .responsive-card th,
+      #scheduleOutput .responsive-card td {
+        display: table-cell;
+        width: auto;
+        min-width: 0;
+        border-bottom: 1px solid var(--line);
+        padding: 8px 6px;
+        font-size: 12px;
+      }
+      #scheduleOutput .responsive-card td::before { content: none; }
+      #scheduleOutput .responsive-card .versus { display: table-cell; }
     }
   </style>
 </head>
@@ -1141,6 +1169,9 @@
         <button class="button primary" id="saveCloudBtn" type="button" title="Supabase에 현재 상태 저장">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v12"/><path d="M17 8l-5-5-5 5"/><path d="M5 21h14"/></svg>
           서버 저장
+        </button>
+        <button class="button" id="togglePublicBtn" type="button" title="사용자 화면 대진 공개/비공개">
+          대진비공개
         </button>
         <button class="button danger" id="endTournamentBtn" type="button" title="사용자에게 대회 내용을 더 이상 보여주지 않기">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/></svg>
@@ -1352,7 +1383,8 @@
       playerStatus: {},
       teamMode: false,
       teamMap: {},
-      nextMatchIds: []
+      nextMatchIds: [],
+      schedulePublic: true
     };
 
     const el = id => document.getElementById(id);
@@ -1433,7 +1465,7 @@
     function parsePlayers() {
       const seen = new Set();
       return el("players").value
-        .split(/\n|,|;/)
+        .split(/[\n,;\t ]+/)
         .map(name => name.trim())
         .filter(Boolean)
         .filter(name => !isAutoSubstituteName(name))
@@ -1450,7 +1482,7 @@
       const seen = new Set();
       const counts = { players: 0, substitutes: 0, total: 0 };
       el("players").value
-        .split(/\n|,|;/)
+        .split(/[\n,;\t ]+/)
         .map(name => name.trim())
         .filter(Boolean)
         .forEach(name => {
@@ -1467,6 +1499,21 @@
     function updatePlayerCountSummary() {
       const counts = countRawRosterNames();
       el("playerCountSummary").textContent = `선수 ${counts.players}명 / 대타 ${counts.substitutes}명 / 총 ${counts.total}명`;
+    }
+
+    function normalizeRosterInput() {
+      const seen = new Set();
+      const names = el("players").value
+        .split(/[\n,;\t ]+/)
+        .map(name => name.trim())
+        .filter(Boolean)
+        .filter(name => {
+          const key = name.toLocaleLowerCase("ko-KR");
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+      el("players").value = names.join("\n");
     }
 
     function syncPlayerStatuses(names = parsePlayers()) {
@@ -1550,6 +1597,16 @@
       updatePlayerCountSummary();
       renderPlayerStatusList();
       renderModeTabs();
+    }
+
+    function renderSchedulePublicButton() {
+      const button = el("togglePublicBtn");
+      if (!button) return;
+      button.textContent = state.schedulePublic === false ? "대진공개" : "대진비공개";
+      button.classList.toggle("primary", state.schedulePublic === false);
+      button.title = state.schedulePublic === false
+        ? "사용자 화면에 대진/선수이력/순위를 공개합니다."
+        : "사용자 화면에서 대진/선수이력/순위를 숨깁니다.";
     }
 
     function visibleRosterNames(names = state.players) {
@@ -2193,7 +2250,8 @@
         playerStatus: state.playerStatus,
         teamMode: state.teamMode,
         teamMap: state.teamMap,
-        nextMatchIds: state.nextMatchIds
+        nextMatchIds: state.nextMatchIds,
+        schedulePublic: state.schedulePublic !== false
       };
     }
 
@@ -2208,11 +2266,13 @@
       state.teamMode = data.teamMode === "blueWhite";
       state.teamMap = data.teamMap || {};
       state.nextMatchIds = Array.isArray(data.nextMatchIds) ? data.nextMatchIds.map(Number).filter(Boolean) : [];
+      state.schedulePublic = data.schedulePublic !== false;
       el("players").value = visibleRosterNames(state.players).join("\n");
       el("seed").value = state.seed || "A01";
       el("blueWhiteMode").checked = state.teamMode;
       renderTeamAssignments();
       renderAdminRosterControls();
+      renderSchedulePublicButton();
       el("viewerAccessPassword").value = data.viewerPassword || "";
       localStorage.setItem("badminton_viewer_password", data.viewerPassword || "");
       renderAll(true);
@@ -2337,6 +2397,7 @@
         state.results = {};
         state.nextMatchIds = [];
         state.playerStatus = {};
+        state.schedulePublic = true;
         el("players").value = "";
         el("supabaseEventId").value = "";
         el("viewerAccessPassword").value = "";
@@ -2385,12 +2446,14 @@
       state.results = {};
       state.nextMatchIds = [];
       state.playerStatus = {};
+      state.schedulePublic = false;
       el("players").value = "";
       el("supabaseEventId").value = nextEventId;
       el("viewerAccessPassword").value = viewerPassword.trim();
       localStorage.setItem("badminton_supabase_event_id", nextEventId);
       localStorage.setItem("badminton_viewer_password", viewerPassword.trim());
       renderAll(true);
+      renderSchedulePublicButton();
       saveCloudData(false);
       setMessage(`새 대회 '${nextEventId}'를 시작했습니다. 명단을 입력하고 대진을 생성하세요.`);
     }
@@ -2972,6 +3035,7 @@
     function renderAll(includeSchedule = true) {
       if (state.schedule.length) rebuildPlayersFromSchedule();
       renderAdminRosterControls();
+      renderSchedulePublicButton();
       renderStats();
       if (includeSchedule) renderSchedule();
       renderRanking();
@@ -3395,6 +3459,18 @@
       renderTeamAssignments();
       renderAdminRosterControls();
     });
+    el("players").addEventListener("paste", () => {
+      window.setTimeout(() => {
+        normalizeRosterInput();
+        renderTeamAssignments();
+        renderAdminRosterControls();
+      }, 0);
+    });
+    el("players").addEventListener("blur", () => {
+      normalizeRosterInput();
+      renderTeamAssignments();
+      renderAdminRosterControls();
+    });
     el("playerSearch").addEventListener("input", () => renderAll(true));
     document.querySelectorAll(".mode-tab").forEach(button => {
       button.addEventListener("click", event => {
@@ -3468,6 +3544,14 @@
     el("printBtn").addEventListener("click", () => window.print());
     el("newTournamentBtn").addEventListener("click", startNewTournament);
     el("saveCloudBtn").addEventListener("click", () => saveCloudData(false));
+    el("togglePublicBtn").addEventListener("click", () => {
+      state.schedulePublic = state.schedulePublic === false;
+      renderSchedulePublicButton();
+      saveCloudData(false);
+      setMessage(state.schedulePublic === false
+        ? "대진을 비공개로 전환했습니다. 사용자 화면에는 공개 전까지 데이터가 보이지 않습니다."
+        : "대진을 공개했습니다. 사용자 화면에서 대진/선수이력/순위를 볼 수 있습니다.");
+    });
     el("deleteCloudBtn").addEventListener("click", deleteCloudData);
     el("endTournamentBtn").addEventListener("click", endTournament);
     el("logoutAdminBtn").addEventListener("click", logoutAdmin);

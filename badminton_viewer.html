@@ -553,6 +553,26 @@
       .responsive-card {
         min-width: 760px;
       }
+
+      #scheduleOutput .responsive-card {
+        display: table;
+        min-width: 760px;
+        width: 100%;
+        background: #fff;
+      }
+
+      #scheduleOutput .responsive-card thead { display: table-header-group; }
+      #scheduleOutput .responsive-card tbody { display: table-row-group; }
+      #scheduleOutput .responsive-card tr { display: table-row; }
+      #scheduleOutput .responsive-card th,
+      #scheduleOutput .responsive-card td {
+        display: table-cell;
+        width: auto;
+        min-width: 0;
+        padding: 8px 6px;
+      }
+      #scheduleOutput .responsive-card td::before { content: none; }
+      #scheduleOutput .responsive-card .versus { display: table-cell; }
     }
   </style>
 </head>
@@ -634,13 +654,23 @@
       teamMap: {},
       teamMode: false,
       nextMatchIds: [],
-      eventName: ""
+      eventName: "",
+      schedulePublic: true
     };
 
     const el = id => document.getElementById(id);
     let supabaseClient = null;
     let realtimeChannel = null;
+    let autoRefreshTimer = null;
     const loginConfig = window.BADMINTON_SUPABASE || {};
+
+    function startAutoRefresh() {
+      if (autoRefreshTimer) window.clearInterval(autoRefreshTimer);
+      autoRefreshTimer = window.setInterval(() => {
+        if (document.body.classList.contains("locked")) return;
+        loadData();
+      }, 5 * 60 * 1000);
+    }
 
     function setupViewerLogin() {
       if (sessionStorage.getItem("badminton_viewer_ok") === "1") {
@@ -667,6 +697,7 @@
           el("viewerLoginPassword").value = "";
           applySharedPayload(data);
           subscribeRealtime();
+          startAutoRefresh();
         } catch (error) {
           el("viewerLoginError").textContent = error.message;
         }
@@ -712,7 +743,7 @@
       el("playerCount").textContent = state.players.length;
       el("matchCount").textContent = state.schedule.length;
       el("roundCount").textContent = state.schedule.length ? Math.max(...state.schedule.map(match => match.round)) : 0;
-      el("completeCount").textContent = Object.values(state.results).filter(Boolean).length;
+      el("completeCount").textContent = Object.values(state.results).filter(value => ["A", "B", "D"].includes(value)).length;
       const aWins = Object.values(state.results).filter(value => value === "A").length;
       const bWins = Object.values(state.results).filter(value => value === "B").length;
       const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
@@ -724,6 +755,11 @@
     }
 
     function renderSchedule() {
+      if (state.schedulePublic === false) {
+        el("scheduleOutput").className = "empty";
+        el("scheduleOutput").textContent = "관리자가 아직 대진을 공개하지 않았습니다.";
+        return;
+      }
       if (!state.schedule.length) {
         el("scheduleOutput").className = "empty";
         el("scheduleOutput").textContent = "대진 데이터가 아직 없습니다.";
@@ -793,6 +829,7 @@
           [...match.teamA, ...match.teamB].forEach(name => ensure(name).done++);
           continue;
         }
+        if (result !== "A" && result !== "B") continue;
         const winners = result === "A" ? match.teamA : match.teamB;
         const losers = result === "A" ? match.teamB : match.teamA;
         winners.forEach(name => ensure(name).wins++);
@@ -804,6 +841,11 @@
     }
 
     function renderRanking() {
+      if (state.schedulePublic === false) {
+        el("rankingOutput").className = "empty";
+        el("rankingOutput").textContent = "관리자가 아직 순위를 공개하지 않았습니다.";
+        return;
+      }
       if (!state.players.length) {
         el("rankingOutput").className = "empty";
         el("rankingOutput").textContent = "순위 데이터가 아직 없습니다.";
@@ -871,7 +913,7 @@
         ];
 
         for (const team of teams) {
-          const status = !result ? "미입력" : result === "D" ? "완료" : result === team.code ? "승" : "패";
+          const status = !result ? "미입력" : result === "P" ? "게임중" : result === "D" ? "완료" : result === team.code ? "승" : "패";
           for (const player of team.players) {
             const partner = team.players.find(name => name !== player);
             const history = histories.get(player);
@@ -901,6 +943,11 @@
     }
 
     function renderAppearanceSummary() {
+      if (state.schedulePublic === false) {
+        el("summaryOutput").className = "empty";
+        el("summaryOutput").textContent = "관리자가 아직 출전요약을 공개하지 않았습니다.";
+        return;
+      }
       if (!state.schedule.length) {
         el("summaryOutput").className = "empty";
         el("summaryOutput").textContent = "출전요약 데이터가 아직 없습니다.";
@@ -932,6 +979,11 @@
     }
 
     function renderPlayerHistory() {
+      if (state.schedulePublic === false) {
+        el("historyOutput").className = "empty";
+        el("historyOutput").textContent = "관리자가 아직 선수별이력을 공개하지 않았습니다.";
+        return;
+      }
       if (!state.schedule.length) {
         el("historyOutput").className = "empty";
         el("historyOutput").textContent = "선수별이력 데이터가 아직 없습니다.";
@@ -1131,6 +1183,20 @@
         loadTournamentOptions();
         return;
       }
+      state.schedulePublic = data.schedulePublic !== false;
+      if (!state.schedulePublic) {
+        state.players = [];
+        state.schedule = [];
+        state.results = {};
+        state.nextMatchIds = [];
+        state.updatedAt = data.updatedAt || "";
+        state.eventName = data.eventId || sessionStorage.getItem("badminton_viewer_event_id") || "";
+        renderAll();
+        const updated = state.updatedAt ? new Date(state.updatedAt).toLocaleString("ko-KR") : "정보 없음";
+        el("eventTitle").textContent = state.eventName ? `${state.eventName} 대진표` : "배드민턴 대진표";
+        el("statusText").textContent = `대진 비공개 상태입니다. 마지막 업데이트: ${updated}`;
+        return;
+      }
       state.players = Array.isArray(data.players) ? data.players : [];
       state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
       state.results = data.results || {};
@@ -1253,6 +1319,7 @@
       loadTournamentOptions();
     });
     setupViewerLogin();
+    startAutoRefresh();
   </script>
 </body>
 </html>
