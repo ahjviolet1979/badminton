@@ -147,7 +147,7 @@
 
     .chips {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 6px;
       margin: 12px 0;
     }
@@ -155,10 +155,17 @@
     .chip {
       background: var(--panel);
       border: 1px solid var(--line);
+      border-top-width: 4px;
       border-radius: 8px;
       padding: 8px 6px;
       min-height: 48px;
     }
+
+    .chip:nth-child(1) { border-top-color: #86efac; }
+    .chip:nth-child(2) { border-top-color: #93c5fd; }
+    .chip:nth-child(3) { border-top-color: #fcd34d; }
+    .chip:nth-child(4) { border-top-color: #f9a8d4; }
+    .chip:nth-child(5) { border-top-color: #a7f3d0; }
 
     .chip b {
       display: block;
@@ -174,6 +181,25 @@
       font-size: 10px;
       font-weight: 900;
       white-space: nowrap;
+    }
+
+    .player-search {
+      margin: 8px 0 6px;
+    }
+
+    .player-search input {
+      width: 100%;
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 11px;
+      background: rgba(255, 255, 255, 0.86);
+      color: var(--ink);
+      font-size: 14px;
+    }
+
+    .player-search input::placeholder {
+      color: #8a9a91;
     }
 
     .tabs {
@@ -222,67 +248,272 @@
       gap: 9px;
     }
 
-    .match-card, .player-card {
-      padding: 12px;
+    .match-card {
+      padding: 8px;
+      overflow: hidden;
     }
 
-    .match-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
+    .player-card {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    .player-head {
+      display: grid;
+      grid-template-columns: 88px 1fr;
       align-items: center;
-      margin-bottom: 10px;
-      color: var(--muted);
-      font-size: 12px;
+      background: #fff8f3;
+      border-bottom: 1px solid #eee5df;
+    }
+
+    .player-name {
+      min-height: 34px;
+      display: flex;
+      align-items: center;
+      padding: 7px 9px;
+      background: #f8fbf3;
+      color: #17231d;
+      font-size: 16px;
       font-weight: 900;
     }
 
-    .teams {
+    .player-record {
+      padding: 7px 9px;
+      color: #56645d;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.45;
+    }
+
+    .player-record-line {
+      display: block;
+      white-space: nowrap;
+    }
+
+    .player-block {
+      padding: 7px 9px 8px;
+      border-bottom: 1px solid rgba(18, 32, 25, 0.08);
+    }
+
+    .player-block.partner {
+      background: #f7fbff;
+    }
+
+    .player-block.rest {
+      background: #fffbee;
+      border-bottom: 0;
+    }
+
+    .player-block-title {
+      margin-bottom: 5px;
+      color: #3f4e46;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .match-line {
       display: grid;
-      gap: 8px;
+      grid-template-columns: 68px minmax(0, 1fr) 16px minmax(0, 1fr);
+      gap: 4px;
+      align-items: stretch;
+    }
+
+    .match-meta {
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      color: #42534a;
+      font-size: 12px;
+      font-weight: 900;
+      line-height: 1.25;
+      text-align: center;
+      background: #f4faf6;
     }
 
     .team-row {
-      border: 1px solid var(--line);
+      border: 1px solid transparent;
       border-radius: 8px;
-      padding: 9px;
+      padding: 7px 6px;
       display: grid;
-      grid-template-columns: 42px 1fr;
-      gap: 8px;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 5px;
       align-items: center;
+      min-width: 0;
+      background: #fbfcfa;
     }
 
-    .team-row.win-a, .team-row.win-b {
-      background: var(--accent-soft);
-      border-color: #b7ead3;
+    .team-row.win-a {
+      background: #eef6ff;
+      border-color: #bfdbfe;
+    }
+
+    .team-row.win-b {
+      background: #fff1f7;
+      border-color: #fbcfe8;
+    }
+
+    .match-card.next-match {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      box-shadow: inset 4px 0 0 #10b981, 0 8px 24px rgba(18, 32, 25, 0.06);
     }
 
     .team-label {
+      flex: 0 0 auto;
       color: var(--muted);
       font-size: 12px;
       font-weight: 900;
     }
 
     .names {
-      font-size: 15px;
+      min-width: 0;
+      font-size: 14px;
       font-weight: 900;
-      line-height: 1.35;
-      word-break: keep-all;
+      line-height: 1.2;
+      display: grid;
+      gap: 2px;
     }
 
-    .result {
-      margin-top: 10px;
-      display: inline-flex;
+    .player-name-line {
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .win-mark {
+      flex: 0 0 auto;
+      min-width: 24px;
+      min-height: 21px;
+      display: inline-grid;
+      place-items: center;
       border-radius: 999px;
-      padding: 4px 10px;
       font-size: 12px;
       font-weight: 900;
-      background: #fffbeb;
-      color: var(--warn);
+      color: #fff;
     }
 
-    .result.a { background: #dbeafe; color: var(--blue); }
-    .result.b { background: #fce7f3; color: var(--pink); }
+    .match-vs {
+      display: grid;
+      place-items: center;
+      color: #6b5d38;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .win-mark.a { background: #2563eb; }
+    .win-mark.b { background: #be185d; }
+
+    .done-mark {
+      flex: 0 0 auto;
+      display: inline-grid;
+      place-items: center;
+      min-height: 21px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      color: #475569;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .progress-mark {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .next-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: #dcfce7;
+      color: #047857;
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .rank-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .rank-section {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .rank-section-title {
+      padding: 7px 9px;
+      border: 1px solid #cfe3d7;
+      border-radius: 8px;
+      background: #f4faf6;
+      color: #315243;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .rank-row {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 9px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .rank-main {
+      display: block;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .rank-no {
+      color: var(--accent);
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .rank-name {
+      font-size: 14px;
+      font-weight: 900;
+      margin-right: 6px;
+    }
+
+    .rank-sub, .rank-rate {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .rank-row.top-1 {
+      background: #fff7dc;
+      border-color: #f2d685;
+      box-shadow: inset 4px 0 0 #f1c94b;
+    }
+
+    .rank-row.top-2 {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      box-shadow: inset 4px 0 0 #b8c5d6;
+    }
+
+    .rank-row.top-3 {
+      background: #fff0e5;
+      border-color: #fdba74;
+      box-shadow: inset 4px 0 0 #f0a36b;
+    }
+
+    .rank-row.top-1 .rank-no { color: #b45309; }
+    .rank-row.top-2 .rank-no { color: #475569; }
+    .rank-row.top-3 .rank-no { color: #c2410c; }
 
     .player-picker {
       margin-bottom: 10px;
@@ -317,10 +548,16 @@
 
     .line-list {
       margin: 0;
-      padding-left: 18px;
-      line-height: 1.7;
-      font-size: 13px;
-      font-weight: 800;
+      padding-left: 10px;
+      list-style: none;
+      line-height: 1.65;
+      color: #53625b;
+      font-size: 14px;
+      font-weight: 400;
+    }
+
+    .line-list li::before {
+      content: "- ";
     }
 
     .empty {
@@ -353,7 +590,7 @@
   <main class="app">
     <header>
       <div>
-        <h1>배드민턴 대진표</h1>
+        <h1 id="eventTitle">배드민턴 대진표</h1>
         <p class="sub" id="statusText">대회 데이터를 불러오는 중입니다.</p>
       </div>
       <div class="tools">
@@ -371,36 +608,47 @@
       <div class="chip"><b id="matchCount">0</b><span>경기</span></div>
       <div class="chip"><b id="roundCount">0</b><span>라운드</span></div>
       <div class="chip"><b id="completeCount">0</b><span>결과</span></div>
+      <div class="chip"><b id="winnerCount">A 0 / B 0</b><span>승리팀</span></div>
+    </div>
+
+    <div class="player-search">
+      <input id="playerSearch" type="search" placeholder="선수 이름 검색" autocomplete="off">
     </div>
 
     <div class="tabs">
-      <button class="tab active" data-view="scheduleView" type="button">대진</button>
-      <button class="tab" data-view="mineView" type="button">내 기록</button>
-      <button class="tab" data-view="playersView" type="button">전체</button>
+      <button class="tab active" data-view="scheduleView" type="button">대진표</button>
+      <button class="tab" data-view="playersView" type="button">선수별이력</button>
+      <button class="tab" data-view="rankingView" type="button">순위</button>
     </div>
 
     <section class="view active" id="scheduleView">
       <div id="scheduleOutput" class="empty">대진 데이터를 기다리고 있습니다.</div>
     </section>
 
-    <section class="view" id="mineView">
-      <div class="section">
-        <h2 class="section-title">내 기록</h2>
-        <select class="player-picker" id="playerSelect"></select>
-        <div id="mineOutput" class="empty">선수를 선택하세요.</div>
-      </div>
+    <section class="view" id="playersView">
+      <div id="playersOutput" class="empty">출전이력 데이터를 기다리고 있습니다.</div>
     </section>
 
-    <section class="view" id="playersView">
-      <div id="playersOutput" class="empty">선수별 데이터를 기다리고 있습니다.</div>
+    <section class="view" id="rankingView">
+      <div id="rankingOutput" class="empty">순위 데이터를 기다리고 있습니다.</div>
     </section>
+
   </main>
 
   <script>
-    const state = { players: [], schedule: [], results: {}, updatedAt: "" };
+    const state = { players: [], schedule: [], results: {}, updatedAt: "", teamMap: {}, teamMode: false, eventName: "", nextMatchIds: [], schedulePublic: true };
     const el = id => document.getElementById(id);
     let supabaseClient = null;
     let realtimeChannel = null;
+    let autoRefreshTimer = null;
+
+    function startAutoRefresh() {
+      if (autoRefreshTimer) window.clearInterval(autoRefreshTimer);
+      autoRefreshTimer = window.setInterval(() => {
+        if (document.body.classList.contains("locked")) return;
+        loadData();
+      }, 5 * 60 * 1000);
+    }
 
     function config() {
       const globalConfig = window.BADMINTON_SUPABASE || {};
@@ -468,6 +716,7 @@
         document.body.classList.remove("locked");
         applyData(data);
         subscribe();
+        startAutoRefresh();
       } catch (error) {
         el("loginError").textContent = error.message;
       }
@@ -476,7 +725,13 @@
     function resultText(result) {
       if (result === "A") return "A팀 승";
       if (result === "B") return "B팀 승";
+      if (result === "D") return "완료";
+      if (result === "P") return "게임중";
       return "미입력";
+    }
+
+    function isSchedulePublic(data) {
+      return data.schedulePublic !== false && data.publicSchedule !== false;
     }
 
     function applyData(data) {
@@ -484,35 +739,52 @@
         logout();
         return;
       }
+      state.schedulePublic = isSchedulePublic(data);
+      if (!state.schedulePublic) {
+        state.players = [];
+        state.schedule = [];
+        state.results = {};
+        state.nextMatchIds = [];
+        state.updatedAt = data.updatedAt || "";
+        state.eventName = data.eventId || sessionStorage.getItem("badminton_mobile_event_id") || "";
+        renderAll();
+        return;
+      }
       state.players = Array.isArray(data.players) ? data.players : [];
       state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
       state.results = data.results || {};
+      state.teamMap = data.teamMap || {};
+      state.teamMode = data.teamMode === "blueWhite";
+      state.nextMatchIds = Array.isArray(data.nextMatchIds) ? data.nextMatchIds.map(Number).filter(Boolean) : [];
       state.updatedAt = data.updatedAt || "";
+      state.eventName = data.eventId || sessionStorage.getItem("badminton_mobile_event_id") || "";
       renderAll();
     }
 
     function statsForPlayers() {
       const stats = new Map(state.players.map(name => [name, {
-        name, games: 0, wins: 0, losses: 0, pending: 0, partners: new Map(), matches: []
+        name, games: 0, wins: 0, losses: 0, done: 0, pending: 0, partners: new Map(), matches: [], team: state.teamMap[name] || ""
       }]));
       for (const match of state.schedule) {
         const result = state.results[match.id] || "";
         const teams = [
-          { code: "A", label: "A팀", players: match.teamA, opponents: match.teamB },
-          { code: "B", label: "B팀", players: match.teamB, opponents: match.teamA }
+          { code: "A", label: (match.teamALabel || "A") + "팀", team: match.teamALabel === "청" ? "blue" : match.teamALabel === "백" ? "white" : "", players: match.teamA, opponents: match.teamB },
+          { code: "B", label: (match.teamBLabel || "B") + "팀", team: match.teamBLabel === "청" ? "blue" : match.teamBLabel === "백" ? "white" : "", players: match.teamB, opponents: match.teamA }
         ];
         for (const team of teams) {
-          const status = !result ? "미입력" : result === team.code ? "승" : "패";
+          const status = !result ? "미진행" : result === "P" ? "게임중" : result === "D" ? "완료" : result === team.code ? "승" : "패";
           for (const player of team.players) {
             if (!stats.has(player)) {
-              stats.set(player, { name: player, games: 0, wins: 0, losses: 0, pending: 0, partners: new Map(), matches: [] });
+              stats.set(player, { name: player, games: 0, wins: 0, losses: 0, done: 0, pending: 0, partners: new Map(), matches: [], team: team.team });
             }
-            const partner = team.players.find(name => name !== player);
+            const partner = team.players.find(name => name !== player) || "";
             const row = stats.get(player);
+            if (team.team && !row.team) row.team = team.team;
             row.games++;
             if (status === "승") row.wins++;
             if (status === "패") row.losses++;
-            if (status === "미입력") row.pending++;
+            if (status === "완료") row.done++;
+            if (status === "미진행") row.pending++;
             row.partners.set(partner, (row.partners.get(partner) || 0) + 1);
             row.matches.push({
               id: match.id,
@@ -528,102 +800,201 @@
       return [...stats.values()].sort((a, b) => a.name.localeCompare(b.name, "ko-KR"));
     }
 
-    function restGaps(matches) {
-      if (matches.length <= 1) return ["첫 출전만 있음"];
-      return matches.slice(1).map((match, index) => {
-        const prev = matches[index];
-        return `${prev.id}->${match.id}경기 사이 ${match.id - prev.id - 1}게임 쉼`;
-      });
-    }
-
-    function partnerLines(partners) {
-      const rows = [...partners.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"));
-      return rows.length ? rows.map(([name, count]) => `${name} (${count}회)`) : ["없음"];
+    function partnerDetailLines(row) {
+      return row.matches.length ? [...row.matches]
+        .sort((a, b) => a.id - b.id)
+        .map((match, index, matches) => {
+          const next = matches[index + 1];
+          const restText = next ? ", " + (next.id - match.id - 1) + "게임쉼" : "";
+          return match.id + "경기 " + match.round + "R/" + match.court + "코트: 팀 " + match.partner + ", vs " + match.opponents + ", " + match.status + restText;
+        })
+        : ["경기별 이력 없음"];
     }
 
     function renderStats() {
       el("playerCount").textContent = state.players.length;
       el("matchCount").textContent = state.schedule.length;
       el("roundCount").textContent = state.schedule.length ? Math.max(...state.schedule.map(m => m.round)) : 0;
-      el("completeCount").textContent = Object.values(state.results).filter(Boolean).length;
-      const updated = state.updatedAt ? new Date(state.updatedAt).toLocaleString("ko-KR") : "알 수 없음";
-      el("statusText").textContent = `마지막 업데이트: ${updated}`;
+      el("completeCount").textContent = Object.values(state.results).filter(value => ["A", "B", "D"].includes(value)).length;
+      const aWins = Object.values(state.results).filter(value => value === "A").length;
+      const bWins = Object.values(state.results).filter(value => value === "B").length;
+      const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
+      el("winnerCount").textContent = blueWhite ? "청 " + aWins + " / 백 " + bWins : "A " + aWins + " / B " + bWins;
+      const updated = state.updatedAt ? new Date(state.updatedAt).toLocaleString("ko-KR") : "기록 없음";
+      el("eventTitle").textContent = state.eventName ? state.eventName + " 대진표" : "배드민턴 대진표";
+      el("statusText").textContent = "마지막 업데이트: " + updated;
+    }
+
+    function searchText() {
+      return (el("playerSearch")?.value || "").trim().toLowerCase();
     }
 
     function renderSchedule() {
+      if (state.schedulePublic === false) {
+        el("scheduleOutput").className = "empty";
+        el("scheduleOutput").textContent = "관리자가 아직 대진을 공개하지 않았습니다.";
+        return;
+      }
       if (!state.schedule.length) {
         el("scheduleOutput").className = "empty";
         el("scheduleOutput").textContent = "대진 데이터가 아직 없습니다.";
         return;
       }
+      const search = searchText();
+      const schedule = search
+        ? state.schedule.filter(match => [...match.teamA, ...match.teamB].some(name => name.toLowerCase().includes(search)))
+        : state.schedule;
+      if (!schedule.length) {
+        el("scheduleOutput").className = "empty";
+        el("scheduleOutput").textContent = "검색된 선수의 대진이 없습니다.";
+        return;
+      }
       el("scheduleOutput").className = "match-list";
-      el("scheduleOutput").innerHTML = state.schedule.map(match => {
+      el("scheduleOutput").innerHTML = schedule.map(match => {
         const result = state.results[match.id] || "";
-        return `
-          <article class="match-card">
-            <div class="match-head">
-              <span>${match.id}경기 · ${match.round}R · ${match.court}코트</span>
-            </div>
-            <div class="teams">
-              <div class="team-row ${result === "A" ? "win-a" : ""}">
-                <div class="team-label">A팀</div>
-                <div class="names">${match.teamA[0]} / ${match.teamA[1]}</div>
-              </div>
-              <div class="team-row ${result === "B" ? "win-b" : ""}">
-                <div class="team-label">B팀</div>
-                <div class="names">${match.teamB[0]} / ${match.teamB[1]}</div>
-              </div>
-            </div>
-            <span class="result ${result === "A" ? "a" : result === "B" ? "b" : ""}">${resultText(result)}</span>
-          </article>`;
+        const isNext = (state.nextMatchIds || []).map(Number).includes(Number(match.id));
+        const teamAPlayers = '<span class="player-name-line">' + match.teamA[0] + '</span><span class="player-name-line">' + match.teamA[1] + '</span>';
+        const teamBPlayers = '<span class="player-name-line">' + match.teamB[0] + '</span><span class="player-name-line">' + match.teamB[1] + '</span>';
+        return '<article class="match-card ' + (isNext ? 'next-match' : '') + '">' +
+          '<div class="match-line">' +
+          '<div class="match-meta">' + match.id + '경기<br>' + match.round + 'R/' + match.court + '코트' + (isNext ? '<br><span class="next-badge">다음</span>' : '') + '</div>' +
+          '<div class="team-row ' + (result === "A" ? "win-a" : "") + '"><span class="team-label">' + (match.teamALabel || "A") + '팀</span><span class="names">' + teamAPlayers + '</span>' + (result === "A" ? '<span class="win-mark a">승</span>' : '') + '</div>' +
+          '<div class="match-vs">vs</div>' +
+          '<div class="team-row ' + (result === "B" ? "win-b" : "") + '"><span class="team-label">' + (match.teamBLabel || "B") + '팀</span><span class="names">' + teamBPlayers + '</span>' + (result === "B" ? '<span class="win-mark b">승</span>' : '') + (result === "D" ? '<span class="done-mark">완료</span>' : '') + (result === "P" ? '<span class="done-mark progress-mark">게임중</span>' : '') + '</div>' +
+          '</div></article>';
       }).join("");
     }
 
-    function renderPlayerSelect(stats) {
-      const current = el("playerSelect").value || stats[0]?.name || "";
-      el("playerSelect").innerHTML = stats.map(row => `<option value="${row.name}" ${row.name === current ? "selected" : ""}>${row.name}</option>`).join("");
-    }
-
     function playerCard(row) {
-      return `
-        <article class="player-card">
-          <h3 class="section-title">${row.name}</h3>
-          <div class="mini-grid">
-            <div class="mini"><b>${row.games}</b><span>경기</span></div>
-            <div class="mini"><b>${row.wins}</b><span>승</span></div>
-            <div class="mini"><b>${row.losses}</b><span>패</span></div>
-          </div>
-          <b>파트너</b>
-          <ul class="line-list">${partnerLines(row.partners).map(line => `<li>${line}</li>`).join("")}</ul>
-          <b style="display:block;margin-top:10px;">휴식 텀</b>
-          <ul class="line-list">${restGaps(row.matches).map(line => `<li>${line}</li>`).join("")}</ul>
-        </article>`;
-    }
-
-    function renderMine(stats) {
-      renderPlayerSelect(stats);
-      const selected = el("playerSelect").value || stats[0]?.name;
-      const row = stats.find(item => item.name === selected);
-      el("mineOutput").className = row ? "" : "empty";
-      el("mineOutput").innerHTML = row ? playerCard(row) : "선수를 선택하세요.";
+      return '<article class="player-card">' +
+        '<div class="player-head">' +
+        '<div class="player-name">' + row.name + '</div>' +
+        '<div class="player-record"><span class="player-record-line">총 ' + row.games + '경기 / 미입력 ' + row.pending + '</span><span class="player-record-line">승 ' + row.wins + ' / 패 ' + row.losses + ' / 완료 ' + row.done + '</span></div>' +
+        '</div>' +
+        '<div class="player-block partner">' +
+        '<div class="player-block-title">* 경기별 이력</div>' +
+        '<ul class="line-list">' + partnerDetailLines(row).map(line => '<li>' + line + '</li>').join("") + '</ul>' +
+        '</div>' +
+        '</article>';
     }
 
     function renderPlayers(stats) {
+      if (state.schedulePublic === false) {
+        el("playersOutput").className = "empty";
+        el("playersOutput").textContent = "관리자가 아직 선수별이력을 공개하지 않았습니다.";
+        return;
+      }
+      const search = searchText();
+      const visibleStats = search ? stats.filter(row => row.name.toLowerCase().includes(search)) : stats;
       if (!stats.length) {
         el("playersOutput").className = "empty";
         el("playersOutput").textContent = "선수 데이터가 아직 없습니다.";
         return;
       }
+      if (!visibleStats.length) {
+        el("playersOutput").className = "empty";
+        el("playersOutput").textContent = "검색된 선수의 출전이력이 없습니다.";
+        return;
+      }
       el("playersOutput").className = "player-list";
-      el("playersOutput").innerHTML = stats.map(playerCard).join("");
+      el("playersOutput").innerHTML = visibleStats.map(playerCard).join("");
+    }
+
+    function renderRanking(stats) {
+      if (state.schedulePublic === false) {
+        el("rankingOutput").className = "empty";
+        el("rankingOutput").textContent = "관리자가 아직 순위를 공개하지 않았습니다.";
+        return;
+      }
+      if (!stats.length) {
+        el("rankingOutput").className = "empty";
+        el("rankingOutput").textContent = "순위 데이터가 아직 없습니다.";
+        return;
+      }
+      const ranked = [...stats].sort((a, b) =>
+        b.wins - a.wins ||
+        a.losses - b.losses ||
+        b.games - a.games ||
+        b.partners.size - a.partners.size ||
+        a.name.localeCompare(b.name, "ko-KR")
+      );
+      const search = searchText();
+      const visibleRanked = search ? ranked.filter(row => row.name.toLowerCase().includes(search)) : ranked;
+      if (!visibleRanked.length) {
+        el("rankingOutput").className = "empty";
+        el("rankingOutput").textContent = "검색된 선수의 순위가 없습니다.";
+        return;
+      }
+      const renderRows = (rows, baseRows = ranked) => rows.map(row => {
+        const index = baseRows.findIndex(item => item.name === row.name);
+        const winRate = row.games ? Math.round((row.wins / row.games) * 100) : 0;
+        return '<div class="rank-row top-' + (index + 1) + '">' +
+          '<div class="rank-no">' + (index + 1) + '</div>' +
+          '<div class="rank-main">' +
+          '<span class="rank-name">' + row.name + '</span>' +
+          '<span class="rank-sub">' + row.games + '경기 · ' + row.wins + '승 · ' + row.losses + '패 · ' + row.done + '완료 · ' + winRate + '% · 파트너 ' + row.partners.size + '</span>' +
+          '</div>' +
+          '</div>';
+      }).join("");
+      const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
+      el("rankingOutput").className = "rank-list";
+      if (blueWhite) {
+        const blueRows = ranked.filter(row => row.team === "blue");
+        const whiteRows = ranked.filter(row => row.team === "white");
+        const visibleBlueRows = search ? blueRows.filter(row => row.name.toLowerCase().includes(search)) : blueRows;
+        const visibleWhiteRows = search ? whiteRows.filter(row => row.name.toLowerCase().includes(search)) : whiteRows;
+        el("rankingOutput").innerHTML =
+          '<section class="rank-section"><div class="rank-section-title">전체 순위</div>' + renderRows(visibleRanked, ranked) + '</section>' +
+          '<section class="rank-section"><div class="rank-section-title">청팀 순위 (' + blueRows.length + '명)</div>' + renderRows(visibleBlueRows, blueRows) + '</section>' +
+          '<section class="rank-section"><div class="rank-section-title">백팀 순위 (' + whiteRows.length + '명)</div>' + renderRows(visibleWhiteRows, whiteRows) + '</section>';
+        return;
+      }
+      el("rankingOutput").innerHTML = renderRows(visibleRanked, ranked);
+    }
+
+    function keyOf(a, b) {
+      return [a, b].sort((x, y) => x.localeCompare(y, "ko-KR")).join(" / ");
+    }
+
+    function renderMatrix() {
+      if (!state.schedule.length) {
+        el("matrixOutput").className = "empty";
+        el("matrixOutput").textContent = "중복점검 데이터가 아직 없습니다.";
+        return;
+      }
+      const games = new Map(state.players.map(name => [name, 0]));
+      const partners = new Map();
+      for (const match of state.schedule) {
+        [...match.teamA, ...match.teamB].forEach(name => games.set(name, (games.get(name) || 0) + 1));
+        [match.teamA, match.teamB].forEach(team => {
+          const key = keyOf(team[0], team[1]);
+          partners.set(key, (partners.get(key) || 0) + 1);
+        });
+      }
+      const duplicatePartners = [...partners.entries()].filter(([, count]) => count > 1);
+      const search = searchText();
+      const gameRows = [...games.entries()]
+        .filter(([name]) => !search || name.toLowerCase().includes(search))
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"));
+      el("matrixOutput").className = "rank-list";
+      el("matrixOutput").innerHTML =
+        '<section class="rank-section"><div class="rank-section-title">경기 수 균형</div>' +
+        '<div class="rank-row"><div class="rank-no">균형</div><div class="rank-main"><span class="rank-name">' + Math.max(...games.values()) + ' / ' + Math.min(...games.values()) + '</span><span class="rank-sub">최대 / 최소 경기 수</span></div></div>' +
+        '</section>' +
+        '<section class="rank-section"><div class="rank-section-title">파트너 중복</div>' +
+        '<div class="rank-row"><div class="rank-no">' + duplicatePartners.length + '</div><div class="rank-main"><span class="rank-name">' + (duplicatePartners.length ? "일부 중복" : "좋음") + '</span><span class="rank-sub">' + (duplicatePartners.length ? duplicatePartners.map(([key, count]) => key + " (" + count + "회)").join(", ") : "중복 조합 없음") + '</span></div></div>' +
+        '</section>' +
+        '<section class="rank-section"><div class="rank-section-title">선수별 경기</div>' +
+        (gameRows.length ? gameRows.map(([name, count]) => '<div class="rank-row"><div class="rank-no">' + count + '</div><div class="rank-main"><span class="rank-name">' + name + '</span><span class="rank-sub">경기</span></div></div>').join("") : '<div class="empty">검색된 선수의 중복점검 데이터가 없습니다.</div>') +
+        '</section>';
     }
 
     function renderAll() {
       const stats = statsForPlayers();
       renderStats();
       renderSchedule();
-      renderMine(stats);
       renderPlayers(stats);
+      renderRanking(stats);
     }
 
     async function loadData() {
@@ -671,12 +1042,13 @@
     el("loginForm").addEventListener("submit", login);
     el("reloadBtn").addEventListener("click", loadData);
     el("logoutBtn").addEventListener("click", logout);
-    el("playerSelect").addEventListener("change", () => renderMine(statsForPlayers()));
+    el("playerSearch").addEventListener("input", renderAll);
 
     if (sessionStorage.getItem("badminton_mobile_ok") === "1") {
       document.body.classList.remove("locked");
       loadData();
       subscribe();
+      startAutoRefresh();
     } else {
       loadEvents();
     }
