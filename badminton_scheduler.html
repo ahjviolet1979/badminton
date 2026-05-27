@@ -1633,6 +1633,34 @@
       state.nextMatchIds = nextIds;
     }
 
+    function appendScheduleContinuing(existingSchedule, newSchedule, courtCount) {
+      const appended = [];
+      const last = existingSchedule[existingSchedule.length - 1];
+      let nextId = existingSchedule.length + 1;
+      let nextRound = last ? last.round : 1;
+      let nextCourt = last ? last.court + 1 : 1;
+      if (nextCourt > courtCount) {
+        nextCourt = 1;
+        nextRound++;
+      }
+
+      newSchedule.forEach(match => {
+        appended.push({
+          ...match,
+          id: nextId,
+          round: nextRound,
+          court: nextCourt
+        });
+        nextId++;
+        nextCourt++;
+        if (nextCourt > courtCount) {
+          nextCourt = 1;
+          nextRound++;
+        }
+      });
+      return existingSchedule.concat(appended);
+    }
+
     function refreshAfterScheduleEdit(message, save = true) {
       rebuildPlayersFromSchedule();
       normalizeSchedule();
@@ -2236,6 +2264,7 @@
     }
 
     function sharedPayload() {
+      const isPublic = state.schedulePublic !== false;
       return {
         version: 1,
         updatedAt: new Date().toISOString(),
@@ -2251,7 +2280,8 @@
         teamMode: state.teamMode,
         teamMap: state.teamMap,
         nextMatchIds: state.nextMatchIds,
-        schedulePublic: state.schedulePublic !== false
+        schedulePublic: isPublic,
+        publicSchedule: isPublic
       };
     }
 
@@ -3044,7 +3074,9 @@
     }
 
     function generate() {
-      if (state.schedule.length) {
+      const dailyMode = state.adminMode === "daily";
+      const existingSchedule = state.schedule.slice();
+      if (!dailyMode && state.schedule.length) {
         const ok = window.confirm("기존의 대진과 결과가 삭제될 수 있습니다. 계속하시겠습니까?");
         if (!ok) {
           setMessage("대진 생성을 취소했습니다.");
@@ -3062,7 +3094,6 @@
       const seedText = el("seed").value.trim() || "A01";
       const seed = seedToNumber(seedText);
       const applySubstitutes = el("allowShortfall").checked;
-      const dailyMode = state.adminMode === "daily";
       const dailyPlayers = dailyMode ? dailyEligiblePlayers() : [];
 
       if (dailyMode && dailyPlayers.length < 4) {
@@ -3099,9 +3130,13 @@
           schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed).schedule;
         }
         state.players = players;
-        state.schedule = schedule;
-        state.results = {};
-        state.nextMatchIds = [];
+        if (dailyMode) {
+          state.schedule = appendScheduleContinuing(existingSchedule, schedule, courtCount);
+        } else {
+          state.schedule = schedule;
+          state.results = {};
+          state.nextMatchIds = [];
+        }
         state.seed = seedText;
         if (!dailyMode) {
           el("players").value = visibleRosterNames(players).join("\n");
@@ -3114,7 +3149,9 @@
         const madeSlots = schedule.length * 4;
         const short = totalSlots - madeSlots;
         const substituteText = substituteCount ? " 대타 " + substituteCount + "명을 자동 추가했습니다." : "";
-        const modeText = dailyMode ? " 운영모드 출석자 기준으로" : (blueWhiteMode ? " 청백전 방식으로" : "");
+        const modeText = dailyMode && existingSchedule.length
+          ? " 운영모드 출석자 기준으로 추가"
+          : (dailyMode ? " 운영모드 출석자 기준으로" : (blueWhiteMode ? " 청백전 방식으로" : ""));
         setMessage(short > 0
           ? schedule.length + "경기를" + modeText + " 생성했습니다." + substituteText + " 총 " + short + "회 출전 슬롯은 인원/조건 때문에 비워졌습니다."
           : schedule.length + "경기를" + modeText + " 생성했습니다." + substituteText + " 파트너 중복이 생기면 랜덤 시드를 바꿔 다시 생성해보세요."
@@ -3544,13 +3581,13 @@
     el("printBtn").addEventListener("click", () => window.print());
     el("newTournamentBtn").addEventListener("click", startNewTournament);
     el("saveCloudBtn").addEventListener("click", () => saveCloudData(false));
-    el("togglePublicBtn").addEventListener("click", () => {
+    el("togglePublicBtn").addEventListener("click", async () => {
       state.schedulePublic = state.schedulePublic === false;
       renderSchedulePublicButton();
-      saveCloudData(false);
       setMessage(state.schedulePublic === false
         ? "대진을 비공개로 전환했습니다. 사용자 화면에는 공개 전까지 데이터가 보이지 않습니다."
         : "대진을 공개했습니다. 사용자 화면에서 대진/선수이력/순위를 볼 수 있습니다.");
+      await saveCloudData(false);
     });
     el("deleteCloudBtn").addEventListener("click", deleteCloudData);
     el("endTournamentBtn").addEventListener("click", endTournament);
