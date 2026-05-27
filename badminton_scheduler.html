@@ -151,6 +151,44 @@
       line-height: 1.25;
     }
 
+    .settings-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .settings-head h2 {
+      margin: 0;
+      flex: 0 0 auto;
+    }
+
+    .mode-tabs {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfa;
+    }
+
+    .mode-tab {
+      border: 0;
+      border-radius: 6px;
+      padding: 6px 9px;
+      background: transparent;
+      color: var(--muted);
+      font-weight: 900;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .mode-tab.active {
+      background: var(--accent);
+      color: #fff;
+    }
+
     label {
       display: block;
       margin: 12px 0 7px;
@@ -388,6 +426,61 @@
 
     .player-list-collapsed #players {
       display: none;
+    }
+
+    .player-list-collapsed .player-status-list {
+      display: none;
+    }
+
+    .player-status-list {
+      margin: 8px 0 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fbfcfa;
+    }
+
+    .player-status-head,
+    .player-status-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 54px 54px;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 9px;
+      font-size: 12px;
+    }
+
+    .player-status-head {
+      background: #eef5ef;
+      color: var(--accent-dark);
+      font-weight: 900;
+    }
+
+    .player-status-row {
+      border-top: 1px solid var(--line);
+    }
+
+    .player-status-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 800;
+    }
+
+    .player-status-row label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    .player-status-row input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
     }
 
     .player-count-summary {
@@ -1048,11 +1141,18 @@
 
     <div class="grid">
       <aside class="panel no-print">
-        <h2>대회 설정</h2>
+        <div class="settings-head">
+          <h2>대회 설정</h2>
+          <div class="mode-tabs" role="tablist" aria-label="관리 모드 선택">
+            <button class="mode-tab" data-admin-mode="daily" type="button">운영모드</button>
+            <button class="mode-tab active" data-admin-mode="tournament" type="button">대회모드</button>
+          </div>
+        </div>
         <label for="players">출전 선수 명단</label>
         <button class="button" id="togglePlayersBtn" type="button" style="width: 100%; justify-content: center; margin-bottom: 8px;">명단 숨기기</button>
         <textarea id="players" spellcheck="false" placeholder="한 줄에 한 명씩 입력하세요.&#10;예)&#10;김민수&#10;이지훈&#10;박서연"></textarea>
         <div class="player-count-summary" id="playerCountSummary">선수 0명 / 대타 0명 / 총 0명</div>
+        <div class="player-status-list" id="playerStatusList"></div>
 
         <div class="compact-checks">
           <label class="checkrow">
@@ -1230,6 +1330,8 @@
       schedule: [],
       results: {},
       seed: 1,
+      adminMode: "tournament",
+      playerStatus: {},
       teamMode: false,
       teamMap: {},
       nextMatchIds: []
@@ -1336,6 +1438,52 @@
     function updatePlayerCountSummary() {
       const counts = countRawRosterNames();
       el("playerCountSummary").textContent = `선수 ${counts.players}명 / 대타 ${counts.substitutes}명 / 총 ${counts.total}명`;
+    }
+
+    function syncPlayerStatuses(names = parsePlayers()) {
+      const nextStatus = {};
+      names.forEach(name => {
+        const previous = state.playerStatus?.[name];
+        nextStatus[name] = previous
+          ? { present: previous.present !== false, excluded: previous.excluded === true }
+          : { present: true, excluded: false };
+      });
+      state.playerStatus = nextStatus;
+      return nextStatus;
+    }
+
+    function renderModeTabs() {
+      document.querySelectorAll(".mode-tab").forEach(tab => {
+        tab.classList.toggle("active", tab.dataset.adminMode === state.adminMode);
+      });
+    }
+
+    function renderPlayerStatusList() {
+      const names = parsePlayers();
+      const statusMap = syncPlayerStatuses(names);
+      const list = el("playerStatusList");
+      if (!names.length) {
+        list.innerHTML = "";
+        return;
+      }
+      list.innerHTML = `
+        <div class="player-status-head"><span>선수</span><span>출석</span><span>제외</span></div>
+        ${names.map(name => {
+          const status = statusMap[name] || { present: true, excluded: false };
+          const key = escapeHtml(name);
+          return `
+            <div class="player-status-row">
+              <span class="player-status-name" title="${key}">${key}</span>
+              <label><input type="checkbox" class="player-present-check" data-player="${key}" ${status.present ? "checked" : ""}></label>
+              <label><input type="checkbox" class="player-exclude-check" data-player="${key}" ${status.excluded ? "checked" : ""}></label>
+            </div>`;
+        }).join("")}`;
+    }
+
+    function renderAdminRosterControls() {
+      updatePlayerCountSummary();
+      renderPlayerStatusList();
+      renderModeTabs();
     }
 
     function visibleRosterNames(names = state.players) {
@@ -1978,6 +2126,8 @@
         schedule: state.schedule,
         results: state.results,
         seed: state.seed,
+        adminMode: state.adminMode,
+        playerStatus: state.playerStatus,
         teamMode: state.teamMode,
         teamMap: state.teamMap,
         nextMatchIds: state.nextMatchIds
@@ -1990,12 +2140,15 @@
       state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
       state.results = data.results || {};
       state.seed = data.seed || state.seed;
+      state.adminMode = data.adminMode || state.adminMode || "tournament";
+      state.playerStatus = data.playerStatus || {};
       state.teamMode = data.teamMode === "blueWhite";
       state.teamMap = data.teamMap || {};
       state.nextMatchIds = Array.isArray(data.nextMatchIds) ? data.nextMatchIds.map(Number).filter(Boolean) : [];
       el("players").value = visibleRosterNames(state.players).join("\n");
       el("blueWhiteMode").checked = state.teamMode;
       renderTeamAssignments();
+      renderAdminRosterControls();
       el("viewerAccessPassword").value = data.viewerPassword || "";
       localStorage.setItem("badminton_viewer_password", data.viewerPassword || "");
       renderAll(true);
@@ -2119,6 +2272,7 @@
         state.schedule = [];
         state.results = {};
         state.nextMatchIds = [];
+        state.playerStatus = {};
         el("players").value = "";
         el("supabaseEventId").value = "";
         el("viewerAccessPassword").value = "";
@@ -2166,6 +2320,7 @@
       state.schedule = [];
       state.results = {};
       state.nextMatchIds = [];
+      state.playerStatus = {};
       el("players").value = "";
       el("supabaseEventId").value = nextEventId;
       el("viewerAccessPassword").value = viewerPassword.trim();
@@ -2744,7 +2899,7 @@
 
     function renderAll(includeSchedule = true) {
       if (state.schedule.length) rebuildPlayersFromSchedule();
-      updatePlayerCountSummary();
+      renderAdminRosterControls();
       renderStats();
       if (includeSchedule) renderSchedule();
       renderRanking();
@@ -3148,9 +3303,39 @@
       el("players").value = sampleNames.join("\n");
       el("seed").value = Math.floor(Math.random() * 900000) + 100000;
       renderTeamAssignments();
+      renderAdminRosterControls();
     });
-    el("players").addEventListener("input", renderTeamAssignments);
+    el("players").addEventListener("input", () => {
+      renderTeamAssignments();
+      renderAdminRosterControls();
+    });
     el("playerSearch").addEventListener("input", () => renderAll(true));
+    document.querySelectorAll(".mode-tab").forEach(button => {
+      button.addEventListener("click", event => {
+        state.adminMode = event.currentTarget.dataset.adminMode || "tournament";
+        renderModeTabs();
+        setMessage(state.adminMode === "daily"
+          ? "운영모드로 전환했습니다. 출석/제외 상태를 기준으로 운영 기능을 확장할 예정입니다."
+          : "대회모드로 전환했습니다. 현재 대회 설정 방식으로 대진을 생성합니다.");
+        if (el("autoCloudSave").checked && state.schedule.length) saveCloudData(true);
+      });
+    });
+    el("playerStatusList").addEventListener("change", event => {
+      const player = event.target.dataset.player;
+      if (!player) return;
+      const status = state.playerStatus[player] || { present: true, excluded: false };
+      if (event.target.classList.contains("player-present-check")) {
+        status.present = event.target.checked;
+        if (status.present) status.excluded = false;
+      }
+      if (event.target.classList.contains("player-exclude-check")) {
+        status.excluded = event.target.checked;
+        if (status.excluded) status.present = false;
+      }
+      state.playerStatus[player] = status;
+      renderPlayerStatusList();
+      if (el("autoCloudSave").checked && state.schedule.length) saveCloudData(true);
+    });
     document.querySelectorAll(".stepper-button").forEach(button => {
       button.addEventListener("click", event => {
         const target = el(event.currentTarget.dataset.stepTarget);
@@ -3165,6 +3350,7 @@
     el("blueWhiteMode").addEventListener("change", () => {
       state.teamMode = el("blueWhiteMode").checked;
       renderTeamAssignments();
+      renderAdminRosterControls();
     });
     el("applyRenameBtn").addEventListener("click", applyExplicitPlayerRename);
     el("togglePlayersBtn").addEventListener("click", () => {
