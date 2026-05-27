@@ -303,11 +303,18 @@
     }
 
     .compact-checks {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
       margin-top: 8px;
     }
 
     .compact-checks .checkrow {
       margin-top: 6px;
+    }
+
+    .compact-checks .wide-check {
+      grid-column: 1 / -1;
     }
 
     .button {
@@ -1225,9 +1232,20 @@
           </label>
 
           <label class="checkrow">
+            <input id="blueWhiteMode" type="checkbox">
+            청백전 모드
+          </label>
+
+          <label class="checkrow wide-check">
             <input id="allowShortfall" type="checkbox" checked>
             참가인원수 4배수로 맞춰서 대타적용
           </label>
+        </div>
+
+        <div class="team-assign" id="teamAssignPanel">
+          <div class="team-assign-head"><span>선수</span><span>청팀</span><span>백팀</span></div>
+          <div class="team-assign-summary" id="teamAssignSummary">청팀 0명 / 백팀 0명</div>
+          <div id="teamAssignList"></div>
         </div>
 
         <div class="actions">
@@ -1243,16 +1261,6 @@
           <button class="button" id="clearResultsBtn" type="button">
             결과<br>초기화
           </button>
-        </div>
-
-        <label class="checkrow">
-          <input id="blueWhiteMode" type="checkbox">
-          청백전 모드
-        </label>
-        <div class="team-assign" id="teamAssignPanel">
-          <div class="team-assign-head"><span>선수</span><span>청팀</span><span>백팀</span></div>
-          <div class="team-assign-summary" id="teamAssignSummary">청팀 0명 / 백팀 0명</div>
-          <div id="teamAssignList"></div>
         </div>
         <div class="rename-row">
           <input id="renameFrom" list="playerNameOptions" type="text" placeholder="기존이름">
@@ -1531,7 +1539,7 @@
           seen.add(key);
           return true;
         });
-      el("players").value = names.join("\n");
+      el("players").value = names.join(" ");
     }
 
     function syncPlayerStatuses(names = parsePlayers()) {
@@ -2358,7 +2366,7 @@
       state.teamMap = data.teamMap || {};
       state.nextMatchIds = Array.isArray(data.nextMatchIds) ? data.nextMatchIds.map(Number).filter(Boolean) : [];
       state.schedulePublic = data.schedulePublic !== false;
-      el("players").value = visibleRosterNames(state.players).join("\n");
+      el("players").value = visibleRosterNames(state.players).join(" ");
       el("seed").value = state.seed || "A01";
       el("blueWhiteMode").checked = state.teamMode;
       renderTeamAssignments();
@@ -2584,7 +2592,7 @@
       });
       state.players = names;
       if (state.adminMode !== "daily") {
-        el("players").value = visibleRosterNames(names).join("\n");
+        el("players").value = visibleRosterNames(names).join(" ");
       }
       renderPlayerNameOptions();
     }
@@ -2772,7 +2780,7 @@
       state.results = {};
       state.nextMatchIds = [];
       state.players = parsePlayers();
-      el("players").value = visibleRosterNames(state.players).join("\n");
+      el("players").value = visibleRosterNames(state.players).join(" ");
       clearManualMatchInputs();
       renderAll(true);
       setMessage("대진표와 결과를 모두 삭제했습니다.");
@@ -3221,7 +3229,7 @@
         }
         state.seed = seedText;
         if (!dailyMode) {
-          el("players").value = visibleRosterNames(players).join("\n");
+          el("players").value = visibleRosterNames(players).join(" ");
         }
         renderTeamAssignments();
         renderAll(true);
