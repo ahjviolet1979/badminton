@@ -1412,6 +1412,7 @@
       results: {},
       seed: "A01",
       adminMode: "tournament",
+      modeRosters: { daily: "", tournament: "" },
       playerStatus: {},
       teamMode: false,
       teamMap: {},
@@ -1546,6 +1547,18 @@
           return true;
         });
       el("players").value = names.join(" ");
+    }
+
+    function rosterModeKey(mode = state.adminMode) {
+      return mode === "daily" ? "daily" : "tournament";
+    }
+
+    function saveCurrentModeRoster() {
+      state.modeRosters[rosterModeKey()] = el("players").value;
+    }
+
+    function restoreCurrentModeRoster() {
+      el("players").value = state.modeRosters[rosterModeKey()] || "";
     }
 
     function syncPlayerStatuses(names = parsePlayers()) {
@@ -2351,6 +2364,10 @@
         results: state.results,
         seed: state.seed,
         adminMode: state.adminMode,
+        modeRosters: {
+          ...state.modeRosters,
+          [rosterModeKey()]: el("players").value
+        },
         playerStatus: state.playerStatus,
         teamMode: state.teamMode,
         teamMap: state.teamMap,
@@ -2367,12 +2384,16 @@
       state.results = data.results || {};
       state.seed = data.seed || state.seed;
       state.adminMode = data.adminMode || state.adminMode || "tournament";
+      state.modeRosters = data.modeRosters || {
+        daily: data.adminMode === "daily" ? visibleRosterNames(state.players).join(" ") : "",
+        tournament: data.adminMode !== "daily" ? visibleRosterNames(state.players).join(" ") : ""
+      };
       state.playerStatus = data.playerStatus || {};
       state.teamMode = data.teamMode === "blueWhite";
       state.teamMap = data.teamMap || {};
       state.nextMatchIds = Array.isArray(data.nextMatchIds) ? data.nextMatchIds.map(Number).filter(Boolean) : [];
       state.schedulePublic = data.schedulePublic !== false;
-      el("players").value = visibleRosterNames(state.players).join(" ");
+      restoreCurrentModeRoster();
       el("seed").value = state.seed || "A01";
       el("blueWhiteMode").checked = state.teamMode;
       renderTeamAssignments();
@@ -2494,7 +2515,7 @@
           .eq("id", eventId)
           .select("id");
         if (error) throw error;
-        if (!data || !data.length) {
+      if (!data || !data.length) {
           throw new Error("삭제된 데이터가 없습니다. Supabase delete 정책을 확인하세요.");
         }
         state.players = [];
@@ -2502,6 +2523,7 @@
         state.results = {};
         state.nextMatchIds = [];
         state.playerStatus = {};
+        state.modeRosters = { daily: "", tournament: "" };
         state.schedulePublic = true;
         el("players").value = "";
         el("supabaseEventId").value = "";
@@ -2551,6 +2573,7 @@
       state.results = {};
       state.nextMatchIds = [];
       state.playerStatus = {};
+      state.modeRosters = { daily: "", tournament: "" };
       state.schedulePublic = false;
       el("players").value = "";
       el("supabaseEventId").value = nextEventId;
@@ -2597,9 +2620,6 @@
         [...match.teamA, ...match.teamB].forEach(add);
       });
       state.players = names;
-      if (state.adminMode !== "daily") {
-        el("players").value = visibleRosterNames(names).join(" ");
-      }
       renderPlayerNameOptions();
     }
 
@@ -2787,6 +2807,7 @@
       state.nextMatchIds = [];
       state.players = parsePlayers();
       el("players").value = visibleRosterNames(state.players).join(" ");
+      saveCurrentModeRoster();
       clearManualMatchInputs();
       renderAll(true);
       setMessage("대진표와 결과를 모두 삭제했습니다.");
@@ -3237,6 +3258,7 @@
         if (!dailyMode) {
           el("players").value = visibleRosterNames(players).join(" ");
         }
+        saveCurrentModeRoster();
         renderTeamAssignments();
         renderAll(true);
         if (el("autoCloudSave").checked) saveCloudData(true);
@@ -3583,25 +3605,30 @@
     });
 
     el("players").addEventListener("input", () => {
+      saveCurrentModeRoster();
       renderTeamAssignments();
       renderAdminRosterControls();
     });
     el("players").addEventListener("paste", () => {
       window.setTimeout(() => {
         normalizeRosterInput();
+        saveCurrentModeRoster();
         renderTeamAssignments();
         renderAdminRosterControls();
       }, 0);
     });
     el("players").addEventListener("blur", () => {
       normalizeRosterInput();
+      saveCurrentModeRoster();
       renderTeamAssignments();
       renderAdminRosterControls();
     });
     el("playerSearch").addEventListener("input", () => renderAll(true));
     document.querySelectorAll(".mode-tab").forEach(button => {
       button.addEventListener("click", event => {
+        saveCurrentModeRoster();
         state.adminMode = event.currentTarget.dataset.adminMode || "tournament";
+        restoreCurrentModeRoster();
         renderAll(true);
         setMessage(state.adminMode === "daily"
           ? "운영모드로 전환했습니다. 출석/제외 상태를 기준으로 운영 기능을 확장할 예정입니다."
@@ -3666,6 +3693,7 @@
       el("players").value = "";
       state.playerStatus = {};
       state.players = [];
+      state.modeRosters[rosterModeKey()] = "";
       if (state.schedule.length) {
         state.schedule = [];
         state.results = {};
