@@ -1222,6 +1222,9 @@
           <button class="button" id="deleteScheduleBtn" type="button">
             대진<br>삭제
           </button>
+          <button class="button" id="deletePendingScheduleBtn" type="button">
+            미완료만<br>삭제
+          </button>
           <button class="button" id="clearResultsBtn" type="button">
             결과<br>초기화
           </button>
@@ -2761,6 +2764,26 @@
       if (el("autoCloudSave").checked) saveCloudData(true);
     }
 
+    function deletePendingSchedule() {
+      if (!state.schedule.length) {
+        setMessage("삭제할 대진표가 없습니다.", true);
+        return;
+      }
+      const pendingMatches = state.schedule.filter(match => !state.results[match.id]);
+      if (!pendingMatches.length) {
+        setMessage("미완료 대진이 없습니다. 승/패/완료/게임중 대진은 유지됩니다.", true);
+        return;
+      }
+      if (!window.confirm(`승/패/완료/게임중이 없는 미완료 대진 ${pendingMatches.length}개를 삭제합니다. 계속하시겠습니까?`)) return;
+      state.schedule = state.schedule.filter(match => state.results[match.id]);
+      normalizeSchedule();
+      rebuildPlayersFromSchedule();
+      clearManualMatchInputs();
+      renderAll(true);
+      setMessage(`미완료 대진 ${pendingMatches.length}개를 삭제했습니다. 승/패/완료/게임중 대진은 유지했습니다.`);
+      if (el("autoCloudSave").checked) saveCloudData(true);
+    }
+
     function deleteMatch(matchId) {
       if (!window.confirm(`${matchId}경기를 삭제하시겠습니까?`)) return;
       state.schedule = state.schedule.filter(match => Number(match.id) !== matchId);
@@ -3615,6 +3638,7 @@
     });
     el("generateBtn").addEventListener("click", generate);
     el("deleteScheduleBtn").addEventListener("click", deleteAllSchedule);
+    el("deletePendingScheduleBtn").addEventListener("click", deletePendingSchedule);
     el("manualAddBtn").addEventListener("click", addManualMatch);
     el("clearResultsBtn").addEventListener("click", () => {
       state.results = {};
