@@ -466,6 +466,31 @@
 
     .record-line:last-child { margin-bottom: 0; }
 
+    .record-total {
+      background: #eef2f7;
+      color: #334155;
+    }
+
+    .record-win {
+      background: #e8f5ef;
+      color: #047857;
+    }
+
+    .record-loss {
+      background: #fff1f2;
+      color: #be123c;
+    }
+
+    .record-done {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+
+    .record-pending {
+      background: #fff7ed;
+      color: #b45309;
+    }
+
     .history-table {
       width: 100%;
       min-width: 760px;
@@ -891,13 +916,13 @@
               <tr>
                 <td class="history-name">${history.name}</td>
                 <td class="history-record">
-                  <div class="record-line"><span class="badge">총 ${history.games}경기</span></div>
+                  <div class="record-line"><span class="badge record-total">총 ${history.games}경기</span></div>
                   <div class="record-line">
-                    <span class="badge">승 ${history.wins}</span>
-                    <span class="badge warn">패 ${history.losses}</span>
-                    <span class="badge">완료 ${history.done || 0}</span>
+                    <span class="badge record-win">승 ${history.wins}</span>
+                    <span class="badge record-loss">패 ${history.losses}</span>
+                    <span class="badge record-done">완료 ${history.done || 0}</span>
                   </div>
-                  <div class="record-line"><span class="badge warn">미입력 ${history.pending || 0}</span></div>
+                  <div class="record-line"><span class="badge record-pending">미입력 ${history.pending || 0}</span></div>
                 </td>
                 <td class="history-text">${summarizeNameCounts(history.partners)}</td>
                 <td class="history-text">${summarizeRestGaps(history.matches)}</td>
@@ -934,13 +959,13 @@
               <tr>
                 <td class="history-name">${history.name}</td>
                 <td class="history-record">
-                  <div class="record-line"><span class="badge">총 ${history.games}경기</span></div>
+                  <div class="record-line"><span class="badge record-total">총 ${history.games}경기</span></div>
                   <div class="record-line">
-                    <span class="badge">승 ${history.wins}</span>
-                    <span class="badge warn">패 ${history.losses}</span>
-                    <span class="badge">완료 ${history.done || 0}</span>
+                    <span class="badge record-win">승 ${history.wins}</span>
+                    <span class="badge record-loss">패 ${history.losses}</span>
+                    <span class="badge record-done">완료 ${history.done || 0}</span>
                   </div>
-                  <div class="record-line"><span class="badge warn">미입력 ${history.pending || 0}</span></div>
+                  <div class="record-line"><span class="badge record-pending">미입력 ${history.pending || 0}</span></div>
                 </td>
                 <td class="history-text history-partners">${summarizePartnersByMatch(history.matches)}</td>
                 <td class="history-text history-summary-text">
