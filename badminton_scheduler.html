@@ -1566,11 +1566,25 @@
       names.forEach(name => {
         const previous = state.playerStatus?.[name];
         nextStatus[name] = previous
-          ? { present: previous.present !== false, excluded: previous.excluded === true }
-          : { present: true, excluded: false };
+          ? {
+              present: previous.present === true,
+              excluded: previous.excluded !== false,
+              attendedAt: previous.attendedAt || ""
+            }
+          : { present: false, excluded: true, attendedAt: "" };
       });
       state.playerStatus = nextStatus;
       return nextStatus;
+    }
+
+    function attendanceRankMap(players) {
+      const statuses = state.playerStatus || {};
+      const sorted = players.slice().sort((a, b) => {
+        const aTime = statuses[a]?.attendedAt || "";
+        const bTime = statuses[b]?.attendedAt || "";
+        return aTime.localeCompare(bTime) || a.localeCompare(b, "ko-KR");
+      });
+      return new Map(sorted.map((name, index) => [name, index + 1]));
     }
 
     function renderModeTabs() {
@@ -1608,11 +1622,12 @@
       list.innerHTML = `
         <div class="player-status-head"><span>선수</span><span>출석</span><span>제외</span></div>
         ${names.map(name => {
-          const status = statusMap[name] || { present: true, excluded: false };
+          const status = statusMap[name] || { present: false, excluded: true, attendedAt: "" };
+          const order = status.attendedAt ? attendanceRankMap(names).get(name) : "";
           const key = escapeHtml(name);
           return `
             <div class="player-status-row">
-              <span class="player-status-name" title="${key}">${key}</span>
+              <span class="player-status-name" title="${key}">${key}${order ? ` #${order}` : ""}</span>
               <label><input type="checkbox" class="player-present-check" data-player="${key}" ${status.present ? "checked" : ""}></label>
               <label><input type="checkbox" class="player-exclude-check" data-player="${key}" ${status.excluded ? "checked" : ""}></label>
             </div>`;
@@ -1624,7 +1639,7 @@
       const statusMap = syncPlayerStatuses(names);
       const inProgress = inProgressPlayerSet();
       return names.filter(name => !isAutoSubstituteName(name)).filter(name => {
-        const status = statusMap[name] || { present: true, excluded: false };
+        const status = statusMap[name] || { present: false, excluded: true, attendedAt: "" };
         return status.present && !status.excluded && !inProgress.has(name);
       });
     }
@@ -1891,7 +1906,7 @@
       return best;
     }
 
-    function evaluateGroup(group, ctx, target, roundUsed, rand, nextMatchId, idealRest) {
+    function evaluateGroup(group, ctx, target, roundUsed, rand, nextMatchId, idealRest, attendanceOrder = null) {
       const games = group.map(p => ctx.games.get(p) || 0);
       const minGame = Math.min(...games);
       const maxGame = Math.max(...games);
@@ -1918,6 +1933,9 @@
           score += (ctx.opponents.get(keyOf(group[i], group[j])) || 0) * 12;
           score += (ctx.together.get(keyOf(group[i], group[j])) || 0) * 120;
         }
+      }
+      if (attendanceOrder) {
+        score += group.reduce((sum, player) => sum + (attendanceOrder.get(player) || 9999), 0) * 8;
       }
       return score + rand() * 0.1;
     }
@@ -2002,7 +2020,7 @@
       return ctx;
     }
 
-    function generateSchedule(players, targetGames, courtCount, tries, allowShortfall, seed, initialCtx = null, existingMatchCount = 0, allowOverTarget = false) {
+    function generateSchedule(players, targetGames, courtCount, tries, allowShortfall, seed, initialCtx = null, existingMatchCount = 0, allowOverTarget = false, attendanceOrder = null) {
       const neededTotal = players.length * targetGames;
       const currentDeficit = initialCtx
         ? players.reduce((sum, player) => sum + Math.max(0, targetGames - (initialCtx.games.get(player) || 0)), 0)
@@ -2023,6 +2041,7 @@
         const roundUsed = new Set();
         let madeThisRound = 0;
         for (court = 1; court <= courtCount && schedule.length < maxMatches; court++) {
+          if (allowOverTarget && players.every(p => (ctx.games.get(p) || 0) >= targetGames)) break;
           const eligible = players.filter(p => !roundUsed.has(p) && (allowOverTarget || (ctx.games.get(p) || 0) < targetGames));
           if (eligible.length < 4) break;
 
@@ -2031,20 +2050,39 @@
             const games = group.map(p => ctx.games.get(p) || 0);
             return {
               max: Math.max(...games),
-              total: games.reduce((sum, value) => sum + value, 0)
+              total: games.reduce((sum, value) => sum + value, 0),
+              deficit: group.filter(p => (ctx.games.get(p) || 0) < targetGames).length,
+              over: group.filter(p => (ctx.games.get(p) || 0) >= targetGames).length,
+              restTotal: group.reduce((sum, p) => sum + ((ctx.lastPlayed.get(p) || 0) ? existingMatchCount + schedule.length + 1 - (ctx.lastPlayed.get(p) || 0) - 1 : 999), 0),
+              attendance: attendanceOrder ? group.reduce((sum, p) => sum + (attendanceOrder.get(p) || 9999), 0) : 0
             };
           };
-          const minMaxGames = Math.min(...groups.map(group => groupStats(group).max));
-          groups = groups.filter(group => groupStats(group).max === minMaxGames);
-          const minTotalGames = Math.min(...groups.map(group => groupStats(group).total));
-          groups = groups.filter(group => groupStats(group).total === minTotalGames);
+          if (allowOverTarget) {
+            const maxDeficit = Math.max(...groups.map(group => groupStats(group).deficit));
+            groups = groups.filter(group => groupStats(group).deficit === maxDeficit);
+            const minOver = Math.min(...groups.map(group => groupStats(group).over));
+            groups = groups.filter(group => groupStats(group).over === minOver);
+            const minTotalGames = Math.min(...groups.map(group => groupStats(group).total));
+            groups = groups.filter(group => groupStats(group).total === minTotalGames);
+            if (attendanceOrder) {
+              const minAttendance = Math.min(...groups.map(group => groupStats(group).attendance));
+              groups = groups.filter(group => groupStats(group).attendance === minAttendance);
+            }
+            const maxRestTotal = Math.max(...groups.map(group => groupStats(group).restTotal));
+            groups = groups.filter(group => groupStats(group).restTotal === maxRestTotal);
+          } else {
+            const minMaxGames = Math.min(...groups.map(group => groupStats(group).max));
+            groups = groups.filter(group => groupStats(group).max === minMaxGames);
+            const minTotalGames = Math.min(...groups.map(group => groupStats(group).total));
+            groups = groups.filter(group => groupStats(group).total === minTotalGames);
+          }
           if (groups.length > 60000) groups = shuffle(groups, rand).slice(0, Math.max(tries, 60000));
 
           let bestGroup = null;
           let bestScore = Infinity;
           for (const group of shuffle(groups, rand)) {
             const nextMatchId = existingMatchCount + schedule.length + 1;
-            const score = evaluateGroup(group, ctx, targetGames, roundUsed, rand, nextMatchId, idealRest);
+            const score = evaluateGroup(group, ctx, targetGames, roundUsed, rand, nextMatchId, idealRest, attendanceOrder);
             if (score < bestScore) {
               bestScore = score;
               bestGroup = group;
@@ -2084,6 +2122,7 @@
               ctx.opponents.set(key, (ctx.opponents.get(key) || 0) + 1);
             }
           }
+          if (allowOverTarget && players.every(p => (ctx.games.get(p) || 0) >= targetGames)) break;
         }
         if (madeThisRound === 0) idleGuard++;
         round++;
@@ -3234,7 +3273,8 @@
           players = dailyPlayers;
           state.teamMap = {};
           const initialCtx = contextFromExistingSchedule(players, existingSchedule);
-          schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length, true).schedule;
+          const attendanceOrder = attendanceRankMap(players);
+          schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length, true, attendanceOrder).schedule;
         } else if (blueWhiteMode) {
           const prepared = prepareBlueWhitePlayers(enteredPlayers);
           players = prepared.players;
@@ -3639,18 +3679,27 @@
     el("playerStatusList").addEventListener("change", event => {
       const player = event.target.dataset.player;
       if (!player) return;
-      const status = state.playerStatus[player] || { present: true, excluded: false };
+      const status = state.playerStatus[player] || { present: false, excluded: true, attendedAt: "" };
       if (event.target.classList.contains("player-present-check")) {
         status.present = event.target.checked;
-        if (status.present) status.excluded = false;
+        if (status.present) {
+          status.excluded = false;
+          if (!status.attendedAt) status.attendedAt = new Date().toISOString();
+        } else {
+          status.excluded = true;
+          status.attendedAt = "";
+        }
       }
       if (event.target.classList.contains("player-exclude-check")) {
         status.excluded = event.target.checked;
-        if (status.excluded) status.present = false;
+        if (status.excluded) {
+          status.present = false;
+          status.attendedAt = "";
+        }
       }
       state.playerStatus[player] = status;
       renderPlayerStatusList();
-      if (el("autoCloudSave").checked && state.schedule.length) saveCloudData(true);
+      if (el("autoCloudSave").checked) saveCloudData(true);
     });
     document.querySelectorAll(".stepper-button").forEach(button => {
       button.addEventListener("click", event => {
