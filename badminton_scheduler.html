@@ -208,6 +208,10 @@
       line-height: 1.45;
     }
 
+    .daily-mode #players {
+      min-height: 150px;
+    }
+
     input, select {
       width: 100%;
       border: 1px solid var(--line);
@@ -219,13 +223,15 @@
 
     .number-stepper {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 22px;
-      gap: 3px;
+      grid-template-columns: minmax(0, 1fr) 18px;
+      gap: 2px;
     }
 
     .number-stepper input {
       text-align: center;
       font-weight: 900;
+      padding-left: 4px;
+      padding-right: 4px;
     }
 
     .stepper-buttons {
@@ -239,7 +245,7 @@
       border-radius: 7px;
       background: #eef5ef;
       color: var(--accent-dark);
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 900;
       cursor: pointer;
       line-height: 1;
@@ -438,6 +444,10 @@
       border-radius: 8px;
       overflow: hidden;
       background: #fbfcfa;
+    }
+
+    .tournament-mode .player-status-list {
+      display: none;
     }
 
     .player-status-head,
@@ -1140,7 +1150,7 @@
     </header>
 
     <div class="grid">
-      <aside class="panel no-print">
+      <aside class="panel no-print tournament-mode" id="settingsPanel">
         <div class="settings-head">
           <h2>대회 설정</h2>
           <div class="mode-tabs" role="tablist" aria-label="관리 모드 선택">
@@ -1217,7 +1227,7 @@
           </div>
           <div>
             <label for="seed">랜덤 시드</label>
-            <input id="seed" type="number" min="1" max="999999" value="20260522">
+            <input id="seed" type="text" value="A01" maxlength="12">
           </div>
           <div>
             <label for="tries">탐색 강도</label>
@@ -1329,7 +1339,7 @@
       players: [],
       schedule: [],
       results: {},
-      seed: 1,
+      seed: "A01",
       adminMode: "tournament",
       playerStatus: {},
       teamMode: false,
@@ -1397,6 +1407,17 @@
       };
     }
 
+    function seedToNumber(seed) {
+      const text = String(seed || "A01").trim();
+      if (/^\d+$/.test(text)) return Number(text) || 1;
+      let hash = 2166136261;
+      for (let i = 0; i < text.length; i++) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+      }
+      return hash >>> 0 || 1;
+    }
+
     function isAutoSubstituteName(name) {
       return /^대타\d+$/.test(name) || /^청팀대타\d+$/.test(name) || /^백팀대타\d+$/.test(name);
     }
@@ -1456,9 +1477,18 @@
       document.querySelectorAll(".mode-tab").forEach(tab => {
         tab.classList.toggle("active", tab.dataset.adminMode === state.adminMode);
       });
+      const panel = el("settingsPanel");
+      if (panel) {
+        panel.classList.toggle("daily-mode", state.adminMode === "daily");
+        panel.classList.toggle("tournament-mode", state.adminMode !== "daily");
+      }
     }
 
     function renderPlayerStatusList() {
+      if (state.adminMode !== "daily") {
+        el("playerStatusList").innerHTML = "";
+        return;
+      }
       const names = parsePlayers();
       const statusMap = syncPlayerStatuses(names);
       const list = el("playerStatusList");
@@ -2146,6 +2176,7 @@
       state.teamMap = data.teamMap || {};
       state.nextMatchIds = Array.isArray(data.nextMatchIds) ? data.nextMatchIds.map(Number).filter(Boolean) : [];
       el("players").value = visibleRosterNames(state.players).join("\n");
+      el("seed").value = state.seed || "A01";
       el("blueWhiteMode").checked = state.teamMode;
       renderTeamAssignments();
       renderAdminRosterControls();
@@ -2923,7 +2954,8 @@
       const targetGames = Number(el("targetGames").value);
       const courtCount = Number(el("courtCount").value);
       const tries = Number(el("tries").value);
-      const seed = Number(el("seed").value) || 1;
+      const seedText = el("seed").value.trim() || "A01";
+      const seed = seedToNumber(seedText);
       const allowShortfall = el("allowShortfall").checked;
 
       if (enteredPlayers.length < 1) {
@@ -2954,7 +2986,7 @@
         state.schedule = schedule;
         state.results = {};
         state.nextMatchIds = [];
-        state.seed = seed;
+        state.seed = seedText;
         el("players").value = visibleRosterNames(players).join("\n");
         renderTeamAssignments();
         renderAll(true);
@@ -3301,7 +3333,7 @@
 
     el("sampleBtn").addEventListener("click", () => {
       el("players").value = sampleNames.join("\n");
-      el("seed").value = Math.floor(Math.random() * 900000) + 100000;
+      el("seed").value = "A" + String(Math.floor(Math.random() * 99) + 1).padStart(2, "0");
       renderTeamAssignments();
       renderAdminRosterControls();
     });
