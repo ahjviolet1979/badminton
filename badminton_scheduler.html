@@ -1909,13 +1909,8 @@
       return score + rand() * 0.1;
     }
 
-    function generateSchedule(players, targetGames, courtCount, tries, allowShortfall, seed) {
-      const neededTotal = players.length * targetGames;
-      const targetMatches = Math.floor(neededTotal / 4);
-      const maxMatches = targetMatches;
-      const rand = mulberry32(seed);
-      const priority = randomPriority(players, rand);
-      const ctx = {
+    function createScheduleContext(players) {
+      return {
         games: new Map(players.map(p => [p, 0])),
         wins: new Map(players.map(p => [p, 0])),
         partners: new Map(),
@@ -1926,6 +1921,52 @@
         lastPlayed: new Map(players.map(p => [p, 0])),
         restGaps: new Map(players.map(p => [p, []]))
       };
+    }
+
+    function addExistingMatchToContext(match, ctx, playerSet) {
+      const group = [...match.teamA, ...match.teamB].filter(name => playerSet.has(name));
+      group.forEach(player => {
+        const previous = ctx.lastPlayed.get(player) || 0;
+        if (previous) ctx.restGaps.get(player)?.push(match.id - previous - 1);
+        ctx.lastPlayed.set(player, match.id);
+        ctx.games.set(player, (ctx.games.get(player) || 0) + 1);
+      });
+
+      if (playerSet.has(match.teamA[0]) && playerSet.has(match.teamA[1])) {
+        const key = keyOf(match.teamA[0], match.teamA[1]);
+        ctx.partners.set(key, (ctx.partners.get(key) || 0) + 1);
+      }
+      if (playerSet.has(match.teamB[0]) && playerSet.has(match.teamB[1])) {
+        const key = keyOf(match.teamB[0], match.teamB[1]);
+        ctx.partners.set(key, (ctx.partners.get(key) || 0) + 1);
+      }
+      for (const a of match.teamA) {
+        for (const b of match.teamB) {
+          if (!playerSet.has(a) || !playerSet.has(b)) continue;
+          const key = keyOf(a, b);
+          ctx.opponents.set(key, (ctx.opponents.get(key) || 0) + 1);
+        }
+      }
+      if (group.length >= 2) rememberMatchGroup(group, ctx);
+    }
+
+    function contextFromExistingSchedule(players, existingSchedule) {
+      const ctx = createScheduleContext(players);
+      const playerSet = new Set(players);
+      existingSchedule.forEach(match => addExistingMatchToContext(match, ctx, playerSet));
+      return ctx;
+    }
+
+    function generateSchedule(players, targetGames, courtCount, tries, allowShortfall, seed, initialCtx = null, existingMatchCount = 0, allowOverTarget = false) {
+      const neededTotal = players.length * targetGames;
+      const currentDeficit = initialCtx
+        ? players.reduce((sum, player) => sum + Math.max(0, targetGames - (initialCtx.games.get(player) || 0)), 0)
+        : neededTotal;
+      const targetMatches = allowOverTarget ? currentDeficit : Math.floor(neededTotal / 4);
+      const maxMatches = targetMatches;
+      const rand = mulberry32(seed);
+      const priority = randomPriority(players, rand);
+      const ctx = initialCtx || createScheduleContext(players);
       const idealRest = Math.max(0, Math.round(players.length / 4) - 1);
       const schedule = [];
       let round = 1;
@@ -1933,10 +1974,11 @@
       let idleGuard = 0;
 
       while (schedule.length < maxMatches && idleGuard < players.length * targetGames * 6) {
+        if (allowOverTarget && players.every(p => (ctx.games.get(p) || 0) >= targetGames)) break;
         const roundUsed = new Set();
         let madeThisRound = 0;
         for (court = 1; court <= courtCount && schedule.length < maxMatches; court++) {
-          const eligible = players.filter(p => !roundUsed.has(p) && (ctx.games.get(p) || 0) < targetGames);
+          const eligible = players.filter(p => !roundUsed.has(p) && (allowOverTarget || (ctx.games.get(p) || 0) < targetGames));
           if (eligible.length < 4) break;
 
           let groups = combinations(eligible, 4);
@@ -1956,7 +1998,8 @@
           let bestGroup = null;
           let bestScore = Infinity;
           for (const group of shuffle(groups, rand)) {
-            const score = evaluateGroup(group, ctx, targetGames, roundUsed, rand, schedule.length + 1, idealRest);
+            const nextMatchId = existingMatchCount + schedule.length + 1;
+            const score = evaluateGroup(group, ctx, targetGames, roundUsed, rand, nextMatchId, idealRest);
             if (score < bestScore) {
               bestScore = score;
               bestGroup = group;
@@ -1967,7 +2010,7 @@
 
           const pairing = chooseBestPairing(bestGroup, ctx, rand);
           const match = {
-            id: schedule.length + 1,
+            id: existingMatchCount + schedule.length + 1,
             round,
             court,
             teamA: pairing.a,
@@ -3117,7 +3160,8 @@
         if (dailyMode) {
           players = dailyPlayers;
           state.teamMap = {};
-          schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed).schedule;
+          const initialCtx = contextFromExistingSchedule(players, existingSchedule);
+          schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length, true).schedule;
         } else if (blueWhiteMode) {
           const prepared = prepareBlueWhitePlayers(enteredPlayers);
           players = prepared.players;
@@ -3512,7 +3556,7 @@
     document.querySelectorAll(".mode-tab").forEach(button => {
       button.addEventListener("click", event => {
         state.adminMode = event.currentTarget.dataset.adminMode || "tournament";
-        renderModeTabs();
+        renderAll(true);
         setMessage(state.adminMode === "daily"
           ? "운영모드로 전환했습니다. 출석/제외 상태를 기준으로 운영 기능을 확장할 예정입니다."
           : "대회모드로 전환했습니다. 현재 대회 설정 방식으로 대진을 생성합니다.");
