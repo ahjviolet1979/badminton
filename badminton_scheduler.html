@@ -142,11 +142,11 @@
     }
 
     aside.daily-mode {
-      background: #f6fbf8;
+      background: #eaf7ef;
     }
 
     aside.tournament-mode {
-      background: #fbfaf6;
+      background: #f8f1df;
     }
 
     .panel {
@@ -206,7 +206,7 @@
 
     textarea {
       width: 100%;
-      min-height: 260px;
+      min-height: 250px;
       resize: vertical;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -217,7 +217,7 @@
     }
 
     .daily-mode #players {
-      min-height: 150px;
+      min-height: 250px;
     }
 
     input, select {
@@ -1160,7 +1160,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
           예시
         </button>
-        <button class="button" id="printBtn" type="button" title="현재 화면 인쇄">
+        <button class="button" id="printBtn" type="button" title="현재 화면 인쇄" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
           인쇄
         </button>
@@ -1201,7 +1201,7 @@
         </div>
         <label for="players">출전 선수 명단</label>
         <button class="button" id="togglePlayersBtn" type="button" style="width: 100%; justify-content: center; margin-bottom: 8px;">명단 숨기기</button>
-        <textarea id="players" spellcheck="false" placeholder="한 줄에 한 명씩 입력하세요.&#10;예)&#10;김민수&#10;이지훈&#10;박서연"></textarea>
+        <textarea id="players" spellcheck="false" placeholder="선수명 선수명 띄어쓰기&#10;샘플) 김민수 이지훈 박서연"></textarea>
         <div class="player-count-summary" id="playerCountSummary">선수 0명 / 대타 0명 / 총 0명</div>
         <div class="player-status-list" id="playerStatusList"></div>
 
@@ -1262,7 +1262,7 @@
           <div>
             <label for="courtCount">코트 수</label>
             <div class="number-stepper">
-              <input id="courtCount" type="number" min="1" max="10" step="1" inputmode="numeric" value="3" readonly>
+              <input id="courtCount" type="number" min="1" max="10" step="1" inputmode="numeric" value="2" readonly>
               <div class="stepper-buttons">
                 <button class="stepper-button" type="button" data-step-target="courtCount" data-step="1">▲</button>
                 <button class="stepper-button" type="button" data-step-target="courtCount" data-step="-1">▼</button>
@@ -3556,7 +3556,7 @@
     });
 
     el("sampleBtn").addEventListener("click", () => {
-      el("players").value = sampleNames.join("\n");
+      el("players").value = sampleNames.join(" ");
       el("seed").value = "A" + String(Math.floor(Math.random() * 99) + 1).padStart(2, "0");
       renderTeamAssignments();
       renderAdminRosterControls();
@@ -3675,7 +3675,7 @@
       }
     });
 
-    el("players").value = sampleNames.slice(0, 12).join("\n");
+    el("players").value = sampleNames.slice(0, 12).join(" ");
     loadCloudConfigToForm();
     setupAdminLogin();
     renderAll(true);
