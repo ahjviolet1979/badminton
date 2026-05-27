@@ -1443,6 +1443,10 @@
       return copy;
     }
 
+    function randomPriority(players, rand) {
+      return new Map(shuffle(players, rand).map((name, index) => [name, index]));
+    }
+
     function chooseBestPairing(group, ctx, rand) {
       const options = allPairings(group);
       let best = null;
@@ -1497,6 +1501,7 @@
       }
       const maxMatches = allowShortfall ? targetMatches : neededTotal / 4;
       const rand = mulberry32(seed);
+      const priority = randomPriority(players, rand);
       const ctx = {
         games: new Map(players.map(p => [p, 0])),
         wins: new Map(players.map(p => [p, 0])),
@@ -1518,15 +1523,7 @@
           const eligible = players.filter(p => !roundUsed.has(p) && (ctx.games.get(p) || 0) < targetGames);
           if (eligible.length < 4) break;
 
-          const basePool = eligible
-            .sort((a, b) =>
-              (ctx.games.get(a) || 0) - (ctx.games.get(b) || 0) ||
-              (ctx.lastPlayed.get(a) || 0) - (ctx.lastPlayed.get(b) || 0) ||
-              a.localeCompare(b, "ko-KR")
-            )
-            .slice(0, Math.min(12, eligible.length));
-
-          let groups = combinations(basePool, 4);
+          let groups = combinations(eligible, 4);
           if (groups.length > tries) groups = shuffle(groups, rand).slice(0, tries);
 
           let bestGroup = null;
@@ -1586,6 +1583,7 @@
       const players = [...bluePlayers, ...whitePlayers];
       const maxMatches = bluePlayers.length * targetGames / 2;
       const rand = mulberry32(seed);
+      const priority = randomPriority(players, rand);
       const ctx = {
         games: new Map(players.map(p => [p, 0])),
         wins: new Map(players.map(p => [p, 0])),
@@ -1610,11 +1608,12 @@
           const sortByNeed = (a, b) =>
             (ctx.games.get(a) || 0) - (ctx.games.get(b) || 0) ||
             (ctx.lastPlayed.get(a) || 0) - (ctx.lastPlayed.get(b) || 0) ||
+            (priority.get(a) || 0) - (priority.get(b) || 0) ||
             a.localeCompare(b, "ko-KR");
-          const bluePool = eligibleBlue.sort(sortByNeed).slice(0, Math.min(10, eligibleBlue.length));
-          const whitePool = eligibleWhite.sort(sortByNeed).slice(0, Math.min(10, eligibleWhite.length));
-          let bluePairs = combinations(bluePool, 2);
-          let whitePairs = combinations(whitePool, 2);
+          eligibleBlue.sort(sortByNeed);
+          eligibleWhite.sort(sortByNeed);
+          let bluePairs = combinations(eligibleBlue, 2);
+          let whitePairs = combinations(eligibleWhite, 2);
           if (bluePairs.length > tries) bluePairs = shuffle(bluePairs, rand).slice(0, tries);
           if (whitePairs.length > tries) whitePairs = shuffle(whitePairs, rand).slice(0, tries);
 

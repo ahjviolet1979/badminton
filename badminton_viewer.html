@@ -435,6 +435,12 @@
     .team-win-badge.a { background: #2563eb; }
     .team-win-badge.b { background: #be185d; }
 
+    .team-win-badge.done {
+      background: #e5e7eb;
+      color: #475569;
+      padding: 2px 8px;
+    }
+
     .history-name {
       font-weight: 900;
       min-width: 88px;
@@ -722,6 +728,7 @@
               const isNext = (state.nextMatchIds || []).map(Number).includes(Number(match.id));
               const teamAWinBadge = result === "A" ? '<span class="team-win-badge a">승</span>' : '';
               const teamBWinBadge = result === "B" ? '<span class="team-win-badge b">승</span>' : '';
+              const doneBadge = result === "D" ? '<span class="team-win-badge done">완료</span>' : '';
               return `
                 <tr class="${isNext ? "next-match-row" : ""}">
                   <td data-label="경기">${match.id}</td>
@@ -730,7 +737,7 @@
                   <td data-label="${labelA}팀" class="team-cell ${teamAClass}"><div class="team-result-row"><div class="team"><span class="pair">${match.teamA[0]}</span><span class="pair">${match.teamA[1]}</span></div>${teamAWinBadge}</div></td>
                   <td data-label="" class="versus">VS</td>
                   <td data-label="${labelB}팀" class="team-cell ${teamBClass}"><div class="team-result-row"><div class="team"><span class="pair">${match.teamB[0]}</span><span class="pair">${match.teamB[1]}</span></div>${teamBWinBadge}</div></td>
-                  <td data-label="결과">${isNext ? '<span class="next-badge">다음</span>' : '<span class="badge warn">미입력</span>'}</td>
+                  <td data-label="결과">${doneBadge || (isNext ? '<span class="next-badge">다음</span>' : '<span class="badge warn">미입력</span>')}</td>
                 </tr>`;
             }).join("")}
           </tbody>
@@ -757,6 +764,7 @@
         ensure(match.teamB[1], teamBType).partners.add(match.teamB[0]);
         const result = state.results[match.id];
         if (!result) continue;
+        if (result === "D") continue;
         const winners = result === "A" ? match.teamA : match.teamB;
         const losers = result === "A" ? match.teamB : match.teamA;
         winners.forEach(name => ensure(name).wins++);
@@ -833,7 +841,7 @@
         ];
 
         for (const team of teams) {
-          const status = !result ? "미입력" : result === team.code ? "승" : "패";
+          const status = !result ? "미입력" : result === "D" ? "완료" : result === team.code ? "승" : "패";
           for (const player of team.players) {
             const partner = team.players.find(name => name !== player);
             const history = histories.get(player);
