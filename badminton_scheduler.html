@@ -206,7 +206,7 @@
 
     textarea {
       width: 100%;
-      min-height: 250px;
+      min-height: 125px;
       resize: vertical;
       border: 1px solid var(--line);
       border-radius: 8px;
@@ -217,7 +217,21 @@
     }
 
     .daily-mode #players {
-      min-height: 250px;
+      min-height: 125px;
+    }
+
+    .player-list-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .player-list-actions .button {
+      width: 100%;
+      justify-content: center;
+      padding: 0 6px;
+      font-size: 12px;
     }
 
     input, select {
@@ -1156,10 +1170,6 @@
         <p class="subtitle">출전 명단과 1인당 경기 수를 넣으면 파트너 중복을 줄인 복식 라운드 대진을 만듭니다.</p>
       </div>
       <div class="toolbar no-print">
-        <button class="button" id="sampleBtn" type="button" title="예시 명단 넣기">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>
-          예시
-        </button>
         <button class="button" id="printBtn" type="button" title="현재 화면 인쇄" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
           인쇄
@@ -1200,8 +1210,11 @@
           </div>
         </div>
         <label for="players">출전 선수 명단</label>
-        <button class="button" id="togglePlayersBtn" type="button" style="width: 100%; justify-content: center; margin-bottom: 8px;">명단 숨기기</button>
-        <textarea id="players" spellcheck="false" placeholder="선수명 선수명 띄어쓰기&#10;샘플) 김민수 이지훈 박서연"></textarea>
+        <div class="player-list-actions">
+          <button class="button" id="togglePlayersBtn" type="button">명단 숨기기</button>
+          <button class="button danger" id="clearPlayersBtn" type="button">명단전체삭제</button>
+        </div>
+        <textarea id="players" spellcheck="false" placeholder="선수명1 선수명2 (선수사이 띄어쓰기)&#10;샘플) 조현 안현진 박경희"></textarea>
         <div class="player-count-summary" id="playerCountSummary">선수 0명 / 대타 0명 / 총 0명</div>
         <div class="player-status-list" id="playerStatusList"></div>
 
@@ -3555,12 +3568,6 @@
       });
     });
 
-    el("sampleBtn").addEventListener("click", () => {
-      el("players").value = sampleNames.join(" ");
-      el("seed").value = "A" + String(Math.floor(Math.random() * 99) + 1).padStart(2, "0");
-      renderTeamAssignments();
-      renderAdminRosterControls();
-    });
     el("players").addEventListener("input", () => {
       renderTeamAssignments();
       renderAdminRosterControls();
@@ -3626,6 +3633,18 @@
       const collapsed = aside.classList.toggle("player-list-collapsed");
       el("togglePlayersBtn").textContent = collapsed ? "명단 보이기" : "명단 숨기기";
     });
+    el("clearPlayersBtn").addEventListener("click", () => {
+      if (!el("players").value.trim()) {
+        setMessage("삭제할 선수 명단이 없습니다.", true);
+        return;
+      }
+      if (!window.confirm("출전 선수 명단을 모두 삭제하시겠습니까?")) return;
+      el("players").value = "";
+      state.playerStatus = {};
+      renderTeamAssignments();
+      renderAdminRosterControls();
+      setMessage("출전 선수 명단을 모두 삭제했습니다.");
+    });
     el("tournamentSelect").addEventListener("change", async event => {
       const nextEventId = event.target.value;
       if (!nextEventId) return;
@@ -3675,7 +3694,7 @@
       }
     });
 
-    el("players").value = sampleNames.slice(0, 12).join(" ");
+    el("players").value = "";
     loadCloudConfigToForm();
     setupAdminLogin();
     renderAll(true);
