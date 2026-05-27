@@ -1489,20 +1489,20 @@
       const minGame = Math.min(...games);
       const maxGame = Math.max(...games);
       const overTarget = group.filter(p => (ctx.games.get(p) || 0) >= target).length;
-      let recentPenalty = group.reduce((sum, p) => sum + (roundUsed.has(p) ? 50 : 0), 0);
-      let score = overTarget * 150 + maxGame * 16 + (maxGame - minGame) * 12 + recentPenalty;
+      let recentPenalty = group.reduce((sum, p) => sum + (roundUsed.has(p) ? 500 : 0), 0);
+      let score = overTarget * 100000 + maxGame * 900 + (maxGame - minGame) * 700 + recentPenalty;
       score += (ctx.groups.get(groupKey(group)) || 0) * 2500;
       for (const player of group) {
         const played = ctx.games.get(player) || 0;
         if (!played) continue;
         const rest = nextMatchId - (ctx.lastPlayed.get(player) || 0) - 1;
         const delta = Math.abs(rest - idealRest);
-        score += delta * 18;
-        if (rest < idealRest) score += (idealRest - rest) * 24;
+        score += delta * 12;
+        if (rest < idealRest) score += (idealRest - rest) * 18;
       }
       for (let i = 0; i < group.length; i++) {
         for (let j = i + 1; j < group.length; j++) {
-          score += (ctx.partners.get(keyOf(group[i], group[j])) || 0) * 11;
+          score += (ctx.partners.get(keyOf(group[i], group[j])) || 0) * 80;
           score += (ctx.opponents.get(keyOf(group[i], group[j])) || 0) * 12;
           score += (ctx.together.get(keyOf(group[i], group[j])) || 0) * 120;
         }
@@ -1543,7 +1543,7 @@
           if (eligible.length < 4) break;
 
           let groups = combinations(eligible, 4);
-          if (groups.length > tries) groups = shuffle(groups, rand).slice(0, tries);
+          if (groups.length > 60000) groups = shuffle(groups, rand).slice(0, Math.max(tries, 60000));
 
           let bestGroup = null;
           let bestScore = Infinity;
@@ -1636,8 +1636,8 @@
           eligibleWhite.sort(sortByNeed);
           let bluePairs = combinations(eligibleBlue, 2);
           let whitePairs = combinations(eligibleWhite, 2);
-          if (bluePairs.length > tries) bluePairs = shuffle(bluePairs, rand).slice(0, tries);
-          if (whitePairs.length > tries) whitePairs = shuffle(whitePairs, rand).slice(0, tries);
+          if (bluePairs.length > 2000) bluePairs = shuffle(bluePairs, rand).slice(0, Math.max(tries, 2000));
+          if (whitePairs.length > 2000) whitePairs = shuffle(whitePairs, rand).slice(0, Math.max(tries, 2000));
 
           let best = null;
           let bestScore = Infinity;
