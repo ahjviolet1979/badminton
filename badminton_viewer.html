@@ -891,11 +891,13 @@
               <tr>
                 <td class="history-name">${history.name}</td>
                 <td class="history-record">
-                  <span class="badge">${history.games}경기</span>
-                  <span class="badge">승 ${history.wins}</span>
-                  <span class="badge warn">패 ${history.losses}</span>
-                  ${history.done ? `<span class="badge">완료 ${history.done}</span>` : ""}
-                  ${history.pending ? `<span class="badge warn">미입력 ${history.pending}</span>` : ""}
+                  <div class="record-line"><span class="badge">총 ${history.games}경기</span></div>
+                  <div class="record-line">
+                    <span class="badge">승 ${history.wins}</span>
+                    <span class="badge warn">패 ${history.losses}</span>
+                    <span class="badge">완료 ${history.done || 0}</span>
+                  </div>
+                  <div class="record-line"><span class="badge warn">미입력 ${history.pending || 0}</span></div>
                 </td>
                 <td class="history-text">${summarizeNameCounts(history.partners)}</td>
                 <td class="history-text">${summarizeRestGaps(history.matches)}</td>
@@ -932,13 +934,13 @@
               <tr>
                 <td class="history-name">${history.name}</td>
                 <td class="history-record">
-                  <div class="record-line"><span class="badge">${history.games}경기</span></div>
+                  <div class="record-line"><span class="badge">총 ${history.games}경기</span></div>
                   <div class="record-line">
                     <span class="badge">승 ${history.wins}</span>
                     <span class="badge warn">패 ${history.losses}</span>
-                    ${history.done ? `<span class="badge">완료 ${history.done}</span>` : ""}
-                    ${history.pending ? `<span class="badge warn">미입력 ${history.pending}</span>` : ""}
+                    <span class="badge">완료 ${history.done || 0}</span>
                   </div>
+                  <div class="record-line"><span class="badge warn">미입력 ${history.pending || 0}</span></div>
                 </td>
                 <td class="history-text history-partners">${summarizePartnersByMatch(history.matches)}</td>
                 <td class="history-text history-summary-text">
