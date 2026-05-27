@@ -2020,6 +2020,15 @@
       return ctx;
     }
 
+    function contextForDailyAppend(players, existingSchedule) {
+      const ctx = contextFromExistingSchedule(players, existingSchedule);
+      players.forEach(player => {
+        ctx.games.set(player, 0);
+        ctx.restGaps.set(player, []);
+      });
+      return ctx;
+    }
+
     function generateSchedule(players, targetGames, courtCount, tries, allowShortfall, seed, initialCtx = null, existingMatchCount = 0, allowOverTarget = false, attendanceOrder = null) {
       const neededTotal = players.length * targetGames;
       const currentDeficit = initialCtx
@@ -3272,9 +3281,9 @@
         if (dailyMode) {
           players = dailyPlayers;
           state.teamMap = {};
-          const initialCtx = contextFromExistingSchedule(players, existingSchedule);
+          const initialCtx = contextForDailyAppend(players, existingSchedule);
           const attendanceOrder = attendanceRankMap(players);
-          schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length, true, attendanceOrder).schedule;
+          schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length, false, attendanceOrder).schedule;
         } else if (blueWhiteMode) {
           const prepared = prepareBlueWhitePlayers(enteredPlayers);
           players = prepared.players;
@@ -3772,8 +3781,9 @@
     el("manualAddBtn").addEventListener("click", addManualMatch);
     el("clearResultsBtn").addEventListener("click", () => {
       state.results = {};
+      state.nextMatchIds = [];
       renderAll(true);
-      setMessage("경기 결과를 초기화했습니다.");
+      setMessage("경기 결과와 다음게임 표시를 초기화했습니다.");
       if (el("autoCloudSave").checked) saveCloudData(true);
     });
     el("printBtn").addEventListener("click", () => window.print());
