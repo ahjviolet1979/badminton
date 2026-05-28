@@ -23,6 +23,32 @@
 
     * { box-sizing: border-box; }
 
+    * {
+      scrollbar-width: thin;
+      scrollbar-color: #cfd9d2 transparent;
+    }
+
+    *::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    *::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    *::-webkit-scrollbar-thumb {
+      background: #cfd9d2;
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: content-box;
+    }
+
+    *::-webkit-scrollbar-thumb:hover {
+      background: #b8c7bf;
+      background-clip: content-box;
+    }
+
     body.locked .app {
       display: none;
     }
@@ -741,6 +767,11 @@
       opacity: 0.72;
       background: #ecfdf5;
       box-shadow: inset 4px 0 0 var(--accent);
+    }
+
+    body.reordering-schedule {
+      user-select: none;
+      cursor: grabbing;
     }
 
     .team {
@@ -2951,13 +2982,14 @@
         });
 
         row.addEventListener("pointerdown", event => {
-          if (event.pointerType === "mouse" || isInteractive(event.target)) return;
+          if (isInteractive(event.target)) return;
           pressTimer = window.setTimeout(() => {
             pointerActive = true;
             draggedRow = row;
             row.classList.add("dragging");
+            document.body.classList.add("reordering-schedule");
             row.setPointerCapture?.(event.pointerId);
-          }, 420);
+          }, event.pointerType === "mouse" ? 160 : 420);
         });
         row.addEventListener("pointermove", event => {
           if (!pointerActive || !draggedRow) return;
@@ -2974,6 +3006,7 @@
           if (!pointerActive || !draggedRow) return;
           draggedRow.releasePointerCapture?.(event.pointerId);
           draggedRow.classList.remove("dragging");
+          document.body.classList.remove("reordering-schedule");
           draggedRow = null;
           pointerActive = false;
           applyScheduleOrderFromRows(rows());
@@ -2982,6 +3015,7 @@
           window.clearTimeout(pressTimer);
           pressTimer = null;
           if (draggedRow) draggedRow.classList.remove("dragging");
+          document.body.classList.remove("reordering-schedule");
           draggedRow = null;
           pointerActive = false;
         });
