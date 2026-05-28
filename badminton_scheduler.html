@@ -1117,6 +1117,14 @@
       header { align-items: start; flex-direction: column; }
       .toolbar { justify-content: flex-start; }
       .grid { grid-template-columns: 1fr; }
+      #settingsPanel {
+        position: static;
+        max-height: none;
+        overflow: visible;
+      }
+      #scheduleOutput.tablewrap {
+        max-height: none;
+      }
       .stats { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
       .stat { min-height: 58px; padding: 9px 7px; }
       .stat b { font-size: 18px; white-space: nowrap; }
@@ -1486,7 +1494,7 @@
       schedule: [],
       results: {},
       seed: "A01",
-      adminMode: "tournament",
+      adminMode: localStorage.getItem("badminton_admin_mode") || "tournament",
       modeRosters: { daily: "", tournament: "" },
       playerStatus: {},
       teamMode: false,
@@ -2520,7 +2528,7 @@
       state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
       state.results = data.results || {};
       state.seed = data.seed || state.seed;
-      state.adminMode = data.adminMode || state.adminMode || "tournament";
+      state.adminMode = localStorage.getItem("badminton_admin_mode") || data.adminMode || state.adminMode || "tournament";
       state.modeRosters = data.modeRosters || {
         daily: data.adminMode === "daily" ? visibleRosterNames(state.players).join(" ") : "",
         tournament: data.adminMode !== "daily" ? visibleRosterNames(state.players).join(" ") : ""
@@ -3855,6 +3863,7 @@
       button.addEventListener("click", event => {
         saveCurrentModeRoster();
         state.adminMode = event.currentTarget.dataset.adminMode || "tournament";
+        localStorage.setItem("badminton_admin_mode", state.adminMode);
         restoreCurrentModeRoster();
         renderAll(true);
         setMessage(state.adminMode === "daily"
