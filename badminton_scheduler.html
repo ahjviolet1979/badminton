@@ -134,6 +134,17 @@
       align-items: start;
     }
 
+    #settingsPanel {
+      position: sticky;
+      top: 16px;
+      max-height: calc(100vh - 32px);
+      overflow: auto;
+    }
+
+    .grid > section {
+      min-width: 0;
+    }
+
     section, aside {
       background: var(--panel);
       border: 1px solid var(--line);
@@ -366,6 +377,20 @@
       padding: 0 4px;
       min-height: 44px;
       font-size: 12px;
+    }
+
+    #generateBtn,
+    #deleteScheduleBtn {
+      min-height: 54px;
+      font-size: 14px;
+      font-weight: 900;
+      box-shadow: 0 8px 16px rgba(4, 120, 87, 0.16);
+    }
+
+    #deleteScheduleBtn {
+      background: #fecaca;
+      color: #991b1b;
+      box-shadow: 0 8px 16px rgba(185, 28, 28, 0.14);
     }
 
     .rename-row {
@@ -673,6 +698,10 @@
       border-radius: 8px;
     }
 
+    #scheduleOutput.tablewrap {
+      max-height: calc(100vh - 260px);
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -698,6 +727,21 @@
     }
 
     tr:last-child td { border-bottom: 0; }
+
+    #scheduleOutput tbody tr {
+      touch-action: auto;
+    }
+
+    #scheduleOutput tbody tr.reorder-ready {
+      cursor: grab;
+    }
+
+    #scheduleOutput tbody tr.dragging {
+      cursor: grabbing;
+      opacity: 0.72;
+      background: #ecfdf5;
+      box-shadow: inset 4px 0 0 var(--accent);
+    }
 
     .team {
       display: flex;
@@ -2795,7 +2839,7 @@
           ? `<label class="winner in-progress"><input type="radio" name="winner-${match.id}" value="P" ${result === "P" ? "checked" : ""}> 게임중</label>`
           : "";
         return `
-          <tr class="${isNext ? "next-match-row" : ""}">
+          <tr class="reorder-ready ${isNext ? "next-match-row" : ""}" data-match-id="${match.id}" draggable="${search ? "false" : "true"}">
             <td data-label="경기">${match.id}</td>
             <td data-label="라운드"><span class="badge">${match.round}R</span></td>
             <td data-label="코트">${match.court}코트</td>
@@ -2855,6 +2899,92 @@
       });
       el("scheduleOutput").querySelectorAll(".delete-match").forEach(button => {
         button.addEventListener("click", event => deleteMatch(Number(event.currentTarget.dataset.matchId)));
+      });
+      setupScheduleReorder(Boolean(search));
+    }
+
+    function applyScheduleOrderFromRows(rows) {
+      const orderedIds = rows.map(row => Number(row.dataset.matchId)).filter(Boolean);
+      if (orderedIds.length !== state.schedule.length) return;
+      const byId = new Map(state.schedule.map(match => [Number(match.id), match]));
+      state.schedule = orderedIds.map(id => byId.get(id)).filter(Boolean);
+      normalizeSchedule();
+      rebuildPlayersFromSchedule();
+      renderAll(true);
+      setMessage("대진 순서를 변경했습니다.");
+      if (el("autoCloudSave").checked) saveCloudData(true);
+    }
+
+    function setupScheduleReorder(disabled) {
+      const tbody = el("scheduleOutput").querySelector("tbody");
+      if (!tbody || disabled) return;
+      let draggedRow = null;
+      let pressTimer = null;
+      let pointerActive = false;
+      const rows = () => [...tbody.querySelectorAll("tr[data-match-id]")];
+      const isInteractive = target => Boolean(target.closest("input, button, label, a, select, textarea"));
+
+      tbody.querySelectorAll("tr[data-match-id]").forEach(row => {
+        row.addEventListener("dragstart", event => {
+          if (isInteractive(event.target)) {
+            event.preventDefault();
+            return;
+          }
+          draggedRow = row;
+          row.classList.add("dragging");
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("text/plain", row.dataset.matchId);
+        });
+        row.addEventListener("dragover", event => {
+          if (!draggedRow || draggedRow === row) return;
+          event.preventDefault();
+          const rect = row.getBoundingClientRect();
+          const before = event.clientY < rect.top + rect.height / 2;
+          tbody.insertBefore(draggedRow, before ? row : row.nextSibling);
+        });
+        row.addEventListener("drop", event => event.preventDefault());
+        row.addEventListener("dragend", () => {
+          if (!draggedRow) return;
+          draggedRow.classList.remove("dragging");
+          draggedRow = null;
+          applyScheduleOrderFromRows(rows());
+        });
+
+        row.addEventListener("pointerdown", event => {
+          if (event.pointerType === "mouse" || isInteractive(event.target)) return;
+          pressTimer = window.setTimeout(() => {
+            pointerActive = true;
+            draggedRow = row;
+            row.classList.add("dragging");
+            row.setPointerCapture?.(event.pointerId);
+          }, 420);
+        });
+        row.addEventListener("pointermove", event => {
+          if (!pointerActive || !draggedRow) return;
+          event.preventDefault();
+          const targetRow = document.elementFromPoint(event.clientX, event.clientY)?.closest("tr[data-match-id]");
+          if (!targetRow || targetRow === draggedRow || targetRow.parentElement !== tbody) return;
+          const rect = targetRow.getBoundingClientRect();
+          const before = event.clientY < rect.top + rect.height / 2;
+          tbody.insertBefore(draggedRow, before ? targetRow : targetRow.nextSibling);
+        });
+        row.addEventListener("pointerup", event => {
+          window.clearTimeout(pressTimer);
+          pressTimer = null;
+          if (!pointerActive || !draggedRow) return;
+          draggedRow.releasePointerCapture?.(event.pointerId);
+          draggedRow.classList.remove("dragging");
+          draggedRow = null;
+          pointerActive = false;
+          applyScheduleOrderFromRows(rows());
+        });
+        row.addEventListener("pointercancel", () => {
+          window.clearTimeout(pressTimer);
+          pressTimer = null;
+          if (draggedRow) draggedRow.classList.remove("dragging");
+          draggedRow = null;
+          pointerActive = false;
+        });
       });
     }
 
