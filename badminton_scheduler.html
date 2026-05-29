@@ -805,6 +805,7 @@
 
     .pair {
       font-weight: 800;
+      font-size: 15px;
       line-height: 1.25;
     }
 
@@ -817,6 +818,7 @@
       cursor: pointer;
       font: inherit;
       font-weight: 800;
+      font-size: 15px;
       line-height: 1.25;
       text-align: left;
       border-bottom: 1px dotted var(--accent);
@@ -1038,7 +1040,13 @@
 
     .history-name {
       font-weight: 900;
+      font-size: 15px;
       min-width: 88px;
+    }
+
+    #rankingOutput td:nth-child(2) {
+      font-size: 15px;
+      font-weight: 900;
     }
 
     .history-text {
@@ -1339,7 +1347,7 @@
         <div class="compact-checks">
           <label class="checkrow">
             <input id="autoCloudSave" type="checkbox" checked>
-            결과 변경 시 서버 저장
+            서버 즉시 저장
           </label>
 
           <label class="checkrow">
