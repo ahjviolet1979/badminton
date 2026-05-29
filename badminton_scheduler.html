@@ -353,12 +353,12 @@
     .compact-checks {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 6px;
-      margin-top: 8px;
+      gap: 2px 6px;
+      margin-top: 4px;
     }
 
     .compact-checks .checkrow {
-      margin-top: 6px;
+      margin-top: 2px;
     }
 
     .compact-checks .wide-check {
@@ -1385,6 +1385,11 @@
             청백전 모드
           </label>
 
+          <label class="checkrow">
+            <input id="includeInProgressPlayers" type="checkbox">
+            게임중 포함
+          </label>
+
           <label class="checkrow wide-check">
             <input id="allowShortfall" type="checkbox" checked>
             참가인원수 4배수로 맞춰서 대타적용
@@ -1748,6 +1753,10 @@
           substituteToggle.disabled = false;
         }
       }
+      const inProgressToggle = el("includeInProgressPlayers");
+      if (inProgressToggle) {
+        inProgressToggle.disabled = state.adminMode !== "daily";
+      }
     }
 
     function renderPlayerStatusList() {
@@ -1780,7 +1789,8 @@
     function dailyEligiblePlayers() {
       const names = parsePlayers();
       const statusMap = syncPlayerStatuses(names);
-      const inProgress = inProgressPlayerSet();
+      const includeInProgress = el("includeInProgressPlayers")?.checked === true;
+      const inProgress = includeInProgress ? new Set() : inProgressPlayerSet();
       return names.filter(name => !isAutoSubstituteName(name)).filter(name => {
         const status = statusMap[name] || { present: false, excluded: true, attendedAt: "" };
         return status.present && !status.excluded && !inProgress.has(name);
@@ -3956,6 +3966,13 @@
       state.teamMode = el("blueWhiteMode").checked;
       renderTeamAssignments();
       renderAdminRosterControls();
+    });
+    el("includeInProgressPlayers").checked = localStorage.getItem("badminton_include_in_progress") === "1";
+    el("includeInProgressPlayers").addEventListener("change", () => {
+      localStorage.setItem("badminton_include_in_progress", el("includeInProgressPlayers").checked ? "1" : "0");
+      setMessage(el("includeInProgressPlayers").checked
+        ? "운영모드 대진 생성 시 게임중 인원도 후보에 포함합니다."
+        : "운영모드 대진 생성 시 게임중 인원은 후보에서 제외합니다.");
     });
     el("applyRenameBtn").addEventListener("click", applyExplicitPlayerRename);
     el("togglePlayersBtn").addEventListener("click", () => {
