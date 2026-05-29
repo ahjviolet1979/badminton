@@ -652,10 +652,11 @@
 
     function config() {
       const globalConfig = window.BADMINTON_SUPABASE || {};
+      const params = new URLSearchParams(window.location.search);
       return {
         url: globalConfig.url || "",
         anonKey: globalConfig.anonKey || "",
-        eventId: sessionStorage.getItem("badminton_mobile_event_id") || globalConfig.eventId || "main"
+        eventId: params.get("event") || sessionStorage.getItem("badminton_mobile_event_id") || globalConfig.eventId || "main"
       };
     }
 
@@ -670,6 +671,13 @@
     }
 
     async function loadEvents() {
+      const fixedEventId = new URLSearchParams(window.location.search).get("event") || "";
+      if (fixedEventId) {
+        el("eventSelect").innerHTML = `<option value="${fixedEventId}" selected>${fixedEventId}</option>`;
+        el("eventSelect").style.display = "none";
+        document.querySelector('label[for="eventSelect"]')?.setAttribute("hidden", "hidden");
+        return;
+      }
       try {
         const sb = await client();
         const { data, error } = await sb
@@ -700,7 +708,8 @@
 
     async function login(event) {
       event.preventDefault();
-      const eventId = el("eventSelect").value;
+      const fixedEventId = new URLSearchParams(window.location.search).get("event") || "";
+      const eventId = fixedEventId || el("eventSelect").value;
       const password = el("password").value.trim();
       if (!eventId || !password) {
         el("loginError").textContent = "대회와 비밀번호를 입력하세요.";
