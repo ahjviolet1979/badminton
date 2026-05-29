@@ -2982,45 +2982,56 @@
       let draggedRow = null;
       let activeHandle = null;
       const rows = () => [...tbody.querySelectorAll("tr[data-match-id]")];
+      const moveDraggedRow = clientY => {
+        if (!draggedRow) return;
+        const siblings = rows().filter(row => row !== draggedRow);
+        const beforeRow = siblings.find(row => {
+          const rect = row.getBoundingClientRect();
+          return clientY < rect.top + rect.height / 2;
+        });
+        tbody.insertBefore(draggedRow, beforeRow || null);
+      };
+      const finishDrag = event => {
+        if (!draggedRow) return;
+        activeHandle?.releasePointerCapture?.(event.pointerId);
+        draggedRow.classList.remove("dragging");
+        draggedRow = null;
+        activeHandle = null;
+        document.body.classList.remove("reordering-schedule");
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", finishDrag);
+        window.removeEventListener("pointercancel", cancelDrag);
+        applyScheduleOrderFromRows(rows());
+      };
+      const cancelDrag = event => {
+        activeHandle?.releasePointerCapture?.(event.pointerId);
+        if (draggedRow) draggedRow.classList.remove("dragging");
+        draggedRow = null;
+        activeHandle = null;
+        document.body.classList.remove("reordering-schedule");
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", finishDrag);
+        window.removeEventListener("pointercancel", cancelDrag);
+      };
+      const onPointerMove = event => {
+        if (!draggedRow) return;
+        event.preventDefault();
+        moveDraggedRow(event.clientY);
+      };
 
       tbody.querySelectorAll(".drag-handle").forEach(handle => {
         const row = handle.closest("tr[data-match-id]");
         handle.addEventListener("pointerdown", event => {
+          if (event.button !== undefined && event.button !== 0) return;
           event.preventDefault();
           draggedRow = row;
           activeHandle = handle;
           draggedRow.classList.add("dragging");
-          draggedRow.style.pointerEvents = "none";
           document.body.classList.add("reordering-schedule");
           handle.setPointerCapture?.(event.pointerId);
-        });
-        handle.addEventListener("pointermove", event => {
-          if (!draggedRow || activeHandle !== handle) return;
-          event.preventDefault();
-          const targetRow = document.elementFromPoint(event.clientX, event.clientY)?.closest("tr[data-match-id]");
-          if (!targetRow || targetRow === draggedRow || targetRow.parentElement !== tbody) return;
-          const rect = targetRow.getBoundingClientRect();
-          const before = event.clientY < rect.top + rect.height / 2;
-          tbody.insertBefore(draggedRow, before ? targetRow : targetRow.nextSibling);
-        });
-        handle.addEventListener("pointerup", event => {
-          if (!draggedRow || activeHandle !== handle) return;
-          handle.releasePointerCapture?.(event.pointerId);
-          draggedRow.classList.remove("dragging");
-          draggedRow.style.pointerEvents = "";
-          document.body.classList.remove("reordering-schedule");
-          draggedRow = null;
-          activeHandle = null;
-          applyScheduleOrderFromRows(rows());
-        });
-        handle.addEventListener("pointercancel", () => {
-          if (draggedRow) {
-            draggedRow.classList.remove("dragging");
-            draggedRow.style.pointerEvents = "";
-          }
-          document.body.classList.remove("reordering-schedule");
-          draggedRow = null;
-          activeHandle = null;
+          window.addEventListener("pointermove", onPointerMove, { passive: false });
+          window.addEventListener("pointerup", finishDrag);
+          window.addEventListener("pointercancel", cancelDrag);
         });
       });
     }
