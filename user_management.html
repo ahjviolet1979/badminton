@@ -267,8 +267,16 @@
         <h2>사용자 등록</h2>
         <input id="recordId" type="hidden">
 
-        <label for="userId">사용자 ID</label>
-        <input id="userId" type="text" placeholder="예: club_a_admin">
+        <div class="two-cols">
+          <div>
+            <label for="userId">사용자 ID</label>
+            <input id="userId" type="text" placeholder="예: club_a_admin">
+          </div>
+          <div>
+            <label for="userPassword">ID 비밀번호</label>
+            <input id="userPassword" type="text" placeholder="관리자 접속 비번">
+          </div>
+        </div>
 
         <label for="userName">사용자명 / 단체명</label>
         <input id="userName" type="text" placeholder="예: 여배우 배드민턴">
@@ -338,6 +346,7 @@
             <thead>
               <tr>
                 <th>사용자 ID</th>
+                <th>ID 비번</th>
                 <th>대회 ID</th>
                 <th>대회명</th>
                 <th>사용기간</th>
@@ -347,7 +356,7 @@
               </tr>
             </thead>
             <tbody id="userRows">
-              <tr><td colspan="7" class="muted">등록된 사용자를 불러오는 중입니다.</td></tr>
+              <tr><td colspan="8" class="muted">등록된 사용자를 불러오는 중입니다.</td></tr>
             </tbody>
           </table>
         </div>
@@ -387,7 +396,10 @@
 
     function eventDisplayName(row) {
       const data = getEventPayload(row);
-      return data.eventName || data.eventTitle || data.eventId || row.id || "";
+      const name = data.eventName || data.eventTitle || data.eventId || row.id || "";
+      if (data.deleted || data.isDeleted || data.status === "deleted") return `${name} (삭제)`;
+      if (data.ended) return `${name} (종료)`;
+      return name;
     }
 
     function applySelectedEvent() {
@@ -424,6 +436,7 @@
       return {
         id: el("recordId").value || `${el("userId").value.trim()}__${eventId}`,
         user_id: el("userId").value.trim(),
+        user_password: el("userPassword").value.trim(),
         user_name: el("userName").value.trim(),
         event_id: eventId,
         event_name: el("eventName").value.trim(),
@@ -441,6 +454,7 @@
     function fillForm(row) {
       el("recordId").value = row.id || "";
       el("userId").value = row.user_id || "";
+      el("userPassword").value = row.user_password || "";
       el("userName").value = row.user_name || "";
       el("eventId").value = row.event_id || "";
       el("eventName").value = row.event_name || "";
@@ -455,15 +469,15 @@
     }
 
     function resetForm() {
-      ["recordId", "userId", "userName", "eventId", "eventName", "dateFrom", "dateTo", "viewerUrl", "mobileUrl", "viewerPassword", "memo"].forEach(id => el(id).value = "");
+      ["recordId", "userId", "userPassword", "userName", "eventId", "eventName", "dateFrom", "dateTo", "viewerUrl", "mobileUrl", "viewerPassword", "memo"].forEach(id => el(id).value = "");
       el("status").value = "active";
       setMessage("입력값을 초기화했습니다.");
     }
 
     async function saveRecord() {
       const data = formData();
-      if (!data.user_id || !data.event_id) {
-        setMessage("사용자 ID와 대회 ID를 입력하세요.", true);
+      if (!data.user_id || !data.user_password || !data.event_id) {
+        setMessage("사용자 ID, ID 비밀번호, 대회 ID를 입력하세요.", true);
         return;
       }
       try {
@@ -500,11 +514,12 @@
     function renderRows() {
       const search = el("searchInput").value.trim().toLowerCase();
       const rows = search
-        ? records.filter(row => [row.user_id, row.user_name, row.event_id, row.event_name].some(value => String(value || "").toLowerCase().includes(search)))
+        ? records.filter(row => [row.user_id, row.user_password, row.user_name, row.event_id, row.event_name].some(value => String(value || "").toLowerCase().includes(search)))
         : records;
       el("userRows").innerHTML = rows.length ? rows.map(row => `
         <tr>
           <td><b>${row.user_id || ""}</b><br><span class="muted">${row.user_name || ""}</span></td>
+          <td>${row.user_password || ""}</td>
           <td>${row.event_id || ""}</td>
           <td>${row.event_name || ""}</td>
           <td>${row.date_from || "-"} ~ ${row.date_to || "-"}</td>
@@ -515,7 +530,7 @@
             <button class="button small danger" type="button" data-action="delete" data-id="${row.id}">삭제</button>
           </td>
         </tr>
-      `).join("") : `<tr><td colspan="7" class="muted">등록된 사용자가 없습니다.</td></tr>`;
+      `).join("") : `<tr><td colspan="8" class="muted">등록된 사용자가 없습니다.</td></tr>`;
 
       el("userRows").querySelectorAll("button[data-action]").forEach(button => {
         button.addEventListener("click", () => {
@@ -539,7 +554,7 @@
         renderRows();
         setMessage(`등록 사용자 ${records.length}건을 불러왔습니다.`);
       } catch (error) {
-        el("userRows").innerHTML = `<tr><td colspan="7" class="muted">목록 불러오기 실패: ${error.message}</td></tr>`;
+        el("userRows").innerHTML = `<tr><td colspan="8" class="muted">목록 불러오기 실패: ${error.message}</td></tr>`;
         setMessage(`목록 불러오기 실패: ${error.message}`, true);
       }
     }
