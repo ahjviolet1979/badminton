@@ -2635,11 +2635,17 @@
         const rows = data || [];
         const adminUser = getAdminSession();
         const allowedEventIds = new Set(adminUser?.eventIds || []);
-        const visibleRows = rows.filter(row =>
+        const accessibleRows = rows.filter(row =>
           row.id &&
           row.data &&
           (adminUser?.role === "super_admin" || allowedEventIds.has(row.id))
         );
+        const isActiveEvent = row =>
+          row.data?.ended !== true &&
+          !row.data?.deleted &&
+          !row.data?.isDeleted &&
+          row.data?.status !== "deleted";
+        const visibleRows = accessibleRows.filter(row => isActiveEvent(row));
         const labelForEvent = row => {
           const name = row.data?.eventId || row.id;
           if (row.data?.deleted || row.data?.isDeleted || row.data?.status === "deleted") return `${name} (삭제)`;
@@ -2653,19 +2659,14 @@
         }).join("");
         const currentEventId = el("supabaseEventId").value || localStorage.getItem("badminton_supabase_event_id") || "";
         const defaultRows = visibleRows.filter(row =>
-          row.data?.ended !== true &&
-          !row.data?.deleted &&
-          !row.data?.isDeleted &&
-          row.data?.status !== "deleted" &&
           row.data?.viewerPassword
         );
         const selectedEventId = visibleRows.find(row => row.id === currentEventId)?.id
           || defaultRows[0]?.id
-          || visibleRows[0]?.id
           || "";
         if (select) {
           if (!visibleRows.length) {
-            select.innerHTML = `<option value="">대회가 없습니다</option>`;
+            select.innerHTML = `<option value="">진행중인 대회가 없습니다</option>`;
             el("supabaseEventId").value = "";
           } else {
             select.innerHTML = `<option value="">대회 선택</option>` + visibleRows.map(row => {
@@ -2681,7 +2682,7 @@
           localStorage.setItem("badminton_supabase_event_id", selectedEventId);
         }
         if (document.body.classList.contains("locked") === false) {
-          const countRows = adminUser?.role === "super_admin" ? rows : visibleRows;
+          const countRows = adminUser?.role === "super_admin" ? rows : accessibleRows;
           const deletedCount = countRows.filter(row => row.data?.deleted || row.data?.isDeleted || row.data?.status === "deleted").length;
           const endedCount = countRows.filter(row => row.data?.ended === true).length;
           const activeCount = countRows.length - endedCount - deletedCount;
