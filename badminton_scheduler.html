@@ -2706,6 +2706,17 @@
 
     function sharedPayload() {
       const isPublic = state.schedulePublic !== false;
+      const scheduleSettings = {
+        adminMode: state.adminMode,
+        teamMode: state.teamMode ? "blueWhite" : "normal",
+        blueWhiteMode: el("blueWhiteMode")?.checked === true,
+        allowShortfall: el("allowShortfall")?.checked === true,
+        includeInProgressPlayers: el("includeInProgressPlayers")?.checked === true,
+        targetGames: Number(el("targetGames")?.value || 0),
+        courtCount: Number(el("courtCount")?.value || 0),
+        seed: el("seed")?.value.trim() || state.seed || "A01",
+        tries: Number(el("tries")?.value || 0)
+      };
       return {
         version: 1,
         updatedAt: new Date().toISOString(),
@@ -2717,6 +2728,9 @@
         results: state.results,
         seed: state.seed,
         adminMode: state.adminMode,
+        scheduleSettings,
+        allowShortfall: scheduleSettings.allowShortfall,
+        includeInProgressPlayers: scheduleSettings.includeInProgressPlayers,
         modeRosters: {
           ...state.modeRosters,
           [rosterModeKey()]: el("players").value
@@ -2735,19 +2749,27 @@
       state.players = Array.isArray(data.players) ? data.players : [];
       state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
       state.results = data.results || {};
-      state.seed = data.seed || state.seed;
-      state.adminMode = localStorage.getItem("badminton_admin_mode") || data.adminMode || state.adminMode || "tournament";
+      const savedSettings = data.scheduleSettings || {};
+      state.seed = savedSettings.seed || data.seed || state.seed;
+      state.adminMode = savedSettings.adminMode || data.adminMode || state.adminMode || "tournament";
+      localStorage.setItem("badminton_admin_mode", state.adminMode);
       state.modeRosters = data.modeRosters || {
         daily: data.adminMode === "daily" ? visibleRosterNames(state.players).join(" ") : "",
         tournament: data.adminMode !== "daily" ? visibleRosterNames(state.players).join(" ") : ""
       };
       state.playerStatus = data.playerStatus || {};
-      state.teamMode = data.teamMode === "blueWhite";
+      state.teamMode = savedSettings.blueWhiteMode === true || savedSettings.teamMode === "blueWhite" || data.teamMode === true || data.teamMode === "blueWhite";
       state.teamMap = data.teamMap || {};
       state.nextMatchIds = Array.isArray(data.nextMatchIds) ? data.nextMatchIds.map(Number).filter(Boolean) : [];
       state.schedulePublic = data.schedulePublic !== false;
       restoreCurrentModeRoster();
       el("seed").value = state.seed || "A01";
+      if (savedSettings.targetGames) el("targetGames").value = savedSettings.targetGames;
+      if (savedSettings.courtCount) el("courtCount").value = savedSettings.courtCount;
+      if (savedSettings.tries) el("tries").value = savedSettings.tries;
+      el("allowShortfall").checked = savedSettings.allowShortfall ?? data.allowShortfall ?? el("allowShortfall").checked;
+      el("includeInProgressPlayers").checked = savedSettings.includeInProgressPlayers ?? data.includeInProgressPlayers ?? el("includeInProgressPlayers").checked;
+      localStorage.setItem("badminton_include_in_progress", el("includeInProgressPlayers").checked ? "1" : "0");
       el("blueWhiteMode").checked = state.teamMode;
       renderTeamAssignments();
       renderAdminRosterControls();
