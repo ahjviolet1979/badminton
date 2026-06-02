@@ -470,54 +470,6 @@
       background: #fbfcfa;
     }
 
-    .service-admin-panel {
-      margin-top: 12px;
-      padding: 10px;
-      border: 1px solid #bfdbfe;
-      border-radius: 8px;
-      background: #eff6ff;
-    }
-
-    .service-admin-panel[hidden] {
-      display: none;
-    }
-
-    .service-admin-panel h3 {
-      margin: 0 0 8px;
-      font-size: 13px;
-      color: #1e3a8a;
-    }
-
-    .service-admin-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-    }
-
-    .service-admin-grid input {
-      font-size: 12px;
-      padding: 9px 8px;
-    }
-
-    .service-admin-panel .button {
-      width: 100%;
-      justify-content: center;
-      margin-top: 6px;
-      min-height: 34px;
-      font-size: 12px;
-    }
-
-    .link-box {
-      margin-top: 8px;
-      display: grid;
-      gap: 5px;
-    }
-
-    .link-box input {
-      font-size: 11px;
-      padding: 8px;
-    }
-
     .manual-match-title {
       margin-bottom: 8px;
       font-size: 12px;
@@ -1529,21 +1481,6 @@
 
         <input id="supabaseEventId" list="adminEventOptions" type="hidden" value="main">
 
-        <div class="service-admin-panel" id="serviceAdminPanel" hidden>
-          <h3>대회 관리자 관리</h3>
-          <div class="service-admin-grid">
-            <input id="eventAdminLoginId" type="text" placeholder="접속 ID">
-            <input id="eventAdminPassword" type="text" placeholder="비밀번호">
-            <input id="eventAdminName" type="text" placeholder="관리자명">
-            <input id="eventAdminEventId" list="adminEventOptions" type="text" placeholder="연결 대회 ID">
-          </div>
-          <button class="button primary" id="saveEventAdminBtn" type="button">관리자 저장/대회 연결</button>
-          <div class="link-box">
-            <input id="viewerLinkText" type="text" placeholder="사용자 링크" readonly>
-            <input id="mobileLinkText" type="text" placeholder="모바일 링크" readonly>
-          </div>
-        </div>
-
         <div class="manual-match">
           <div class="manual-match-title">대진 수동추가</div>
           <div class="manual-match-grid">
@@ -1635,52 +1572,15 @@
     const el = id => document.getElementById(id);
     let supabaseClient = null;
     const config = window.BADMINTON_SUPABASE || {};
-    const adminSession = {
-      role: sessionStorage.getItem("badminton_admin_role") || "",
-      loginId: sessionStorage.getItem("badminton_admin_login_id") || "",
-      eventIds: JSON.parse(sessionStorage.getItem("badminton_admin_event_ids") || "[]")
-    };
-
-    function isSuperAdmin() {
-      return adminSession.role === "super_admin";
-    }
-
-    function saveAdminSession(role, loginId, eventIds = []) {
-      adminSession.role = role;
-      adminSession.loginId = loginId;
-      adminSession.eventIds = Array.isArray(eventIds) ? eventIds : [];
-      sessionStorage.setItem("badminton_admin_role", role);
-      sessionStorage.setItem("badminton_admin_login_id", loginId);
-      sessionStorage.setItem("badminton_admin_event_ids", JSON.stringify(adminSession.eventIds));
-    }
-
-    async function sha256(text) {
-      const bytes = new TextEncoder().encode(text);
-      const hash = await crypto.subtle.digest("SHA-256", bytes);
-      return [...new Uint8Array(hash)].map(value => value.toString(16).padStart(2, "0")).join("");
-    }
-
-    function buildEventLinks(eventId) {
-      const baseUrl = `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, "")}`;
-      const eventParam = encodeURIComponent(eventId || "");
-      return {
-        adminLink: `${baseUrl}badminton_scheduler.html?event=${eventParam}`,
-        viewerLink: `${baseUrl}badminton_viewer.html?event=${eventParam}`,
-        mobileLink: `${baseUrl}m.html?event=${eventParam}`
-      };
-    }
 
     function setupAdminLogin() {
       if (sessionStorage.getItem("badminton_admin_ok") === "1") {
-        if (!adminSession.role && config.adminId) saveAdminSession("super_admin", config.adminId, []);
         document.body.classList.remove("locked");
         const savedConfig = defaultCloudConfig();
-        const eventFromUrl = new URLSearchParams(window.location.search).get("event");
         el("supabaseUrl").value = savedConfig.url;
         el("supabaseAnonKey").value = savedConfig.anonKey;
-        el("supabaseEventId").value = eventFromUrl || savedConfig.eventId;
+        el("supabaseEventId").value = savedConfig.eventId;
         el("viewerAccessPassword").value = localStorage.getItem("badminton_viewer_password") || "";
-        renderServiceAdminPanel();
         window.setTimeout(async () => {
           const selectedEventId = await loadAdminEventOptions();
           if (selectedEventId) loadCloudData(true);
@@ -1698,10 +1598,8 @@
         const password = el("adminLoginPassword").value.trim();
         if (id === config.adminId && password === config.adminPassword) {
           sessionStorage.setItem("badminton_admin_ok", "1");
-          saveAdminSession("super_admin", id, []);
           document.body.classList.remove("locked");
           el("adminLoginPassword").value = "";
-          renderServiceAdminPanel();
           const selectedEventId = await loadAdminEventOptions();
           if (selectedEventId) {
             await loadCloudData(true);
@@ -1710,23 +1608,7 @@
             setMessage("관리자로 로그인했습니다. 기존 대회를 선택하거나 새 대회를 시작하세요.");
           }
         } else {
-          try {
-            const admin = await authenticateEventAdmin(id, password);
-            sessionStorage.setItem("badminton_admin_ok", "1");
-            saveAdminSession("event_admin", admin.login_id, admin.event_ids || []);
-            document.body.classList.remove("locked");
-            el("adminLoginPassword").value = "";
-            renderServiceAdminPanel();
-            const selectedEventId = await loadAdminEventOptions();
-            if (selectedEventId) {
-              await loadCloudData(true);
-              setMessage("대회관리자로 로그인했습니다. 배정된 대회만 표시됩니다.");
-            } else {
-              setMessage("배정된 대회가 없습니다. 서비스 관리자에게 대회 연결을 요청하세요.", true);
-            }
-          } catch (error) {
-            el("adminLoginError").textContent = "아이디 또는 비밀번호가 맞지 않습니다.";
-          }
+          el("adminLoginError").textContent = "아이디 또는 비밀번호가 맞지 않습니다.";
         }
       });
     }
@@ -2427,6 +2309,43 @@
     }
 
     function generateBlueWhiteSchedule(bluePlayers, whitePlayers, targetGames, courtCount, tries, seed) {
+      let bestResult = null;
+      let bestScore = Infinity;
+      const attempts = Math.max(8, Math.min(36, Math.ceil((Number(tries) || 1000) / 120)));
+      for (let attempt = 0; attempt < attempts; attempt++) {
+        const result = generateBlueWhiteScheduleOnce(bluePlayers, whitePlayers, targetGames, courtCount, seed + attempt * 9973);
+        const score = scoreBlueWhiteSchedule(result.schedule);
+        if (score < bestScore) {
+          bestScore = score;
+          bestResult = result;
+        }
+        if (score === 0) break;
+      }
+      return bestResult || generateBlueWhiteScheduleOnce(bluePlayers, whitePlayers, targetGames, courtCount, seed);
+    }
+
+    function scoreBlueWhiteSchedule(schedule) {
+      const partners = new Map();
+      const groups = new Map();
+      schedule.forEach(match => {
+        [match.teamA, match.teamB].forEach(pair => {
+          const key = keyOf(pair[0], pair[1]);
+          partners.set(key, (partners.get(key) || 0) + 1);
+        });
+        const gKey = groupKey([...match.teamA, ...match.teamB]);
+        groups.set(gKey, (groups.get(gKey) || 0) + 1);
+      });
+      let score = 0;
+      partners.forEach(count => {
+        if (count > 1) score += (count - 1) * 10000;
+      });
+      groups.forEach(count => {
+        if (count > 1) score += (count - 1) * 30000;
+      });
+      return score;
+    }
+
+    function generateBlueWhiteScheduleOnce(bluePlayers, whitePlayers, targetGames, courtCount, seed) {
       if (bluePlayers.length !== whitePlayers.length) {
         throw new Error("청팀과 백팀 인원을 맞춘 뒤 대진을 생성해야 합니다.");
       }
@@ -2471,9 +2390,14 @@
             const games = pair.map(p => ctx.games.get(p) || 0);
             return {
               max: Math.max(...games),
-              total: games.reduce((sum, value) => sum + value, 0)
+              total: games.reduce((sum, value) => sum + value, 0),
+              duplicate: ctx.partners.get(keyOf(pair[0], pair[1])) || 0
             };
           };
+          const minBlueDuplicate = Math.min(...bluePairs.map(pair => pairStats(pair).duplicate));
+          const minWhiteDuplicate = Math.min(...whitePairs.map(pair => pairStats(pair).duplicate));
+          bluePairs = bluePairs.filter(pair => pairStats(pair).duplicate === minBlueDuplicate);
+          whitePairs = whitePairs.filter(pair => pairStats(pair).duplicate === minWhiteDuplicate);
           const minBlueMax = Math.min(...bluePairs.map(pair => pairStats(pair).max));
           const minWhiteMax = Math.min(...whitePairs.map(pair => pairStats(pair).max));
           bluePairs = bluePairs.filter(pair => pairStats(pair).max === minBlueMax);
@@ -2491,8 +2415,8 @@
             for (const whitePair of shuffle(whitePairs, rand)) {
               const group = [...bluePair, ...whitePair];
               let score = evaluateBlueWhiteGroup(group, ctx, targetGames, roundUsed, rand, schedule.length + 1, idealRest);
-              score += (ctx.partners.get(keyOf(bluePair[0], bluePair[1])) || 0) * 260;
-              score += (ctx.partners.get(keyOf(whitePair[0], whitePair[1])) || 0) * 260;
+              score += (ctx.partners.get(keyOf(bluePair[0], bluePair[1])) || 0) * 20000;
+              score += (ctx.partners.get(keyOf(whitePair[0], whitePair[1])) || 0) * 20000;
               for (const blue of bluePair) {
                 for (const white of whitePair) {
                   score += (ctx.opponents.get(keyOf(blue, white)) || 0) * 26;
@@ -2614,88 +2538,6 @@
       return supabaseClient;
     }
 
-    async function authenticateEventAdmin(loginId, password) {
-      if (!loginId || !password) throw new Error("로그인 정보가 없습니다.");
-      const client = await getSupabaseClientForList();
-      const { data, error } = await client
-        .from("badminton_admin_users")
-        .select("login_id, password_hash, name, active, event_ids")
-        .eq("login_id", loginId)
-        .single();
-      if (error) throw error;
-      if (!data || data.active === false) throw new Error("비활성 관리자입니다.");
-      const inputHash = await sha256(password);
-      if (inputHash !== data.password_hash) throw new Error("비밀번호가 맞지 않습니다.");
-      return {
-        login_id: data.login_id,
-        name: data.name || data.login_id,
-        event_ids: Array.isArray(data.event_ids) ? data.event_ids : []
-      };
-    }
-
-    function renderServiceAdminPanel() {
-      const panel = el("serviceAdminPanel");
-      if (!panel) return;
-      panel.hidden = !isSuperAdmin();
-      updateCurrentEventLinks();
-    }
-
-    function updateCurrentEventLinks() {
-      const eventId = el("supabaseEventId")?.value.trim() || "";
-      const links = buildEventLinks(eventId);
-      if (el("viewerLinkText")) el("viewerLinkText").value = eventId ? links.viewerLink : "";
-      if (el("mobileLinkText")) el("mobileLinkText").value = eventId ? links.mobileLink : "";
-    }
-
-    async function saveEventAdminUser() {
-      if (!isSuperAdmin()) {
-        setMessage("서비스 관리자만 대회관리자를 생성할 수 있습니다.", true);
-        return;
-      }
-      const loginId = el("eventAdminLoginId").value.trim();
-      const password = el("eventAdminPassword").value.trim();
-      const name = el("eventAdminName").value.trim();
-      const eventId = el("eventAdminEventId").value.trim() || el("supabaseEventId").value.trim();
-      if (!loginId) {
-        window.alert("접속 ID를 입력하세요.");
-        return;
-      }
-      try {
-        const client = await getSupabaseClientForList();
-        const { data: existingRows, error: readError } = await client
-          .from("badminton_admin_users")
-          .select("login_id, password_hash, event_ids")
-          .eq("login_id", loginId)
-          .limit(1);
-        if (readError) throw readError;
-        const existing = (existingRows || [])[0];
-        const passwordHash = password ? await sha256(password) : existing?.password_hash;
-        if (!passwordHash) {
-          window.alert("새 관리자 생성 시 비밀번호를 입력하세요.");
-          return;
-        }
-        const eventIds = new Set(Array.isArray(existing?.event_ids) ? existing.event_ids : []);
-        if (eventId) eventIds.add(eventId);
-        const { error } = await client
-          .from("badminton_admin_users")
-          .upsert({
-            login_id: loginId,
-            password_hash: passwordHash,
-            name: name || loginId,
-            active: true,
-            event_ids: [...eventIds],
-            updated_at: new Date().toISOString()
-          });
-        if (error) throw error;
-        setMessage(eventId
-          ? `대회관리자 '${loginId}'를 저장하고 '${eventId}' 대회에 연결했습니다.`
-          : `대회관리자 '${loginId}'를 저장했습니다.`);
-        el("eventAdminPassword").value = "";
-      } catch (error) {
-        setMessage(`대회관리자 저장 실패: ${error.message}`, true);
-      }
-    }
-
     async function loadAdminEventOptions() {
       const select = el("tournamentSelect");
       if (select) {
@@ -2709,16 +2551,12 @@
           .order("updated_at", { ascending: false });
         if (error) throw error;
         const rows = data || [];
-        let visibleRows = rows.filter(row =>
+        const visibleRows = rows.filter(row =>
           row.id &&
           row.data &&
           row.data.ended !== true &&
           row.data.viewerPassword
         );
-        if (!isSuperAdmin()) {
-          const allowed = new Set(adminSession.eventIds || []);
-          visibleRows = visibleRows.filter(row => allowed.has(row.id));
-        }
         const labelForEvent = row => {
           const name = row.data?.eventId || row.id;
           if (row.data?.ended) return `${name} (종료)`;
@@ -2749,7 +2587,6 @@
         if (selectedEventId) {
           el("supabaseEventId").value = selectedEventId;
           localStorage.setItem("badminton_supabase_event_id", selectedEventId);
-          updateCurrentEventLinks();
         }
         if (document.body.classList.contains("locked") === false) {
           const activeCount = rows.filter(row => row.data?.ended !== true).length;
@@ -2774,16 +2611,11 @@
 
     function sharedPayload() {
       const isPublic = state.schedulePublic !== false;
-      const eventId = readCloudConfig().eventId;
-      const links = buildEventLinks(eventId);
       return {
         version: 1,
         updatedAt: new Date().toISOString(),
-        eventId,
+        eventId: readCloudConfig().eventId,
         viewerPassword: readCloudConfig().viewerPassword,
-        adminLink: links.adminLink,
-        viewerLink: links.viewerLink,
-        mobileLink: links.mobileLink,
         ended: false,
         players: state.players,
         schedule: state.schedule,
@@ -2893,15 +2725,8 @@
 
     function logoutAdmin() {
       sessionStorage.removeItem("badminton_admin_ok");
-      sessionStorage.removeItem("badminton_admin_role");
-      sessionStorage.removeItem("badminton_admin_login_id");
-      sessionStorage.removeItem("badminton_admin_event_ids");
-      adminSession.role = "";
-      adminSession.loginId = "";
-      adminSession.eventIds = [];
       document.body.classList.add("locked");
       el("adminLoginPassword").value = "";
-      renderServiceAdminPanel();
       setMessage("로그아웃했습니다.");
     }
 
@@ -2972,11 +2797,6 @@
     }
 
     async function startNewTournament() {
-      if (!isSuperAdmin()) {
-        window.alert("새 대회 생성은 서비스 관리자만 할 수 있습니다.");
-        setMessage("대회관리자는 배정된 대회만 운영할 수 있습니다.", true);
-        return;
-      }
       const eventId = window.prompt("새 대회 ID를 입력하세요. 예: 2026-spring");
       if (!eventId || !eventId.trim()) {
         setMessage("새 대회 생성을 취소했습니다.");
@@ -3016,12 +2836,10 @@
       el("players").value = "";
       el("supabaseEventId").value = nextEventId;
       el("viewerAccessPassword").value = viewerPassword.trim();
-      el("eventAdminEventId").value = nextEventId;
       localStorage.setItem("badminton_supabase_event_id", nextEventId);
       localStorage.setItem("badminton_viewer_password", viewerPassword.trim());
       renderAll(true);
       renderSchedulePublicButton();
-      updateCurrentEventLinks();
       saveCloudData(false);
       setMessage(`새 대회 '${nextEventId}'를 시작했습니다. 명단을 입력하고 대진을 생성하세요.`);
     }
@@ -4246,7 +4064,6 @@
       }
       el("supabaseEventId").value = nextEventId;
       localStorage.setItem("badminton_supabase_event_id", nextEventId);
-      updateCurrentEventLinks();
       await loadCloudData(false);
     });
     el("generateBtn").addEventListener("click", generate);
@@ -4263,7 +4080,6 @@
     el("printBtn").addEventListener("click", () => window.print());
     el("newTournamentBtn").addEventListener("click", startNewTournament);
     el("saveCloudBtn").addEventListener("click", () => saveCloudData(false));
-    el("saveEventAdminBtn").addEventListener("click", saveEventAdminUser);
     el("togglePublicBtn").addEventListener("click", async () => {
       state.schedulePublic = state.schedulePublic === false;
       renderSchedulePublicButton();
