@@ -1595,14 +1595,25 @@
       return getAdminSession()?.role === "super_admin";
     }
 
+    function normalizeUserRole(role) {
+      const value = String(role || "").trim();
+      if (value === "super_admin" || value === "슈퍼어드민") return "super_admin";
+      if (value === "tournament_admin" || value === "대회관리자") return "tournament_admin";
+      return "viewer";
+    }
+
+    function isActiveUserStatus(status) {
+      const value = String(status || "active").trim();
+      return value === "active" || value === "사용중";
+    }
+
     async function authenticateAdminUser(id, password) {
       const client = await getSupabaseClientForList();
       const { data, error } = await client
         .from("badminton_user_contracts")
         .select("user_id,user_password,user_role,user_name,event_id,status")
         .eq("user_id", id)
-        .eq("user_password", password)
-        .in("user_role", ["super_admin", "tournament_admin"]);
+        .eq("user_password", password);
       if (error) {
         if (String(error.message || "").includes("user_password") || String(error.message || "").includes("user_role")) {
           throw new Error("사용자테이블 컬럼이 아직 반영되지 않았습니다. supabase_setup.sql을 Supabase SQL Editor에서 다시 실행하세요.");
@@ -1613,10 +1624,12 @@
         throw error;
       }
 
-      const rows = (data || []).filter(row => (row.status || "active") === "active");
+      const rows = (data || [])
+        .map(row => ({ ...row, normalizedRole: normalizeUserRole(row.user_role) }))
+        .filter(row => isActiveUserStatus(row.status) && ["super_admin", "tournament_admin"].includes(row.normalizedRole));
       if (!rows.length) return null;
 
-      const superRow = rows.find(row => row.user_role === "super_admin");
+      const superRow = rows.find(row => row.normalizedRole === "super_admin");
       if (superRow) {
         return {
           id,
@@ -1630,7 +1643,7 @@
         id,
         name: rows[0].user_name || id,
         role: "tournament_admin",
-        eventIds: [...new Set(rows.map(row => row.event_id).filter(Boolean))]
+        eventIds: [...new Set(rows.map(row => row.event_id).filter(eventId => eventId && eventId !== "*"))]
       };
     }
 
