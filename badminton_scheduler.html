@@ -1603,7 +1603,15 @@
         .eq("user_id", id)
         .eq("user_password", password)
         .in("user_role", ["super_admin", "tournament_admin"]);
-      if (error) throw error;
+      if (error) {
+        if (String(error.message || "").includes("user_password") || String(error.message || "").includes("user_role")) {
+          throw new Error("사용자테이블 컬럼이 아직 반영되지 않았습니다. supabase_setup.sql을 Supabase SQL Editor에서 다시 실행하세요.");
+        }
+        if (String(error.message || "").includes("badminton_user_contracts")) {
+          throw new Error("사용자테이블이 없습니다. supabase_setup.sql을 Supabase SQL Editor에서 먼저 실행하세요.");
+        }
+        throw error;
+      }
 
       const rows = (data || []).filter(row => (row.status || "active") === "active");
       if (!rows.length) return null;
