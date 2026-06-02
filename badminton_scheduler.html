@@ -1573,8 +1573,62 @@
     let supabaseClient = null;
     const config = window.BADMINTON_SUPABASE || {};
 
+    function getAdminSession() {
+      try {
+        return JSON.parse(sessionStorage.getItem("badminton_admin_user") || "null");
+      } catch (error) {
+        return null;
+      }
+    }
+
+    function setAdminSession(user) {
+      sessionStorage.setItem("badminton_admin_ok", "1");
+      sessionStorage.setItem("badminton_admin_user", JSON.stringify(user));
+    }
+
+    function clearAdminSession() {
+      sessionStorage.removeItem("badminton_admin_ok");
+      sessionStorage.removeItem("badminton_admin_user");
+    }
+
+    function isSuperAdmin() {
+      return getAdminSession()?.role === "super_admin";
+    }
+
+    async function authenticateAdminUser(id, password) {
+      const client = await getSupabaseClientForList();
+      const { data, error } = await client
+        .from("badminton_user_contracts")
+        .select("user_id,user_password,user_role,user_name,event_id,status")
+        .eq("user_id", id)
+        .eq("user_password", password)
+        .in("user_role", ["super_admin", "tournament_admin"]);
+      if (error) throw error;
+
+      const rows = (data || []).filter(row => (row.status || "active") === "active");
+      if (!rows.length) return null;
+
+      const superRow = rows.find(row => row.user_role === "super_admin");
+      if (superRow) {
+        return {
+          id,
+          name: superRow.user_name || id,
+          role: "super_admin",
+          eventIds: []
+        };
+      }
+
+      return {
+        id,
+        name: rows[0].user_name || id,
+        role: "tournament_admin",
+        eventIds: [...new Set(rows.map(row => row.event_id).filter(Boolean))]
+      };
+    }
+
     function setupAdminLogin() {
-      if (sessionStorage.getItem("badminton_admin_ok") === "1") {
+      const savedAdmin = getAdminSession();
+      if (sessionStorage.getItem("badminton_admin_ok") === "1" && savedAdmin) {
         document.body.classList.remove("locked");
         const savedConfig = defaultCloudConfig();
         el("supabaseUrl").value = savedConfig.url;
@@ -1587,28 +1641,35 @@
         }, 0);
         return;
       }
-      el("adminLoginId").value = config.adminId || "";
+      clearAdminSession();
+      el("adminLoginId").value = "";
       el("adminLoginForm").addEventListener("submit", async event => {
         event.preventDefault();
-        if (!config.adminId || !config.adminPassword) {
-          el("adminLoginError").textContent = "관리자 로그인 설정이 없습니다. supabase_config.js를 확인하세요.";
-          return;
-        }
         const id = el("adminLoginId").value.trim();
         const password = el("adminLoginPassword").value.trim();
-        if (id === config.adminId && password === config.adminPassword) {
-          sessionStorage.setItem("badminton_admin_ok", "1");
+        if (!id || !password) {
+          el("adminLoginError").textContent = "아이디와 비밀번호를 입력하세요.";
+          return;
+        }
+        try {
+          const adminUser = await authenticateAdminUser(id, password);
+          if (!adminUser) {
+            el("adminLoginError").textContent = "아이디 또는 비밀번호가 맞지 않거나 관리자 권한이 없습니다.";
+            return;
+          }
+          setAdminSession(adminUser);
           document.body.classList.remove("locked");
           el("adminLoginPassword").value = "";
           const selectedEventId = await loadAdminEventOptions();
           if (selectedEventId) {
             await loadCloudData(true);
-            setMessage("관리자로 로그인했습니다. 선택된 대회 데이터를 불러왔습니다.");
+            const roleText = adminUser.role === "super_admin" ? "슈퍼어드민" : "대회관리자";
+            setMessage(`${roleText}로 로그인했습니다. 선택된 대회 데이터를 불러왔습니다.`);
           } else {
-            setMessage("관리자로 로그인했습니다. 기존 대회를 선택하거나 새 대회를 시작하세요.");
+            setMessage("관리자로 로그인했습니다. 연결된 대회가 없습니다.");
           }
-        } else {
-          el("adminLoginError").textContent = "아이디 또는 비밀번호가 맞지 않습니다.";
+        } catch (error) {
+          el("adminLoginError").textContent = `로그인 확인 실패: ${error.message}`;
         }
       });
     }
@@ -2551,14 +2612,16 @@
           .order("updated_at", { ascending: false });
         if (error) throw error;
         const rows = data || [];
+        const adminUser = getAdminSession();
+        const allowedEventIds = new Set(adminUser?.eventIds || []);
         const visibleRows = rows.filter(row =>
           row.id &&
           row.data &&
-          row.data.ended !== true &&
-          row.data.viewerPassword
+          (adminUser?.role === "super_admin" || allowedEventIds.has(row.id))
         );
         const labelForEvent = row => {
           const name = row.data?.eventId || row.id;
+          if (row.data?.deleted || row.data?.isDeleted || row.data?.status === "deleted") return `${name} (삭제)`;
           if (row.data?.ended) return `${name} (종료)`;
           if (!row.data?.viewerPassword) return `${name} (비번 없음)`;
           return name;
@@ -2568,12 +2631,20 @@
           return `<option value="${row.id}" label="${label}"></option>`;
         }).join("");
         const currentEventId = el("supabaseEventId").value || localStorage.getItem("badminton_supabase_event_id") || "";
+        const defaultRows = visibleRows.filter(row =>
+          row.data?.ended !== true &&
+          !row.data?.deleted &&
+          !row.data?.isDeleted &&
+          row.data?.status !== "deleted" &&
+          row.data?.viewerPassword
+        );
         const selectedEventId = visibleRows.find(row => row.id === currentEventId)?.id
+          || defaultRows[0]?.id
           || visibleRows[0]?.id
           || "";
         if (select) {
           if (!visibleRows.length) {
-            select.innerHTML = `<option value="">진행 중인 공개 대회가 없습니다</option>`;
+            select.innerHTML = `<option value="">대회가 없습니다</option>`;
             el("supabaseEventId").value = "";
           } else {
             select.innerHTML = `<option value="">대회 선택</option>` + visibleRows.map(row => {
@@ -2589,11 +2660,13 @@
           localStorage.setItem("badminton_supabase_event_id", selectedEventId);
         }
         if (document.body.classList.contains("locked") === false) {
-          const activeCount = rows.filter(row => row.data?.ended !== true).length;
-          const endedCount = rows.length - activeCount;
-          const visibleCount = rows.filter(row => row.data?.ended !== true && row.data?.viewerPassword).length;
+          const countRows = adminUser?.role === "super_admin" ? rows : visibleRows;
+          const deletedCount = countRows.filter(row => row.data?.deleted || row.data?.isDeleted || row.data?.status === "deleted").length;
+          const endedCount = countRows.filter(row => row.data?.ended === true).length;
+          const activeCount = countRows.length - endedCount - deletedCount;
+          const visibleCount = countRows.filter(row => row.data?.ended !== true && !row.data?.deleted && !row.data?.isDeleted && row.data?.status !== "deleted" && row.data?.viewerPassword).length;
           const missingPasswordCount = activeCount - visibleCount;
-          setMessage(rows.length ? `대회 목록 ${rows.length}개를 불러왔습니다. 진행중 ${activeCount}개, 사용자 표시 ${visibleCount}개, 비번 없음 ${missingPasswordCount}개, 종료 ${endedCount}개입니다.` : "생성된 대회가 없습니다.");
+          setMessage(countRows.length ? `대회 목록 ${countRows.length}개를 불러왔습니다. 진행중 ${activeCount}개, 사용자 표시 ${visibleCount}개, 비번 없음 ${missingPasswordCount}개, 종료 ${endedCount}개, 삭제 ${deletedCount}개입니다.` : "생성된 대회가 없습니다.");
         }
         return selectedEventId;
       } catch (error) {
@@ -2724,7 +2797,7 @@
     }
 
     function logoutAdmin() {
-      sessionStorage.removeItem("badminton_admin_ok");
+      clearAdminSession();
       document.body.classList.add("locked");
       el("adminLoginPassword").value = "";
       setMessage("로그아웃했습니다.");
