@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>배드민턴 사용자 관리</title>
+  <script src="supabase_config.js"></script>
+  <style>
+    :root {
+      --bg: #f6f7f3;
+      --panel: #ffffff;
+      --ink: #17211b;
+      --muted: #657269;
+      --line: #dce3db;
+      --accent: #047857;
+      --accent-dark: #065f46;
+      --danger: #dc2626;
+      --shadow: 0 12px 28px rgba(23, 33, 27, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Segoe UI", "Malgun Gothic", Arial, sans-serif;
+      background:
+        linear-gradient(120deg, rgba(4, 120, 87, 0.08), transparent 38%),
+        linear-gradient(300deg, rgba(37, 99, 235, 0.07), transparent 40%),
+        var(--bg);
+      color: var(--ink);
+    }
+
+    button, input, select, textarea {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1360px, 100%);
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+    }
+
+    .panel h2 {
+      margin: 0 0 14px;
+      font-size: 18px;
+    }
+
+    label {
+      display: block;
+      margin: 11px 0 6px;
+      color: #304139;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 11px;
+      background: #fbfcfa;
+      color: var(--ink);
+    }
+
+    textarea {
+      min-height: 72px;
+      resize: vertical;
+      line-height: 1.45;
+    }
+
+    .two-cols {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .two-cols > div {
+      min-width: 0;
+    }
+
+    input[type="date"] {
+      min-width: 0;
+      padding-left: 8px;
+      padding-right: 4px;
+      font-size: 13px;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .button {
+      border: 0;
+      border-radius: 8px;
+      min-height: 40px;
+      padding: 0 13px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      background: #e8eee9;
+      color: var(--ink);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .button.primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .button.danger {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .button.small {
+      min-height: 30px;
+      padding: 0 9px;
+      font-size: 12px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      margin-bottom: 12px;
+    }
+
+    .toolbar input {
+      width: min(320px, 100%);
+      background: #fff;
+    }
+
+    .tablewrap {
+      width: 100%;
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+      background: #fff;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      padding: 10px 9px;
+      text-align: left;
+      vertical-align: middle;
+      font-size: 13px;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #eef5ef;
+      color: #25352b;
+      font-weight: 900;
+    }
+
+    tr:last-child td { border-bottom: 0; }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 2px 9px;
+      font-size: 12px;
+      font-weight: 900;
+      background: #eef2ff;
+      color: #1d4ed8;
+    }
+
+    .status.paused {
+      background: #fff7ed;
+      color: #b45309;
+    }
+
+    .status.ended {
+      background: #f3f4f6;
+      color: #4b5563;
+    }
+
+    .muted {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .notice {
+      margin-top: 12px;
+      padding: 11px 12px;
+      border-radius: 8px;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      color: #475569;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    @media (max-width: 980px) {
+      .app { padding: 14px; }
+      header { align-items: start; flex-direction: column; }
+      .layout { grid-template-columns: 1fr; }
+      .toolbar { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <div>
+        <h1>사용자 관리</h1>
+        <p class="subtitle">대회 운영자와 대회 정보를 분리해서 등록하고 사용자 접속 링크를 관리합니다.</p>
+      </div>
+      <button class="button" id="reloadBtn" type="button">목록 새로고침</button>
+    </header>
+
+    <div class="layout">
+      <section class="panel">
+        <h2>사용자 등록</h2>
+        <input id="recordId" type="hidden">
+
+        <label for="userId">사용자 ID</label>
+        <input id="userId" type="text" placeholder="예: club_a_admin">
+
+        <label for="userName">사용자명 / 단체명</label>
+        <input id="userName" type="text" placeholder="예: 여배우 배드민턴">
+
+        <div class="two-cols">
+          <div>
+            <label for="eventId">대회 ID</label>
+            <input id="eventId" type="text" list="eventIdOptions" placeholder="예: club-a-260606">
+            <datalist id="eventIdOptions"></datalist>
+          </div>
+          <div>
+            <label for="eventName">대회명</label>
+            <input id="eventName" type="text" placeholder="예: 260606 정모">
+          </div>
+        </div>
+
+        <div class="two-cols">
+          <div>
+            <label for="dateFrom">사용기간 FROM</label>
+            <input id="dateFrom" type="date">
+          </div>
+          <div>
+            <label for="dateTo">사용기간 TO</label>
+            <input id="dateTo" type="date">
+          </div>
+        </div>
+
+        <label for="viewerUrl">사용자 사이트 URL</label>
+        <input id="viewerUrl" type="url" placeholder="대회 ID 입력 시 자동 생성">
+
+        <label for="mobileUrl">모바일 사이트 URL</label>
+        <input id="mobileUrl" type="url" placeholder="대회 ID 입력 시 자동 생성">
+
+        <div class="two-cols">
+          <div>
+            <label for="viewerPassword">사용자 비밀번호</label>
+            <input id="viewerPassword" type="text" placeholder="참가자 접속 비번">
+          </div>
+          <div>
+            <label for="status">상태</label>
+            <select id="status">
+              <option value="active">사용중</option>
+              <option value="paused">일시중지</option>
+              <option value="ended">종료</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="memo">메모</label>
+        <textarea id="memo" placeholder="요금, 연락처, 특이사항 등을 기록하세요."></textarea>
+
+        <div class="button-row">
+          <button class="button primary" id="saveBtn" type="button">저장</button>
+          <button class="button" id="resetBtn" type="button">초기화</button>
+        </div>
+
+        <div class="notice" id="message">사용자 ID와 대회 ID는 필수입니다.</div>
+      </section>
+
+      <section class="panel">
+        <h2>등록 사용자 목록</h2>
+        <div class="toolbar">
+          <input id="searchInput" type="search" placeholder="사용자ID, 대회ID, 대회명 검색">
+        </div>
+        <div class="tablewrap">
+          <table>
+            <thead>
+              <tr>
+                <th>사용자 ID</th>
+                <th>대회 ID</th>
+                <th>대회명</th>
+                <th>사용기간</th>
+                <th>상태</th>
+                <th>사용자 URL</th>
+                <th>관리</th>
+              </tr>
+            </thead>
+            <tbody id="userRows">
+              <tr><td colspan="7" class="muted">등록된 사용자를 불러오는 중입니다.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const el = id => document.getElementById(id);
+    const config = window.BADMINTON_SUPABASE || {};
+    let supabaseClient = null;
+    let records = [];
+    let eventOptions = [];
+
+    function setMessage(text, isWarning = false) {
+      el("message").textContent = text;
+      el("message").style.borderColor = isWarning ? "#f59e0b" : "#cbd5e1";
+      el("message").style.background = isWarning ? "#fffbeb" : "#f8fafc";
+      el("message").style.color = isWarning ? "#92400e" : "#475569";
+    }
+
+    function baseUrl() {
+      return `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, "")}`;
+    }
+
+    function buildUrls(eventId) {
+      const encoded = encodeURIComponent(eventId || "");
+      return {
+        viewerUrl: `${baseUrl()}badminton_viewer.html?event=${encoded}`,
+        mobileUrl: `${baseUrl()}m.html?event=${encoded}`
+      };
+    }
+
+    function getEventPayload(row) {
+      return row && typeof row.data === "object" && row.data ? row.data : {};
+    }
+
+    function eventDisplayName(row) {
+      const data = getEventPayload(row);
+      return data.eventName || data.eventTitle || data.eventId || row.id || "";
+    }
+
+    function applySelectedEvent() {
+      const eventId = el("eventId").value.trim();
+      if (!eventId) return;
+
+      const urls = buildUrls(eventId);
+      el("viewerUrl").value = urls.viewerUrl;
+      el("mobileUrl").value = urls.mobileUrl;
+
+      const selected = eventOptions.find(row => row.id === eventId);
+      if (!selected) return;
+
+      const data = getEventPayload(selected);
+      const name = eventDisplayName(selected);
+      if (name && !el("eventName").value.trim()) el("eventName").value = name;
+      if (data.viewerPassword && !el("viewerPassword").value.trim()) {
+        el("viewerPassword").value = data.viewerPassword;
+      }
+    }
+
+    async function client() {
+      if (!config.url || !config.anonKey) throw new Error("supabase_config.js 설정이 필요합니다.");
+      if (!supabaseClient) {
+        const { createClient } = await import("https://esm.sh/@supabase/supabase-js@2");
+        supabaseClient = createClient(config.url, config.anonKey);
+      }
+      return supabaseClient;
+    }
+
+    function formData() {
+      const eventId = el("eventId").value.trim();
+      const urls = buildUrls(eventId);
+      return {
+        id: el("recordId").value || `${el("userId").value.trim()}__${eventId}`,
+        user_id: el("userId").value.trim(),
+        user_name: el("userName").value.trim(),
+        event_id: eventId,
+        event_name: el("eventName").value.trim(),
+        date_from: el("dateFrom").value || null,
+        date_to: el("dateTo").value || null,
+        viewer_url: el("viewerUrl").value.trim() || urls.viewerUrl,
+        mobile_url: el("mobileUrl").value.trim() || urls.mobileUrl,
+        viewer_password: el("viewerPassword").value.trim(),
+        status: el("status").value,
+        memo: el("memo").value.trim(),
+        updated_at: new Date().toISOString()
+      };
+    }
+
+    function fillForm(row) {
+      el("recordId").value = row.id || "";
+      el("userId").value = row.user_id || "";
+      el("userName").value = row.user_name || "";
+      el("eventId").value = row.event_id || "";
+      el("eventName").value = row.event_name || "";
+      el("dateFrom").value = row.date_from || "";
+      el("dateTo").value = row.date_to || "";
+      el("viewerUrl").value = row.viewer_url || "";
+      el("mobileUrl").value = row.mobile_url || "";
+      el("viewerPassword").value = row.viewer_password || "";
+      el("status").value = row.status || "active";
+      el("memo").value = row.memo || "";
+      setMessage(`${row.user_id || ""} / ${row.event_id || ""} 정보를 수정 중입니다.`);
+    }
+
+    function resetForm() {
+      ["recordId", "userId", "userName", "eventId", "eventName", "dateFrom", "dateTo", "viewerUrl", "mobileUrl", "viewerPassword", "memo"].forEach(id => el(id).value = "");
+      el("status").value = "active";
+      setMessage("입력값을 초기화했습니다.");
+    }
+
+    async function saveRecord() {
+      const data = formData();
+      if (!data.user_id || !data.event_id) {
+        setMessage("사용자 ID와 대회 ID를 입력하세요.", true);
+        return;
+      }
+      try {
+        const sb = await client();
+        const { error } = await sb.from("badminton_user_contracts").upsert(data);
+        if (error) throw error;
+        setMessage("사용자 정보를 저장했습니다.");
+        await loadRecords();
+      } catch (error) {
+        setMessage(`저장 실패: ${error.message}`, true);
+      }
+    }
+
+    async function deleteRecord(id) {
+      if (!window.confirm("선택한 사용자 정보를 삭제하시겠습니까?")) return;
+      try {
+        const sb = await client();
+        const { error } = await sb.from("badminton_user_contracts").delete().eq("id", id);
+        if (error) throw error;
+        setMessage("사용자 정보를 삭제했습니다.", true);
+        resetForm();
+        await loadRecords();
+      } catch (error) {
+        setMessage(`삭제 실패: ${error.message}`, true);
+      }
+    }
+
+    function statusLabel(status) {
+      if (status === "paused") return "일시중지";
+      if (status === "ended") return "종료";
+      return "사용중";
+    }
+
+    function renderRows() {
+      const search = el("searchInput").value.trim().toLowerCase();
+      const rows = search
+        ? records.filter(row => [row.user_id, row.user_name, row.event_id, row.event_name].some(value => String(value || "").toLowerCase().includes(search)))
+        : records;
+      el("userRows").innerHTML = rows.length ? rows.map(row => `
+        <tr>
+          <td><b>${row.user_id || ""}</b><br><span class="muted">${row.user_name || ""}</span></td>
+          <td>${row.event_id || ""}</td>
+          <td>${row.event_name || ""}</td>
+          <td>${row.date_from || "-"} ~ ${row.date_to || "-"}</td>
+          <td><span class="status ${row.status || "active"}">${statusLabel(row.status)}</span></td>
+          <td><a href="${row.viewer_url || "#"}" target="_blank">사용자</a> · <a href="${row.mobile_url || "#"}" target="_blank">모바일</a></td>
+          <td>
+            <button class="button small" type="button" data-action="edit" data-id="${row.id}">수정</button>
+            <button class="button small danger" type="button" data-action="delete" data-id="${row.id}">삭제</button>
+          </td>
+        </tr>
+      `).join("") : `<tr><td colspan="7" class="muted">등록된 사용자가 없습니다.</td></tr>`;
+
+      el("userRows").querySelectorAll("button[data-action]").forEach(button => {
+        button.addEventListener("click", () => {
+          const row = records.find(item => item.id === button.dataset.id);
+          if (!row) return;
+          if (button.dataset.action === "edit") fillForm(row);
+          if (button.dataset.action === "delete") deleteRecord(row.id);
+        });
+      });
+    }
+
+    async function loadRecords() {
+      try {
+        const sb = await client();
+        const { data, error } = await sb
+          .from("badminton_user_contracts")
+          .select("*")
+          .order("updated_at", { ascending: false });
+        if (error) throw error;
+        records = data || [];
+        renderRows();
+        setMessage(`등록 사용자 ${records.length}건을 불러왔습니다.`);
+      } catch (error) {
+        el("userRows").innerHTML = `<tr><td colspan="7" class="muted">목록 불러오기 실패: ${error.message}</td></tr>`;
+        setMessage(`목록 불러오기 실패: ${error.message}`, true);
+      }
+    }
+
+    async function loadEventOptions() {
+      try {
+        const sb = await client();
+        const { data, error } = await sb
+          .from("badminton_events")
+          .select("id,data,updated_at")
+          .order("updated_at", { ascending: false });
+        if (error) throw error;
+
+        eventOptions = data || [];
+        el("eventIdOptions").innerHTML = eventOptions.map(row => {
+          const id = String(row.id || "");
+          const label = eventDisplayName(row);
+          const optionLabel = label && label !== id ? `${label} (${id})` : id;
+          return `<option value="${id}" label="${optionLabel}"></option>`;
+        }).join("");
+      } catch (error) {
+        setMessage(`대회 목록 불러오기 실패: ${error.message}`, true);
+      }
+    }
+
+    el("eventId").addEventListener("input", () => {
+      applySelectedEvent();
+    });
+    el("eventId").addEventListener("change", applySelectedEvent);
+    el("saveBtn").addEventListener("click", saveRecord);
+    el("resetBtn").addEventListener("click", resetForm);
+    el("reloadBtn").addEventListener("click", async () => {
+      await loadEventOptions();
+      await loadRecords();
+    });
+    el("searchInput").addEventListener("input", renderRows);
+
+    (async () => {
+      await loadEventOptions();
+      await loadRecords();
+    })();
+  </script>
+</body>
+</html>
