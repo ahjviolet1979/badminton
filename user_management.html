@@ -439,16 +439,20 @@
     }
 
     function formData() {
-      const eventId = el("eventId").value.trim();
-      const urls = buildUrls(eventId);
+      const role = el("userRole").value;
+      const rawEventId = el("eventId").value.trim();
+      const eventId = rawEventId || "*";
+      const urls = rawEventId ? buildUrls(rawEventId) : { viewerUrl: "", mobileUrl: "" };
+      const recordId = el("recordId").value
+        || `${el("userId").value.trim()}__${role === "tournament_admin" ? eventId : role}`;
       return {
-        id: el("recordId").value || `${el("userId").value.trim()}__${eventId}`,
+        id: recordId,
         user_id: el("userId").value.trim(),
         user_password: el("userPassword").value.trim(),
-        user_role: el("userRole").value,
+        user_role: role,
         user_name: el("userName").value.trim(),
         event_id: eventId,
-        event_name: el("eventName").value.trim(),
+        event_name: el("eventName").value.trim() || (role === "super_admin" ? "전체 대회 관리" : ""),
         date_from: el("dateFrom").value || null,
         date_to: el("dateTo").value || null,
         viewer_url: el("viewerUrl").value.trim() || urls.viewerUrl,
@@ -466,8 +470,8 @@
       el("userPassword").value = row.user_password || "";
       el("userRole").value = row.user_role || "tournament_admin";
       el("userName").value = row.user_name || "";
-      el("eventId").value = row.event_id || "";
-      el("eventName").value = row.event_name || "";
+      el("eventId").value = row.event_id === "*" ? "" : row.event_id || "";
+      el("eventName").value = row.event_id === "*" ? "" : row.event_name || "";
       el("dateFrom").value = row.date_from || "";
       el("dateTo").value = row.date_to || "";
       el("viewerUrl").value = row.viewer_url || "";
@@ -487,8 +491,13 @@
 
     async function saveRecord() {
       const data = formData();
-      if (!data.user_id || !data.user_password || !data.event_id) {
-        setMessage("사용자 ID, ID 비밀번호, 대회 ID를 입력하세요.", true);
+      const rawEventId = el("eventId").value.trim();
+      if (!data.user_id || !data.user_password) {
+        setMessage("사용자 ID와 ID 비밀번호를 입력하세요.", true);
+        return;
+      }
+      if (data.user_role === "tournament_admin" && !rawEventId) {
+        setMessage("대회관리자는 연결할 대회 ID를 입력하세요.", true);
         return;
       }
       try {
@@ -538,8 +547,8 @@
           <td><b>${row.user_id || ""}</b><br><span class="muted">${row.user_name || ""}</span></td>
           <td>${row.user_password || ""}</td>
           <td>${roleLabel(row.user_role)}</td>
-          <td>${row.event_id || ""}</td>
-          <td>${row.event_name || ""}</td>
+          <td>${row.event_id === "*" ? "" : row.event_id || ""}</td>
+          <td>${row.event_id === "*" ? "" : row.event_name || ""}</td>
           <td>${row.date_from || "-"} ~ ${row.date_to || "-"}</td>
           <td><span class="status ${row.status || "active"}">${statusLabel(row.status)}</span></td>
           <td><a href="${row.viewer_url || "#"}" target="_blank">사용자</a> · <a href="${row.mobile_url || "#"}" target="_blank">모바일</a></td>

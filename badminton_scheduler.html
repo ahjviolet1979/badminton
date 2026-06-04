@@ -1597,8 +1597,9 @@
 
     function normalizeUserRole(role) {
       const value = String(role || "").trim();
-      if (value === "super_admin" || value === "슈퍼어드민") return "super_admin";
-      if (value === "tournament_admin" || value === "대회관리자") return "tournament_admin";
+      const compact = value.replace(/[\s_-]/g, "").toLowerCase();
+      if (value === "super_admin" || value === "슈퍼어드민" || compact === "superadmin") return "super_admin";
+      if (value === "tournament_admin" || value === "대회관리자" || compact === "tournamentadmin") return "tournament_admin";
       return "viewer";
     }
 
