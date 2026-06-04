@@ -172,6 +172,26 @@
       background: #fff;
     }
 
+    .icon-button {
+      width: 40px;
+      min-height: 40px;
+      padding: 0;
+      border-radius: 8px;
+    }
+
+    .icon-button svg {
+      width: 18px;
+      height: 18px;
+      stroke-width: 2.4;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
     .tablewrap {
       width: 100%;
       overflow: auto;
@@ -259,7 +279,9 @@
         <h1>사용자 관리</h1>
         <p class="subtitle">대회 운영자와 대회 정보를 분리해서 등록하고 사용자 접속 링크를 관리합니다.</p>
       </div>
-      <button class="button" id="reloadBtn" type="button">목록 새로고침</button>
+      <div class="header-actions">
+        <button class="button danger" id="logoutBtn" type="button">로그아웃</button>
+      </div>
     </header>
 
     <div class="layout">
@@ -347,6 +369,9 @@
         <h2>등록 사용자 목록</h2>
         <div class="toolbar">
           <input id="searchInput" type="search" placeholder="사용자ID, 대회ID, 대회명 검색">
+          <button class="button icon-button" id="reloadBtn" type="button" title="목록 새로고침" aria-label="목록 새로고침">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+          </button>
         </div>
         <div class="tablewrap">
           <table>
@@ -607,6 +632,12 @@
       }
     }
 
+    function logout() {
+      sessionStorage.removeItem("badminton_admin_ok");
+      sessionStorage.removeItem("badminton_admin_user");
+      window.location.href = "badminton_scheduler.html";
+    }
+
     el("eventId").addEventListener("input", () => {
       applySelectedEvent();
     });
@@ -617,6 +648,7 @@
       await loadEventOptions();
       await loadRecords();
     });
+    el("logoutBtn").addEventListener("click", logout);
     el("searchInput").addEventListener("input", renderRows);
 
     (async () => {

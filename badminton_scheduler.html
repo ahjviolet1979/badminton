@@ -212,6 +212,22 @@
       flex: 0 0 auto;
     }
 
+    .admin-session-info {
+      margin: -4px 0 12px;
+      padding: 8px 10px;
+      border: 1px solid rgba(4, 120, 87, 0.18);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.54);
+      color: #304139;
+      font-size: 13px;
+      font-weight: 800;
+      line-height: 1.35;
+    }
+
+    .admin-session-info .role {
+      color: var(--accent-dark);
+    }
+
     .mode-tabs {
       display: inline-flex;
       align-items: center;
@@ -1424,6 +1440,7 @@
             <button class="mode-tab active" data-admin-mode="tournament" type="button">대회모드</button>
           </div>
         </div>
+        <div class="admin-session-info" id="adminSessionInfo">접속 아이디: -</div>
         <label for="players">출전 선수 명단</label>
         <div class="player-list-actions">
           <button class="button" id="togglePlayersBtn" type="button">명단 숨기기</button>
@@ -1672,7 +1689,7 @@
       const value = String(role || "").trim();
       const compact = value.replace(/[\s_-]/g, "").toLowerCase();
       if (value === "super_admin" || value === "슈퍼어드민" || compact === "superadmin") return "super_admin";
-      if (value === "tournament_admin" || value === "대회관리자" || compact === "tournamentadmin") return "tournament_admin";
+      if (value === "tournament_admin" || value === "대회관리자" || value === "일반관리자" || compact === "tournamentadmin" || compact === "generaladmin") return "tournament_admin";
       return "viewer";
     }
 
@@ -1690,8 +1707,7 @@
       return String(value || "").slice(0, 10);
     }
 
-    function isWithinUsagePeriod(row) {
-      const today = todayKoreanDateText();
+    function isTodayWithinUsagePeriod(row, today = todayKoreanDateText()) {
       const from = dateOnly(row.date_from);
       const to = dateOnly(row.date_to);
       if (from && today < from) return false;
@@ -1747,8 +1763,13 @@
         };
       }
 
-      const tournamentRowsForLoginId = rows.filter(row => row.normalizedRole === "tournament_admin");
-      const validPeriodRows = tournamentRowsForLoginId.filter(row => isWithinUsagePeriod(row));
+      const today = todayKoreanDateText();
+      const loginIdKey = id.trim().toLowerCase();
+      const tournamentRowsForLoginId = rows.filter(row =>
+        row.normalizedRole === "tournament_admin" &&
+        String(row.user_id || "").trim().toLowerCase() === loginIdKey
+      );
+      const validPeriodRows = tournamentRowsForLoginId.filter(row => isTodayWithinUsagePeriod(row, today));
       if (tournamentRowsForLoginId.length && !validPeriodRows.length) {
         throw new Error("사용기간이 지났습니다.");
       }
@@ -1770,6 +1791,7 @@
       const savedAdmin = getAdminSession();
       if (sessionStorage.getItem("badminton_admin_ok") === "1" && savedAdmin) {
         document.body.classList.remove("locked");
+        renderAdminAccessControls();
         const savedConfig = defaultCloudConfig();
         el("supabaseUrl").value = savedConfig.url;
         el("supabaseAnonKey").value = savedConfig.anonKey;
@@ -1799,6 +1821,7 @@
           }
           setAdminSession(adminUser);
           document.body.classList.remove("locked");
+          renderAdminAccessControls();
           el("adminLoginPassword").value = "";
           const selectedEventId = await loadAdminEventOptions();
           if (selectedEventId) {
@@ -2012,6 +2035,22 @@
       updatePlayerCountSummary();
       renderPlayerStatusList();
       renderModeTabs();
+      renderAdminAccessControls();
+    }
+
+    function renderAdminAccessControls() {
+      const admin = getAdminSession();
+      const roleText = admin?.role === "super_admin" ? "슈퍼어드민" : admin?.role === "tournament_admin" ? "대회관리자" : "미확인";
+      const info = el("adminSessionInfo");
+      if (info) {
+        info.innerHTML = `접속 아이디: <b>${admin?.id || "-"}</b> <span class="role">(${roleText})</span>`;
+      }
+      const newTournamentButton = el("newTournamentBtn");
+      if (newTournamentButton) {
+        const enabled = admin?.role === "super_admin";
+        newTournamentButton.disabled = !enabled;
+        newTournamentButton.title = enabled ? "새 대회 시작" : "새 대회 생성은 슈퍼어드민만 가능합니다.";
+      }
     }
 
     function renderSchedulePublicButton() {
@@ -3033,6 +3072,10 @@
     }
 
     async function startNewTournament() {
+      if (!isSuperAdmin()) {
+        setMessage("새 대회 생성은 슈퍼어드민만 가능합니다.", true);
+        return;
+      }
       const eventId = window.prompt("새 대회 ID를 입력하세요. 예: 2026-spring");
       if (!eventId || !eventId.trim()) {
         setMessage("새 대회 생성을 취소했습니다.");
