@@ -820,6 +820,10 @@
     }
 
     .player-search {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
       margin: 0 0 12px;
     }
 
@@ -832,6 +836,40 @@
       background: #fff;
       font-size: 14px;
       font-weight: 700;
+    }
+
+    .schedule-time-box {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 1 1 460px;
+      min-height: 43px;
+      padding: 8px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .schedule-time-box label {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .schedule-time-box input {
+      width: 178px;
+      max-width: 178px;
+      padding: 6px 8px;
+      font-size: 13px;
+    }
+
+    .schedule-time-result {
+      margin-left: auto;
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--accent-dark);
+      white-space: nowrap;
     }
 
     .tab {
@@ -1608,6 +1646,11 @@
 
         <div class="player-search no-print">
           <input id="playerSearch" type="search" placeholder="선수 이름 검색" autocomplete="off">
+          <div class="schedule-time-box">
+            <label for="scheduleStartAt">시작시간</label>
+            <input id="scheduleStartAt" type="datetime-local">
+            <span class="schedule-time-result" id="scheduleEndEstimate">종료예상: -</span>
+          </div>
         </div>
 
         <div class="view active printable" id="scheduleView">
@@ -1656,7 +1699,8 @@
       teamMode: false,
       teamMap: {},
       nextMatchIds: [],
-      schedulePublic: true
+      schedulePublic: true,
+      scheduleStartAt: ""
     };
 
     const el = id => document.getElementById(id);
@@ -2078,6 +2122,48 @@
         : "사용자 화면에서 대진/선수이력/순위를 숨깁니다.";
     }
 
+    function pad2(value) {
+      return String(value).padStart(2, "0");
+    }
+
+    function formatDateTimeLocal(date = new Date()) {
+      return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}T${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+    }
+
+    function formatKoreanDateTime(date) {
+      if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "-";
+      return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+    }
+
+    function ensureScheduleStartAt() {
+      if (!state.scheduleStartAt) state.scheduleStartAt = formatDateTimeLocal();
+      const input = el("scheduleStartAt");
+      if (input && !input.value) input.value = state.scheduleStartAt;
+    }
+
+    function renderScheduleTimeEstimate() {
+      ensureScheduleStartAt();
+      const input = el("scheduleStartAt");
+      const output = el("scheduleEndEstimate");
+      if (!input || !output) return;
+      const startValue = input.value || state.scheduleStartAt || formatDateTimeLocal();
+      state.scheduleStartAt = startValue;
+      const start = new Date(startValue);
+      if (!state.schedule.length || Number.isNaN(start.getTime())) {
+        output.textContent = "종료예상: -";
+        return;
+      }
+      const end = new Date(start.getTime() + state.schedule.length * 15 * 60 * 1000);
+      output.textContent = `종료예상: ${formatKoreanDateTime(end)}`;
+    }
+
+    function resetScheduleStartTimeToNow() {
+      state.scheduleStartAt = formatDateTimeLocal();
+      const input = el("scheduleStartAt");
+      if (input) input.value = state.scheduleStartAt;
+      renderScheduleTimeEstimate();
+    }
+
     function visibleRosterNames(names = state.players) {
       return state.teamMode ? names.filter(name => !isAutoSubstituteName(name)) : names;
     }
@@ -2134,6 +2220,7 @@
       rebuildPlayersFromSchedule();
       normalizeSchedule();
       renderAll(true);
+      renderScheduleTimeEstimate();
       if (message) setMessage(message);
       if (save && el("autoCloudSave").checked) saveCloudData(true);
     }
@@ -2902,7 +2989,8 @@
         targetGames: Number(el("targetGames")?.value || 0),
         courtCount: Number(el("courtCount")?.value || 0),
         seed: el("seed")?.value.trim() || state.seed || "A01",
-        tries: Number(el("tries")?.value || 0)
+        tries: Number(el("tries")?.value || 0),
+        scheduleStartAt: el("scheduleStartAt")?.value || state.scheduleStartAt || ""
       };
       return {
         version: 1,
@@ -2914,6 +3002,7 @@
         schedule: state.schedule,
         results: state.results,
         seed: state.seed,
+        scheduleStartAt: scheduleSettings.scheduleStartAt,
         adminMode: state.adminMode,
         scheduleSettings,
         allowShortfall: scheduleSettings.allowShortfall,
@@ -2938,6 +3027,7 @@
       state.results = data.results || {};
       const savedSettings = data.scheduleSettings || {};
       state.seed = savedSettings.seed || data.seed || state.seed;
+      state.scheduleStartAt = savedSettings.scheduleStartAt || data.scheduleStartAt || state.scheduleStartAt || formatDateTimeLocal();
       state.adminMode = savedSettings.adminMode || data.adminMode || state.adminMode || "tournament";
       localStorage.setItem("badminton_admin_mode", state.adminMode);
       state.modeRosters = data.modeRosters || {
@@ -2951,6 +3041,7 @@
       state.schedulePublic = data.schedulePublic !== false;
       restoreCurrentModeRoster();
       el("seed").value = state.seed || "A01";
+      el("scheduleStartAt").value = state.scheduleStartAt;
       if (savedSettings.targetGames) el("targetGames").value = savedSettings.targetGames;
       if (savedSettings.courtCount) el("courtCount").value = savedSettings.courtCount;
       if (savedSettings.tries) el("tries").value = savedSettings.tries;
@@ -3145,7 +3236,9 @@
       state.playerStatus = {};
       state.modeRosters = { daily: "", tournament: "" };
       state.schedulePublic = false;
+      state.scheduleStartAt = formatDateTimeLocal();
       el("players").value = "";
+      el("scheduleStartAt").value = state.scheduleStartAt;
       el("supabaseEventId").value = nextEventId;
       el("viewerAccessPassword").value = viewerPassword.trim();
       localStorage.setItem("badminton_supabase_event_id", nextEventId);
@@ -3157,6 +3250,7 @@
     }
 
     function renderStats() {
+      ensureScheduleStartAt();
       el("playerCount").textContent = state.players.length;
       el("matchCount").textContent = state.schedule.length;
       el("roundCount").textContent = state.schedule.length ? Math.max(...state.schedule.map(m => m.round)) : 0;
@@ -3165,6 +3259,7 @@
       const bWins = Object.values(state.results).filter(value => value === "B").length;
       const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
       el("winnerCount").textContent = blueWhite ? `청 ${aWins} / 백 ${bWins}` : `A ${aWins} / B ${bWins}`;
+      renderScheduleTimeEstimate();
     }
 
     function searchText() {
@@ -3452,6 +3547,7 @@
       el("players").value = visibleRosterNames(state.players).join(" ");
       saveCurrentModeRoster();
       clearManualMatchInputs();
+      resetScheduleStartTimeToNow();
       renderAll(true);
       setMessage("대진표와 결과를 모두 삭제했습니다.");
       if (el("autoCloudSave").checked) saveCloudData(true);
@@ -3473,6 +3569,7 @@
       rebuildPlayersFromSchedule();
       clearManualMatchInputs();
       renderAll(true);
+      renderScheduleTimeEstimate();
       setMessage(`미완료 대진 ${pendingMatches.length}개를 삭제했습니다. 승/패/완료/게임중 대진은 유지했습니다.`);
       if (el("autoCloudSave").checked) saveCloudData(true);
     }
@@ -3922,6 +4019,7 @@
       }
 
       try {
+        resetScheduleStartTimeToNow();
         let players;
         let schedule;
         let substituteCount = 0;
@@ -4329,6 +4427,11 @@
       renderAdminRosterControls();
     });
     el("playerSearch").addEventListener("input", () => renderAll(true));
+    el("scheduleStartAt").addEventListener("change", () => {
+      state.scheduleStartAt = el("scheduleStartAt").value || formatDateTimeLocal();
+      renderScheduleTimeEstimate();
+      if (el("autoCloudSave").checked && state.schedule.length) saveCloudData(true);
+    });
     document.querySelectorAll(".mode-tab").forEach(button => {
       button.addEventListener("click", event => {
         saveCurrentModeRoster();
@@ -4447,6 +4550,7 @@
       state.results = {};
       state.nextMatchIds = [];
       renderAll(true);
+      renderScheduleTimeEstimate();
       setMessage("경기 결과와 다음게임 표시를 초기화했습니다.");
       if (el("autoCloudSave").checked) saveCloudData(true);
     });
