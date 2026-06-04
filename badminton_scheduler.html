@@ -2229,6 +2229,10 @@
       return group.slice().sort((a, b) => a.localeCompare(b, "ko-KR")).join(" || ");
     }
 
+    function pairVsPairKey(bluePair, whitePair) {
+      return `${keyOf(bluePair[0], bluePair[1])} :: ${keyOf(whitePair[0], whitePair[1])}`;
+    }
+
     function rememberMatchGroup(group, ctx) {
       ctx.groupMembers.push(group.slice());
       const groupKeyValue = groupKey(group);
@@ -2570,6 +2574,7 @@
     function scoreBlueWhiteSchedule(schedule) {
       const partners = new Map();
       const groups = new Map();
+      const pairMatches = new Map();
       schedule.forEach(match => {
         [match.teamA, match.teamB].forEach(pair => {
           const key = keyOf(pair[0], pair[1]);
@@ -2577,6 +2582,8 @@
         });
         const gKey = groupKey([...match.teamA, ...match.teamB]);
         groups.set(gKey, (groups.get(gKey) || 0) + 1);
+        const pairMatchKey = pairVsPairKey(match.teamA, match.teamB);
+        pairMatches.set(pairMatchKey, (pairMatches.get(pairMatchKey) || 0) + 1);
       });
       let score = 0;
       partners.forEach(count => {
@@ -2584,6 +2591,9 @@
       });
       groups.forEach(count => {
         if (count > 1) score += (count - 1) * 30000;
+      });
+      pairMatches.forEach(count => {
+        if (count > 1) score += (count - 1) * 50000;
       });
       return score;
     }
@@ -2603,6 +2613,7 @@
         opponents: new Map(),
         together: new Map(),
         groups: new Map(),
+        pairMatches: new Map(),
         groupMembers: [],
         lastPlayed: new Map(players.map(p => [p, 0])),
         restGaps: new Map(players.map(p => [p, []]))
@@ -2660,6 +2671,7 @@
               let score = evaluateBlueWhiteGroup(group, ctx, targetGames, roundUsed, rand, schedule.length + 1, idealRest);
               score += (ctx.partners.get(keyOf(bluePair[0], bluePair[1])) || 0) * 20000;
               score += (ctx.partners.get(keyOf(whitePair[0], whitePair[1])) || 0) * 20000;
+              score += (ctx.pairMatches.get(pairVsPairKey(bluePair, whitePair)) || 0) * 70000;
               for (const blue of bluePair) {
                 for (const white of whitePair) {
                   score += (ctx.opponents.get(keyOf(blue, white)) || 0) * 26;
@@ -2699,6 +2711,8 @@
             ctx.partners.set(key, (ctx.partners.get(key) || 0) + 1);
           });
           rememberMatchGroup(group, ctx);
+          const pairMatchKey = pairVsPairKey(best.bluePair, best.whitePair);
+          ctx.pairMatches.set(pairMatchKey, (ctx.pairMatches.get(pairMatchKey) || 0) + 1);
           for (const blue of best.bluePair) {
             for (const white of best.whitePair) {
               const key = keyOf(blue, white);
