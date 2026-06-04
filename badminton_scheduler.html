@@ -1681,17 +1681,21 @@
       return value === "active" || value === "사용중";
     }
 
+    function todayKoreanDateText() {
+      const kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
+      return kst.toISOString().slice(0, 10);
+    }
+
+    function dateOnly(value) {
+      return String(value || "").slice(0, 10);
+    }
+
     function isWithinUsagePeriod(row) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      if (row.date_from) {
-        const from = new Date(`${row.date_from}T00:00:00`);
-        if (today < from) return false;
-      }
-      if (row.date_to) {
-        const to = new Date(`${row.date_to}T00:00:00`);
-        if (today > to) return false;
-      }
+      const today = todayKoreanDateText();
+      const from = dateOnly(row.date_from);
+      const to = dateOnly(row.date_to);
+      if (from && today < from) return false;
+      if (to && today > to) return false;
       return true;
     }
 
@@ -1743,8 +1747,9 @@
         };
       }
 
-      const validPeriodRows = rows.filter(row => row.normalizedRole === "tournament_admin" && isWithinUsagePeriod(row));
-      if (!validPeriodRows.length) {
+      const tournamentRowsForLoginId = rows.filter(row => row.normalizedRole === "tournament_admin");
+      const validPeriodRows = tournamentRowsForLoginId.filter(row => isWithinUsagePeriod(row));
+      if (tournamentRowsForLoginId.length && !validPeriodRows.length) {
         throw new Error("사용기간이 지났습니다.");
       }
 
