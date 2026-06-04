@@ -401,6 +401,64 @@
     .button:hover { filter: brightness(0.98); }
     .button:disabled { cursor: not-allowed; opacity: 0.45; }
 
+    .choice-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(15, 23, 42, 0.34);
+    }
+
+    .choice-backdrop.active {
+      display: flex;
+    }
+
+    .choice-card {
+      width: min(420px, 100%);
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #fff;
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+      padding: 18px;
+    }
+
+    .choice-card h3 {
+      margin: 0 0 10px;
+      font-size: 18px;
+    }
+
+    .choice-card p {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .choice-card label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 14px;
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .choice-card input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent);
+    }
+
+    .choice-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
     .actions {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1553,6 +1611,21 @@
       </section>
     </div>
   </main>
+
+  <div class="choice-backdrop" id="regenerateChoice" aria-hidden="true">
+    <div class="choice-card" role="dialog" aria-modal="true" aria-labelledby="regenerateChoiceTitle">
+      <h3 id="regenerateChoiceTitle">기존 대진 처리</h3>
+      <p>이미 생성된 대진이 있습니다. 새 대진을 만들기 전에 기존 대진을 어떻게 처리할지 선택하세요.</p>
+      <label>
+        <input id="keepCompletedMatches" type="checkbox">
+        승/패/완료/게임중 대진은 유지하고 미완료 대진만 삭제
+      </label>
+      <div class="choice-actions">
+        <button class="button" id="cancelRegenerateBtn" type="button">취소</button>
+        <button class="button primary" id="confirmRegenerateBtn" type="button">계속</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const state = {
@@ -3678,14 +3751,67 @@
       renderPlayerHistory();
     }
 
-    function generate() {
+    function askRegenerateChoice() {
+      return new Promise(resolve => {
+        const backdrop = el("regenerateChoice");
+        const keep = el("keepCompletedMatches");
+        const confirm = el("confirmRegenerateBtn");
+        const cancel = el("cancelRegenerateBtn");
+
+        keep.checked = false;
+        backdrop.classList.add("active");
+        backdrop.setAttribute("aria-hidden", "false");
+
+        const cleanup = value => {
+          backdrop.classList.remove("active");
+          backdrop.setAttribute("aria-hidden", "true");
+          confirm.removeEventListener("click", onConfirm);
+          cancel.removeEventListener("click", onCancel);
+          backdrop.removeEventListener("click", onBackdrop);
+          resolve(value);
+        };
+        const onConfirm = () => cleanup(keep.checked ? "keepCompleted" : "deleteAll");
+        const onCancel = () => cleanup("cancel");
+        const onBackdrop = event => {
+          if (event.target === backdrop) cleanup("cancel");
+        };
+
+        confirm.addEventListener("click", onConfirm);
+        cancel.addEventListener("click", onCancel);
+        backdrop.addEventListener("click", onBackdrop);
+      });
+    }
+
+    function keepCompletedScheduleOnly() {
+      const kept = state.schedule.filter(match => state.results[match.id]);
+      const removedCount = state.schedule.length - kept.length;
+      state.schedule = kept;
+      normalizeSchedule();
+      return { keptCount: kept.length, removedCount };
+    }
+
+    async function generate() {
       const dailyMode = state.adminMode === "daily";
-      const existingSchedule = state.schedule.slice();
+      let existingSchedule = state.schedule.slice();
+      let regenerateMode = "none";
+      let preservedCount = 0;
+      let removedPendingCount = 0;
       if (!dailyMode && state.schedule.length) {
-        const ok = window.confirm("기존의 대진과 결과가 삭제될 수 있습니다. 계속하시겠습니까?");
-        if (!ok) {
+        regenerateMode = await askRegenerateChoice();
+        if (regenerateMode === "cancel") {
           setMessage("대진 생성을 취소했습니다.");
           return;
+        }
+        if (regenerateMode === "keepCompleted") {
+          const result = keepCompletedScheduleOnly();
+          preservedCount = result.keptCount;
+          removedPendingCount = result.removedCount;
+          existingSchedule = state.schedule.slice();
+        } else {
+          state.schedule = [];
+          state.results = {};
+          state.nextMatchIds = [];
+          existingSchedule = [];
         }
       }
       let enteredPlayers = parsePlayers();
@@ -3734,10 +3860,15 @@
           players = applySubstitutes ? addSubstitutePlayers(enteredPlayers) : enteredPlayers.slice();
           substituteCount = players.length - enteredPlayers.length;
           state.teamMap = {};
-          schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed).schedule;
+          const initialCtx = regenerateMode === "keepCompleted"
+            ? contextFromExistingSchedule(players, existingSchedule)
+            : null;
+          schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length).schedule;
         }
         state.players = players;
         if (dailyMode) {
+          state.schedule = appendScheduleContinuing(existingSchedule, schedule, courtCount);
+        } else if (regenerateMode === "keepCompleted") {
           state.schedule = appendScheduleContinuing(existingSchedule, schedule, courtCount);
         } else {
           state.schedule = schedule;
@@ -3754,15 +3885,18 @@
         if (el("autoCloudSave").checked) saveCloudData(true);
 
         const totalSlots = players.length * targetGames;
-        const madeSlots = schedule.length * 4;
+        const madeSlots = (regenerateMode === "keepCompleted" ? state.schedule.length : schedule.length) * 4;
         const short = totalSlots - madeSlots;
         const substituteText = substituteCount ? " 대타 " + substituteCount + "명을 자동 추가했습니다." : "";
+        const preserveText = regenerateMode === "keepCompleted"
+          ? ` 완료된 대진 ${preservedCount}개를 유지하고 미완료 대진 ${removedPendingCount}개를 삭제했습니다.`
+          : "";
         const modeText = dailyMode && existingSchedule.length
           ? " 운영모드 출석자 기준으로 추가"
           : (dailyMode ? " 운영모드 출석자 기준으로" : (blueWhiteMode ? " 청백전 방식으로" : ""));
         setMessage(short > 0
-          ? schedule.length + "경기를" + modeText + " 생성했습니다." + substituteText + " 총 " + short + "회 출전 슬롯은 인원/조건 때문에 비워졌습니다."
-          : schedule.length + "경기를" + modeText + " 생성했습니다." + substituteText + " 파트너 중복이 생기면 랜덤 시드를 바꿔 다시 생성해보세요."
+          ? schedule.length + "경기를" + modeText + " 생성했습니다." + preserveText + substituteText + " 총 " + short + "회 출전 슬롯은 인원/조건 때문에 비워졌습니다."
+          : schedule.length + "경기를" + modeText + " 생성했습니다." + preserveText + substituteText + " 파트너 중복이 생기면 랜덤 시드를 바꿔 다시 생성해보세요."
         , short > 0 || substituteCount > 0);
       } catch (error) {
         if (error.alert) window.alert(error.message);
