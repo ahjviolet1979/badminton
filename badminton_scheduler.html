@@ -1710,9 +1710,8 @@
     function isTodayWithinUsagePeriod(row, today = todayKoreanDateText()) {
       const from = dateOnly(row.date_from);
       const to = dateOnly(row.date_to);
-      if (from && today < from) return false;
-      if (to && today > to) return false;
-      return true;
+      if (!from || !to) return false;
+      return from <= today && today <= to;
     }
 
     async function authenticateAdminUser(id, password) {
@@ -1769,8 +1768,12 @@
         row.normalizedRole === "tournament_admin" &&
         String(row.user_id || "").trim().toLowerCase() === loginIdKey
       );
-      const validPeriodRows = tournamentRowsForLoginId.filter(row => isTodayWithinUsagePeriod(row, today));
-      if (tournamentRowsForLoginId.length && !validPeriodRows.length) {
+      const periodConfiguredRows = tournamentRowsForLoginId.filter(row => dateOnly(row.date_from) && dateOnly(row.date_to));
+      if (tournamentRowsForLoginId.length && !periodConfiguredRows.length) {
+        throw new Error("사용기간이 설정되지 않았습니다.");
+      }
+      const validPeriodRows = periodConfiguredRows.filter(row => isTodayWithinUsagePeriod(row, today));
+      if (periodConfiguredRows.length && !validPeriodRows.length) {
         throw new Error("사용기간이 지났습니다.");
       }
 
