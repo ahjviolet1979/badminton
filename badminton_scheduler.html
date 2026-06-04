@@ -1613,8 +1613,7 @@
       const { data, error } = await client
         .from("badminton_user_contracts")
         .select("user_id,user_password,user_role,user_name,event_id,status")
-        .eq("user_id", id)
-        .eq("user_password", password);
+        .ilike("user_id", id);
       if (error) {
         if (String(error.message || "").includes("user_password") || String(error.message || "").includes("user_role")) {
           throw new Error("사용자테이블 컬럼이 아직 반영되지 않았습니다. supabase_setup.sql을 Supabase SQL Editor에서 다시 실행하세요.");
@@ -1625,10 +1624,27 @@
         throw error;
       }
 
-      const rows = (data || [])
+      const sameIdRows = (data || []).filter(row => String(row.user_id || "").trim().toLowerCase() === id.toLowerCase());
+      if (!sameIdRows.length) {
+        throw new Error("등록된 관리자 아이디가 없습니다.");
+      }
+
+      const passwordRows = sameIdRows.filter(row => String(row.user_password || "").trim() === password);
+      if (!passwordRows.length) {
+        throw new Error("비밀번호가 맞지 않습니다.");
+      }
+
+      const activeRows = passwordRows.filter(row => isActiveUserStatus(row.status));
+      if (!activeRows.length) {
+        throw new Error("사용중 상태의 계정이 아닙니다. 사용자관리 화면에서 상태를 확인하세요.");
+      }
+
+      const rows = activeRows
         .map(row => ({ ...row, normalizedRole: normalizeUserRole(row.user_role) }))
-        .filter(row => isActiveUserStatus(row.status) && ["super_admin", "tournament_admin"].includes(row.normalizedRole));
-      if (!rows.length) return null;
+        .filter(row => ["super_admin", "tournament_admin"].includes(row.normalizedRole));
+      if (!rows.length) {
+        throw new Error("관리자 권한이 없습니다. 권한등급을 슈퍼어드민 또는 대회관리자로 설정하세요.");
+      }
 
       const superRow = rows.find(row => row.normalizedRole === "super_admin");
       if (superRow) {
@@ -1640,11 +1656,16 @@
         };
       }
 
+      const eventIds = [...new Set(rows.map(row => row.event_id).filter(eventId => eventId && eventId !== "*"))];
+      if (!eventIds.length) {
+        throw new Error("대회관리자 계정에 연결된 대회 ID가 없습니다. 사용자관리 화면에서 대회 ID를 연결하세요.");
+      }
+
       return {
         id,
         name: rows[0].user_name || id,
         role: "tournament_admin",
-        eventIds: [...new Set(rows.map(row => row.event_id).filter(eventId => eventId && eventId !== "*"))]
+        eventIds
       };
     }
 
