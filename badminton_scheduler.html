@@ -2396,11 +2396,13 @@
         throw new Error("청백전은 청팀과 백팀에 각각 최소 2명 이상 필요합니다.");
       }
       const diff = Math.abs(blue.length - white.length);
-      if (diff >= 2 && diff % 2 === 0) {
-        const moveCount = diff / 2;
+      if (diff >= 2) {
+        const moveCount = Math.floor(diff / 2);
         const from = blue.length > white.length ? "청팀" : "백팀";
         const to = blue.length > white.length ? "백팀" : "청팀";
-        const error = new Error(`${from}에서 ${to}으로 ${moveCount}명을 이동 배치한 뒤 대진을 생성하세요. 현재 청팀 ${blue.length}명 / 백팀 ${white.length}명입니다.`);
+        const nextBlue = blue.length > white.length ? blue.length - moveCount : blue.length + moveCount;
+        const nextWhite = white.length > blue.length ? white.length - moveCount : white.length + moveCount;
+        const error = new Error(`${from}에서 ${to}으로 ${moveCount}명을 이동 배치한 뒤 대진을 생성하세요. 현재 청팀 ${blue.length}명 / 백팀 ${white.length}명이며, 이동 후 청팀 ${nextBlue}명 / 백팀 ${nextWhite}명이 됩니다.`);
         error.alert = true;
         throw error;
       }
