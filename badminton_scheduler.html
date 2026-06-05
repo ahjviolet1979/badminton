@@ -752,6 +752,31 @@
       font-weight: 900;
     }
 
+    .team-assign-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .team-reset-button {
+      border: 1px solid #cfd9d3;
+      background: #fff;
+      color: #647067;
+      border-radius: 999px;
+      padding: 2px 6px;
+      font-size: 10px;
+      font-weight: 900;
+      line-height: 1.2;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .team-reset-button:hover {
+      border-color: var(--accent);
+      color: var(--accent-dark);
+    }
+
     .team-assign-summary {
       grid-template-columns: 1fr;
       background: #f8fafc;
@@ -1527,7 +1552,7 @@
         </div>
 
         <div class="team-assign" id="teamAssignPanel">
-          <div class="team-assign-head"><span>선수</span><span>청팀</span><span>백팀</span></div>
+          <div class="team-assign-head"><span class="team-assign-title">선수 <button class="team-reset-button" id="resetTeamAssignBtn" type="button">초기화</button></span><span>청팀</span><span>백팀</span></div>
           <div class="team-assign-summary" id="teamAssignSummary">청팀 0명 / 백팀 0명</div>
           <div id="teamAssignList"></div>
         </div>
@@ -2321,6 +2346,30 @@
           el("teamAssignSummary").textContent = `청팀 ${blueCount}명 / 백팀 ${whiteCount}명`;
         });
       });
+    }
+
+    function resetTeamAssignments() {
+      const players = parsePlayers().filter(name => !isAutoSubstituteName(name));
+      if (!players.length) {
+        window.alert("초기화할 선수 명단이 없습니다.");
+        setMessage("초기화할 선수 명단이 없습니다.", true);
+        return;
+      }
+      if (state.schedule.length) {
+        const confirmed = window.confirm("청/백 팀을 초기화하면 생성된 대진표와 결과가 모두 삭제됩니다. 계속하시겠습니까?");
+        if (!confirmed) return;
+        state.schedule = [];
+        state.results = {};
+        state.nextMatchIds = [];
+        clearManualMatchInputs();
+        resetScheduleStartTimeToNow();
+      }
+      state.teamMap = {};
+      syncTeamAssignments(players);
+      renderTeamAssignments();
+      renderAll(true);
+      setMessage("청/백 팀 배정을 초기화했습니다.");
+      if (el("autoCloudSave").checked) saveCloudData(true);
     }
 
     function addTeamSubstitutes(blue, white) {
@@ -3581,7 +3630,8 @@
 
     function deleteAllSchedule() {
       if (!state.schedule.length) {
-        setMessage("삭제할 대진표가 없습니다.", true);
+        window.alert("삭제할 대진이 없습니다.");
+        setMessage("삭제할 대진이 없습니다.", true);
         return;
       }
       if (!window.confirm("기존에 있던 대진표와 결과가 모두 삭제됩니다. 계속 하시겠습니까?")) return;
@@ -3600,11 +3650,13 @@
 
     function deletePendingSchedule() {
       if (!state.schedule.length) {
-        setMessage("삭제할 대진표가 없습니다.", true);
+        window.alert("삭제할 대진이 없습니다.");
+        setMessage("삭제할 대진이 없습니다.", true);
         return;
       }
       const pendingMatches = state.schedule.filter(match => !state.results[match.id]);
       if (!pendingMatches.length) {
+        window.alert("삭제할 미완료 대진이 없습니다.");
         setMessage("미완료 대진이 없습니다. 승/패/완료/게임중 대진은 유지됩니다.", true);
         return;
       }
@@ -4541,6 +4593,7 @@
       renderTeamAssignments();
       renderAdminRosterControls();
     });
+    el("resetTeamAssignBtn").addEventListener("click", resetTeamAssignments);
     el("includeInProgressPlayers").checked = localStorage.getItem("badminton_include_in_progress") === "1";
     el("includeInProgressPlayers").addEventListener("change", () => {
       localStorage.setItem("badminton_include_in_progress", el("includeInProgressPlayers").checked ? "1" : "0");
@@ -4602,6 +4655,12 @@
     el("deletePendingScheduleBtn").addEventListener("click", deletePendingSchedule);
     el("manualAddBtn").addEventListener("click", addManualMatch);
     el("clearResultsBtn").addEventListener("click", () => {
+      const hasResultData = Object.keys(state.results || {}).length > 0 || (state.nextMatchIds || []).length > 0;
+      if (!hasResultData) {
+        window.alert("초기화 할 결과 데이터가 없습니다.");
+        setMessage("초기화 할 결과 데이터가 없습니다.", true);
+        return;
+      }
       state.results = {};
       state.nextMatchIds = [];
       renderAll(true);
