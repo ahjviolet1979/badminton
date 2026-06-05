@@ -858,8 +858,9 @@
     }
 
     .schedule-time-box input {
-      width: 178px;
-      max-width: 178px;
+      width: 248px;
+      min-width: 248px;
+      max-width: 248px;
       padding: 6px 8px;
       font-size: 13px;
     }
@@ -1302,6 +1303,9 @@
       .stat { min-height: 58px; padding: 9px 7px; }
       .stat b { font-size: 18px; white-space: nowrap; }
       .stat span { font-size: 11px; white-space: nowrap; }
+      .schedule-time-box {
+        flex: 1 1 100%;
+      }
     }
 
     @media (max-width: 540px) {
@@ -1328,6 +1332,18 @@
       .button { justify-content: center; }
       .actions .button { width: 100%; }
       .toolbar { width: 100%; }
+      .schedule-time-box {
+        gap: 6px;
+        padding: 7px 8px;
+      }
+      .schedule-time-box input {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+      }
+      .schedule-time-result {
+        font-size: 12px;
+      }
 
       .responsive-card table,
       .responsive-card thead,
