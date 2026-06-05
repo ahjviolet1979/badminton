@@ -1664,7 +1664,7 @@
           <input id="playerSearch" type="search" placeholder="선수 이름 검색" autocomplete="off">
           <div class="schedule-time-box">
             <label for="scheduleStartAt">시작시간</label>
-            <input id="scheduleStartAt" type="datetime-local">
+            <input id="scheduleStartAt" type="text" inputmode="numeric" placeholder="2026-06-05 16:00">
             <span class="schedule-time-result" id="scheduleEndEstimate">종료예상: -</span>
           </div>
         </div>
@@ -2143,7 +2143,7 @@
     }
 
     function formatDateTimeLocal(date = new Date()) {
-      return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}T${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
+      return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
     }
 
     function formatKoreanDateTime(date) {
@@ -2151,8 +2151,22 @@
       return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}`;
     }
 
+    function normalizeDateTimeText(value) {
+      const text = String(value || "").trim();
+      if (!text) return "";
+      const match = text.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})/);
+      if (!match) return text;
+      return `${match[1]}-${match[2]}-${match[3]} ${match[4]}:${match[5]}`;
+    }
+
+    function parseScheduleDateTime(value) {
+      const text = normalizeDateTimeText(value);
+      if (!text) return new Date(NaN);
+      return new Date(text.replace(" ", "T"));
+    }
+
     function ensureScheduleStartAt() {
-      if (!state.scheduleStartAt) state.scheduleStartAt = formatDateTimeLocal();
+      state.scheduleStartAt = normalizeDateTimeText(state.scheduleStartAt) || formatDateTimeLocal();
       const input = el("scheduleStartAt");
       if (input && !input.value) input.value = state.scheduleStartAt;
     }
@@ -2162,9 +2176,10 @@
       const input = el("scheduleStartAt");
       const output = el("scheduleEndEstimate");
       if (!input || !output) return;
-      const startValue = input.value || state.scheduleStartAt || formatDateTimeLocal();
+      const startValue = normalizeDateTimeText(input.value || state.scheduleStartAt || formatDateTimeLocal());
       state.scheduleStartAt = startValue;
-      const start = new Date(startValue);
+      input.value = startValue;
+      const start = parseScheduleDateTime(startValue);
       if (!state.schedule.length || Number.isNaN(start.getTime())) {
         output.textContent = "종료예상: -";
         return;
@@ -3006,7 +3021,7 @@
         courtCount: Number(el("courtCount")?.value || 0),
         seed: el("seed")?.value.trim() || state.seed || "A01",
         tries: Number(el("tries")?.value || 0),
-        scheduleStartAt: el("scheduleStartAt")?.value || state.scheduleStartAt || ""
+        scheduleStartAt: normalizeDateTimeText(el("scheduleStartAt")?.value || state.scheduleStartAt || "")
       };
       return {
         version: 1,
@@ -3043,7 +3058,7 @@
       state.results = data.results || {};
       const savedSettings = data.scheduleSettings || {};
       state.seed = savedSettings.seed || data.seed || state.seed;
-      state.scheduleStartAt = savedSettings.scheduleStartAt || data.scheduleStartAt || state.scheduleStartAt || formatDateTimeLocal();
+      state.scheduleStartAt = normalizeDateTimeText(savedSettings.scheduleStartAt || data.scheduleStartAt || state.scheduleStartAt) || formatDateTimeLocal();
       state.adminMode = savedSettings.adminMode || data.adminMode || state.adminMode || "tournament";
       localStorage.setItem("badminton_admin_mode", state.adminMode);
       state.modeRosters = data.modeRosters || {
@@ -4035,7 +4050,8 @@
       }
 
       try {
-        resetScheduleStartTimeToNow();
+        state.scheduleStartAt = normalizeDateTimeText(el("scheduleStartAt")?.value || state.scheduleStartAt) || formatDateTimeLocal();
+        el("scheduleStartAt").value = state.scheduleStartAt;
         let players;
         let schedule;
         let substituteCount = 0;
@@ -4444,7 +4460,8 @@
     });
     el("playerSearch").addEventListener("input", () => renderAll(true));
     el("scheduleStartAt").addEventListener("change", () => {
-      state.scheduleStartAt = el("scheduleStartAt").value || formatDateTimeLocal();
+      state.scheduleStartAt = normalizeDateTimeText(el("scheduleStartAt").value) || formatDateTimeLocal();
+      el("scheduleStartAt").value = state.scheduleStartAt;
       renderScheduleTimeEstimate();
       if (el("autoCloudSave").checked && state.schedule.length) saveCloudData(true);
     });
