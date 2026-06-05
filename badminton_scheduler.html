@@ -2180,11 +2180,17 @@
       state.scheduleStartAt = startValue;
       input.value = startValue;
       const start = parseScheduleDateTime(startValue);
-      if (!state.schedule.length || Number.isNaN(start.getTime())) {
+      const pendingMatchCount = state.schedule.filter(match => !state.results[match.id]).length;
+      if (!pendingMatchCount || Number.isNaN(start.getTime())) {
         output.textContent = "종료예상: -";
         return;
       }
-      const roundCount = state.schedule.length ? Math.max(...state.schedule.map(match => Number(match.round) || 0)) : 0;
+      const courtCount = Math.max(
+        1,
+        Number(el("courtCount")?.value) || 0,
+        ...state.schedule.map(match => Number(match.court) || 0)
+      );
+      const roundCount = Math.ceil(pendingMatchCount / courtCount);
       const end = new Date(start.getTime() + roundCount * 15 * 60 * 1000);
       output.textContent = `종료예상: ${formatKoreanDateTime(end)}`;
     }
@@ -4094,6 +4100,7 @@
         saveCurrentModeRoster();
         renderTeamAssignments();
         renderAll(true);
+        renderScheduleTimeEstimate();
         if (el("autoCloudSave").checked) saveCloudData(true);
 
         const totalSlots = players.length * targetGames;
