@@ -2094,6 +2094,11 @@
       return players;
     }
 
+    function excludeInProgressPlayers(names) {
+      const inProgress = inProgressPlayerSet();
+      return names.filter(name => !inProgress.has(name));
+    }
+
     function renderAdminRosterControls() {
       updatePlayerCountSummary();
       renderPlayerStatusList();
@@ -3432,9 +3437,11 @@
         const labelA = match.teamALabel ? `${match.teamALabel}팀` : "A팀";
         const labelB = match.teamBLabel ? `${match.teamBLabel}팀` : "B팀";
         const isNext = (state.nextMatchIds || []).map(Number).includes(Number(match.id));
-        const progressOption = dailyMode
-          ? `<label class="winner in-progress"><input type="radio" name="winner-${match.id}" value="P" ${result === "P" ? "checked" : ""}> 게임중</label>`
-          : "";
+        const isBlueWhiteMatch = match.mode === "blueWhite" || match.teamALabel === "청" || match.teamBLabel === "백";
+        const doneOption = !dailyMode && isBlueWhiteMatch
+          ? ""
+          : `<label class="winner"><input type="radio" name="winner-${match.id}" value="D" ${result === "D" ? "checked" : ""}> 완료</label>`;
+        const progressOption = `<label class="winner in-progress"><input type="radio" name="winner-${match.id}" value="P" ${result === "P" ? "checked" : ""}> 게임중</label>`;
         return `
           <tr class="${isNext ? "next-match-row" : ""}" data-match-id="${match.id}">
             <td data-label="경기"><span class="match-cell"><button class="drag-handle" type="button" data-match-id="${match.id}" aria-label="${match.id}경기 순서 변경">≡</button><span>${match.id}</span></span></td>
@@ -3446,7 +3453,7 @@
             <td data-label="결과">
               <label class="winner"><input type="radio" name="winner-${match.id}" value="A" ${result === "A" ? "checked" : ""}> ${match.teamALabel || "A"}승</label>
               <label class="winner"><input type="radio" name="winner-${match.id}" value="B" ${result === "B" ? "checked" : ""}> ${match.teamBLabel || "B"}승</label>
-              <label class="winner"><input type="radio" name="winner-${match.id}" value="D" ${result === "D" ? "checked" : ""}> 완료</label>
+              ${doneOption}
               ${progressOption}
             </td>
             <td data-label="다음게임"><label class="next-check"><input type="checkbox" class="next-match-check" data-match-id="${match.id}" ${isNext ? "checked" : ""}> 다음게임</label></td>
@@ -4032,6 +4039,9 @@
       }
       let enteredPlayers = parsePlayers();
       const blueWhiteMode = el("blueWhiteMode").checked;
+      if (!dailyMode && regenerateMode === "keepCompleted") {
+        enteredPlayers = excludeInProgressPlayers(enteredPlayers);
+      }
       if (blueWhiteMode) {
         enteredPlayers = enteredPlayers.filter(name => !isAutoSubstituteName(name));
       }
@@ -4049,7 +4059,11 @@
         return;
       }
       if (!dailyMode && enteredPlayers.length < 1) {
-        setMessage("선수는 최소 1명 이상 입력해야 합니다.", true);
+        const message = regenerateMode === "keepCompleted"
+          ? "게임중 선수를 제외하면 추가 대진을 생성할 선수가 없습니다."
+          : "선수는 최소 1명 이상 입력해야 합니다.";
+        window.alert(message);
+        setMessage(message, true);
         return;
       }
       if (enteredPlayers.length > 30) {
