@@ -2184,7 +2184,8 @@
         output.textContent = "종료예상: -";
         return;
       }
-      const end = new Date(start.getTime() + state.schedule.length * 15 * 60 * 1000);
+      const roundCount = state.schedule.length ? Math.max(...state.schedule.map(match => Number(match.round) || 0)) : 0;
+      const end = new Date(start.getTime() + roundCount * 15 * 60 * 1000);
       output.textContent = `종료예상: ${formatKoreanDateTime(end)}`;
     }
 
