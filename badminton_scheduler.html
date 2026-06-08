@@ -2226,6 +2226,20 @@
         });
     }
 
+    function fillEventMatches(count, seedText, matches = state.schedule) {
+      const eventCount = Math.max(0, Math.floor(Number(count) || 0));
+      if (!eventCount || !matches.length) return;
+      const currentCount = matches.filter(match => match.eventGame).length;
+      const need = Math.max(0, eventCount - currentCount);
+      if (!need) return;
+      const rand = mulberry32(seedToNumber(`${seedText || state.seed || "A01"}-event-fill-${matches.length}`));
+      shuffle(matches.filter(match => !match.eventGame), rand)
+        .slice(0, need)
+        .forEach(match => {
+          match.eventGame = true;
+        });
+    }
+
     function isAutoSubstituteName(name) {
       return /^대타\d+$/.test(name) || /^청팀대타\d+$/.test(name) || /^백팀대타\d+$/.test(name);
     }
@@ -2387,7 +2401,7 @@
     function inProgressPlayerSet() {
       const players = new Set();
       state.schedule.forEach(match => {
-        if (state.results[match.id] !== "P") return;
+        if (!isInProgressResult(state.results[match.id])) return;
         [...match.teamA, ...match.teamB].forEach(name => players.add(name));
       });
       return players;
@@ -3695,6 +3709,10 @@
       return ["A", "B", "D", "P", "완료", "게임중", "청승", "백승", "A승", "B승"].includes(String(result || "").trim());
     }
 
+    function isInProgressResult(result) {
+      return ["P", "게임중"].includes(String(result || "").trim());
+    }
+
     function isFinalResult(result) {
       return ["A", "B", "D", "완료", "청승", "백승", "A승", "B승"].includes(String(result || "").trim());
     }
@@ -3905,10 +3923,10 @@
         const isBlueWhiteMatch = match.mode === "blueWhite" || match.teamALabel === "청" || match.teamBLabel === "백";
         const doneOption = !dailyMode && isBlueWhiteMatch
           ? ""
-          : `<label class="winner"><input type="radio" name="winner-${match.id}" value="D" ${result === "D" ? "checked" : ""} ${resultDisabledAttr}> 완료</label>`;
-        const progressOption = `<label class="winner in-progress"><input type="radio" name="winner-${match.id}" value="P" ${result === "P" ? "checked" : ""} ${resultDisabledAttr}> 게임중</label>`;
+          : `<label class="winner"><input type="radio" name="winner-${match.id}" value="D" ${["D", "완료"].includes(String(result).trim()) ? "checked" : ""} ${resultDisabledAttr}> 완료</label>`;
+        const progressOption = `<label class="winner in-progress"><input type="radio" name="winner-${match.id}" value="P" ${isInProgressResult(result) ? "checked" : ""} ${resultDisabledAttr}> 게임중</label>`;
         const rowClass = [
-          !recordedResult ? "pending-match-row" : result === "P" ? "in-progress-match-row" : "completed-match-row",
+          !recordedResult ? "pending-match-row" : isInProgressResult(result) ? "in-progress-match-row" : "completed-match-row",
           isNext ? "next-match-row" : ""
         ].filter(Boolean).join(" ");
         return `
@@ -4647,7 +4665,11 @@
           state.nextMatchIds = [];
           state.resultEditIds = [];
         }
-        assignEventMatches(eventMatchCount, seedText, state.schedule);
+        if (dailyMode && existingSchedule.length) {
+          fillEventMatches(eventMatchCount, seedText, state.schedule);
+        } else {
+          assignEventMatches(eventMatchCount, seedText, state.schedule);
+        }
         state.seed = seedText;
         if (!dailyMode) {
           el("players").value = visibleRosterNames(players).join(" ");
