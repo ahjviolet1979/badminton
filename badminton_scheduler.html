@@ -432,6 +432,18 @@
       accent-color: var(--accent);
     }
 
+    .daily-priority-row {
+      gap: 7px;
+    }
+
+    .daily-priority-row select {
+      min-width: 0;
+      max-width: 154px;
+      padding: 6px 8px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
     .compact-checks {
       display: grid;
       grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
@@ -1795,6 +1807,14 @@
             게임중 포함
           </label>
 
+          <label class="checkrow daily-priority-row">
+            <span>운영대진</span>
+            <select id="dailyPriorityMode">
+              <option value="latecomer">늦참자 우선적용</option>
+              <option value="equal">전체인원 동일적용</option>
+            </select>
+          </label>
+
           <label class="checkrow">
             <input id="allowShortfall" type="checkbox" checked>
             참가인원 4배수 대타적용
@@ -2352,6 +2372,16 @@
       return new Map(sorted.map((name, index) => [name, index + 1]));
     }
 
+    function lateAttendancePriorityMap(players) {
+      const statuses = state.playerStatus || {};
+      const sorted = players.slice().sort((a, b) => {
+        const aTime = statuses[a]?.attendedAt || "";
+        const bTime = statuses[b]?.attendedAt || "";
+        return bTime.localeCompare(aTime) || a.localeCompare(b, "ko-KR");
+      });
+      return new Map(sorted.map((name, index) => [name, index + 1]));
+    }
+
     function renderModeTabs() {
       document.querySelectorAll(".mode-tab").forEach(tab => {
         tab.classList.toggle("active", tab.dataset.adminMode === state.adminMode);
@@ -2373,6 +2403,10 @@
       const inProgressToggle = el("includeInProgressPlayers");
       if (inProgressToggle) {
         inProgressToggle.disabled = state.adminMode !== "daily";
+      }
+      const priorityMode = el("dailyPriorityMode");
+      if (priorityMode) {
+        priorityMode.disabled = state.adminMode !== "daily";
       }
     }
 
@@ -3031,6 +3065,15 @@
       return ctx;
     }
 
+    function contextForDailyEqualAppend(players, existingSchedule) {
+      const ctx = contextFromExistingSchedule(players, existingSchedule);
+      players.forEach(player => {
+        ctx.games.set(player, 0);
+        ctx.restGaps.set(player, []);
+      });
+      return ctx;
+    }
+
     function generateSchedule(players, targetGames, courtCount, tries, allowShortfall, seed, initialCtx = null, existingMatchCount = 0, allowOverTarget = false, attendanceOrder = null) {
       const neededTotal = players.length * targetGames;
       const currentDeficit = initialCtx
@@ -3474,6 +3517,7 @@
         blueWhiteMode: el("blueWhiteMode")?.checked === true,
         allowShortfall: el("allowShortfall")?.checked === true,
         includeInProgressPlayers: el("includeInProgressPlayers")?.checked === true,
+        dailyPriorityMode: el("dailyPriorityMode")?.value || "latecomer",
         targetGames: Number(el("targetGames")?.value || 0),
         courtCount: Number(el("courtCount")?.value || 0),
         seed: el("seed")?.value.trim() || state.seed || "A01",
@@ -3539,6 +3583,7 @@
       el("eventFineAmount").value = savedSettings.eventFineAmount ?? data.eventFineAmount ?? 1000;
       el("allowShortfall").checked = savedSettings.allowShortfall ?? data.allowShortfall ?? el("allowShortfall").checked;
       el("includeInProgressPlayers").checked = savedSettings.includeInProgressPlayers ?? data.includeInProgressPlayers ?? el("includeInProgressPlayers").checked;
+      el("dailyPriorityMode").value = savedSettings.dailyPriorityMode || data.dailyPriorityMode || "latecomer";
       localStorage.setItem("badminton_include_in_progress", el("includeInProgressPlayers").checked ? "1" : "0");
       el("blueWhiteMode").checked = state.teamMode;
       renderTeamAssignments();
@@ -4691,8 +4736,13 @@
         if (dailyMode) {
           players = dailyPlayers;
           state.teamMap = {};
-          const initialCtx = contextForDailyAppend(players, existingSchedule);
-          const attendanceOrder = attendanceRankMap(players);
+          const dailyPriorityMode = el("dailyPriorityMode")?.value || "latecomer";
+          const initialCtx = dailyPriorityMode === "equal"
+            ? contextForDailyEqualAppend(players, existingSchedule)
+            : contextForDailyAppend(players, existingSchedule);
+          const attendanceOrder = dailyPriorityMode === "equal"
+            ? lateAttendancePriorityMap(players)
+            : attendanceRankMap(players);
           schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length, false, attendanceOrder).schedule;
         } else if (blueWhiteMode) {
           const prepared = prepareBlueWhitePlayers(enteredPlayers);
@@ -4742,7 +4792,7 @@
           ? ` 완료된 대진 ${preservedCount}개를 유지하고 미완료 대진 ${removedPendingCount}개를 삭제했습니다.`
           : "";
         const modeText = dailyMode && existingSchedule.length
-          ? " 운영모드 출석자 기준으로 추가"
+          ? ` 운영모드 ${el("dailyPriorityMode")?.value === "equal" ? "전체인원 동일적용" : "늦참자 우선적용"} 방식으로 추가`
           : (dailyMode ? " 운영모드 출석자 기준으로" : (blueWhiteMode ? " 청백전 방식으로" : ""));
         setMessage(short > 0
           ? schedule.length + "경기를" + modeText + " 생성했습니다." + preserveText + substituteText + " 총 " + short + "회 출전 슬롯은 인원/조건 때문에 비워졌습니다."
@@ -5099,6 +5149,13 @@
     });
     el("playerSearch").addEventListener("input", () => renderAll(true));
     el("toggleInputLockBtn").addEventListener("click", () => setInputLocked(!state.inputLocked));
+    el("dailyPriorityMode").addEventListener("change", () => {
+      if (guardInputLocked()) return;
+      setMessage(el("dailyPriorityMode").value === "equal"
+        ? "운영모드 추가 대진을 전체인원 동일적용 방식으로 설정했습니다."
+        : "운영모드 추가 대진을 늦참자 우선적용 방식으로 설정했습니다.");
+      if (el("autoCloudSave").checked && state.schedule.length) saveCloudData(true);
+    });
     el("scheduleStartAt").addEventListener("change", () => {
       if (guardInputLocked()) return;
       state.scheduleStartAt = normalizeDateTimeText(el("scheduleStartAt").value) || formatDateTimeLocal();
