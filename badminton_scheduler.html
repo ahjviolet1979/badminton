@@ -384,7 +384,7 @@
 
     .event-match-setting {
       display: grid;
-      grid-template-columns: auto 64px 1fr;
+      grid-template-columns: auto 64px auto 88px;
       align-items: center;
       gap: 8px;
       margin-top: 8px;
@@ -403,11 +403,17 @@
       font-weight: 900;
     }
 
-    .event-match-setting span {
-      min-width: 0;
-      color: #7b8780;
-      font-size: 11px;
-      font-weight: 800;
+    .event-match-setting .money-input {
+      width: 88px;
+    }
+
+    .event-fine {
+      display: block;
+      margin-top: 4px;
+      color: #b45309;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
     }
 
     .checkrow {
@@ -1188,6 +1194,15 @@
       color: var(--accent-dark);
     }
 
+    .player-edit.locked {
+      cursor: default;
+      border-bottom-color: transparent;
+    }
+
+    .player-edit.locked:hover {
+      color: inherit;
+    }
+
     .versus {
       color: var(--muted);
       text-align: center;
@@ -1811,7 +1826,8 @@
         <div class="event-match-setting">
           <label for="eventMatchCount">이벤트경기수</label>
           <input id="eventMatchCount" type="number" min="0" max="50" step="1" inputmode="numeric" value="0">
-          <span>생성된 대진 중 랜덤 지정</span>
+          <label for="eventFineAmount">금액</label>
+          <input id="eventFineAmount" class="money-input" type="number" min="0" step="100" inputmode="numeric" value="1000">
         </div>
 
         <div class="settings">
@@ -3371,6 +3387,7 @@
         seed: el("seed")?.value.trim() || state.seed || "A01",
         tries: Number(el("tries")?.value || 0),
         eventMatchCount: Number(el("eventMatchCount")?.value || 0),
+        eventFineAmount: Number(el("eventFineAmount")?.value || 0),
         scheduleStartAt: normalizeDateTimeText(el("scheduleStartAt")?.value || state.scheduleStartAt || "")
       };
       return {
@@ -3427,6 +3444,7 @@
       if (savedSettings.courtCount) el("courtCount").value = savedSettings.courtCount;
       if (savedSettings.tries) el("tries").value = savedSettings.tries;
       el("eventMatchCount").value = savedSettings.eventMatchCount ?? data.eventMatchCount ?? 0;
+      el("eventFineAmount").value = savedSettings.eventFineAmount ?? data.eventFineAmount ?? 1000;
       el("allowShortfall").checked = savedSettings.allowShortfall ?? data.allowShortfall ?? el("allowShortfall").checked;
       el("includeInProgressPlayers").checked = savedSettings.includeInProgressPlayers ?? data.includeInProgressPlayers ?? el("includeInProgressPlayers").checked;
       localStorage.setItem("badminton_include_in_progress", el("includeInProgressPlayers").checked ? "1" : "0");
@@ -3649,7 +3667,10 @@
       return (el("playerSearch")?.value || "").trim().toLowerCase();
     }
 
-    function schedulePlayerButton(matchId, teamKey, index, name) {
+    function schedulePlayerButton(matchId, teamKey, index, name, result = "") {
+      if (["A", "B", "D", "P"].includes(result)) {
+        return `<span class="player-edit locked" title="결과 입력 또는 게임중인 경기는 선수 교체가 잠겨 있습니다.">${name}</span>`;
+      }
       return `<button class="player-edit" type="button" data-match-id="${matchId}" data-team="${teamKey}" data-index="${index}" title="선수 교체">${name}</button>`;
     }
 
@@ -3685,6 +3706,10 @@
       }
       const match = state.schedule.find(item => item.id === matchId);
       if (!match) return;
+      if (["A", "B", "D", "P"].includes(state.results[match.id] || "")) {
+        window.alert("결과가 입력되었거나 게임중인 경기는 선수 교체를 할 수 없습니다.");
+        return;
+      }
       const team = match[teamKey];
       const sameMatchSlots = [
         { teamKey: "teamA", index: 0, name: match.teamA[0] },
@@ -3710,6 +3735,10 @@
     function openPlayerPickDialog(matchId, teamKey, index, currentName) {
       const match = state.schedule.find(item => Number(item.id) === Number(matchId));
       if (!match) return;
+      if (["A", "B", "D", "P"].includes(state.results[match.id] || "")) {
+        window.alert("결과가 입력되었거나 게임중인 경기는 선수 교체를 할 수 없습니다.");
+        return;
+      }
       const backdrop = el("playerPickChoice");
       const searchInput = el("playerPickSearch");
       const list = el("playerPickList");
@@ -3846,9 +3875,9 @@
             <td data-label="경기"><span class="match-cell"><button class="drag-handle" type="button" data-match-id="${match.id}" aria-label="${match.id}경기 순서 변경">≡</button><span>${match.id}</span>${match.eventGame ? `<span class="event-dot" title="이벤트 경기">E</span>` : ""}${canStart ? `<span class="available-dot" title="4명 모두 출전 가능">가</span>` : ""}</span></td>
             <td data-label="라운드"><span class="badge">${match.round}R</span></td>
             <td data-label="코트">${match.court}코트</td>
-            <td data-label="${labelA}"><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamA", 0, match.teamA[0])}</span><span class="pair">${schedulePlayerButton(match.id, "teamA", 1, match.teamA[1])}</span></div></td>
+            <td data-label="${labelA}"><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamA", 0, match.teamA[0], result)}</span><span class="pair">${schedulePlayerButton(match.id, "teamA", 1, match.teamA[1], result)}</span></div></td>
             <td data-label="" class="versus">VS</td>
-            <td data-label="${labelB}"><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamB", 0, match.teamB[0])}</span><span class="pair">${schedulePlayerButton(match.id, "teamB", 1, match.teamB[1])}</span></div></td>
+            <td data-label="${labelB}"><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamB", 0, match.teamB[0], result)}</span><span class="pair">${schedulePlayerButton(match.id, "teamB", 1, match.teamB[1], result)}</span></div></td>
             <td data-label="결과">
               <label class="winner"><input type="radio" name="winner-${match.id}" value="A" ${result === "A" ? "checked" : ""} ${resultDisabledAttr}> ${match.teamALabel || "A"}승</label>
               <label class="winner"><input type="radio" name="winner-${match.id}" value="B" ${result === "B" ? "checked" : ""} ${resultDisabledAttr}> ${match.teamBLabel || "B"}승</label>
@@ -3880,7 +3909,7 @@
           if (el("autoCloudSave").checked) saveCloudData(true);
         });
       });
-      el("scheduleOutput").querySelectorAll(".player-edit").forEach(button => {
+      el("scheduleOutput").querySelectorAll("button.player-edit").forEach(button => {
         button.addEventListener("click", event => {
           if (guardInputLocked()) return;
           const target = event.currentTarget;
@@ -4250,12 +4279,19 @@
         : "없음";
     }
 
+    function formatWon(amount) {
+      return `${Math.max(0, Number(amount) || 0).toLocaleString("ko-KR")}원`;
+    }
+
     function calculatePlayerHistories() {
+      const eventFineAmount = Number(el("eventFineAmount")?.value || 0);
       const histories = new Map(state.players.map(name => [name, {
         name,
         games: 0,
         wins: 0,
         losses: 0,
+        eventLosses: 0,
+        eventFine: 0,
         done: 0,
         pending: 0,
         partners: new Map(),
@@ -4278,6 +4314,10 @@
             history.games++;
             if (status === "승") history.wins++;
             if (status === "패") history.losses++;
+            if (match.eventGame && ["A", "B"].includes(result) && result !== team.code) {
+              history.eventLosses++;
+              history.eventFine = history.eventLosses * eventFineAmount;
+            }
             if (status === "완료") history.done++;
             if (status === "미입력") history.pending++;
             history.partners.set(partner, (history.partners.get(partner) || 0) + 1);
@@ -4327,7 +4367,7 @@
           <tbody>
             ${histories.map(history => `
               <tr>
-                <td class="history-name">${history.name}</td>
+                <td class="history-name">${history.name}${history.eventLosses ? `<span class="event-fine">E ${history.eventLosses}패 ${formatWon(history.eventFine)}</span>` : ""}</td>
                 <td class="history-record">
                   <div class="record-line"><span class="badge record-total">총 ${history.games}경기</span></div>
                   <div class="record-line">
@@ -4374,7 +4414,7 @@
           <tbody>
             ${histories.map(history => `
               <tr>
-                <td class="history-name">${history.name}</td>
+                <td class="history-name">${history.name}${history.eventLosses ? `<span class="event-fine">E ${history.eventLosses}패 ${formatWon(history.eventFine)}</span>` : ""}</td>
                 <td class="history-record">
                   <span class="badge record-total">${history.games}경기</span>
                   <span class="badge record-win">승 ${history.wins}</span>

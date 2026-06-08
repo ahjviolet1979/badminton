@@ -471,6 +471,15 @@
       min-width: 88px;
     }
 
+    .event-fine {
+      display: block;
+      margin-top: 4px;
+      color: #b45309;
+      font-size: 12px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
     #rankingOutput td:nth-child(2) {
       font-size: 15px;
       font-weight: 900;
@@ -685,6 +694,7 @@
       teamMode: false,
       nextMatchIds: [],
       eventName: "",
+      eventFineAmount: 0,
       schedulePublic: true
     };
 
@@ -924,11 +934,14 @@
     }
 
     function calculatePlayerHistories() {
+      const eventFineAmount = Number(state.eventFineAmount || 0);
       const histories = new Map(state.players.map(name => [name, {
         name,
         games: 0,
         wins: 0,
         losses: 0,
+        eventLosses: 0,
+        eventFine: 0,
         done: 0,
         pending: 0,
         partners: new Map(),
@@ -949,6 +962,10 @@
             const partner = team.players.find(name => name !== player);
             const history = histories.get(player);
             history.games++;
+            if (match.eventGame && ["A", "B"].includes(result) && result !== team.code) {
+              history.eventLosses++;
+              history.eventFine = history.eventLosses * eventFineAmount;
+            }
             if (status === "승") history.wins++;
             if (status === "패") history.losses++;
             if (status === "완료") history.done++;
@@ -992,7 +1009,7 @@
           <tbody>
             ${histories.map(history => `
               <tr>
-                <td class="history-name">${history.name}</td>
+                <td class="history-name">${history.name}${history.eventLosses ? `<span class="event-fine">E ${history.eventLosses}패 ${Number(history.eventFine || 0).toLocaleString("ko-KR")}원</span>` : ""}</td>
                 <td class="history-record">
                   <div class="record-line"><span class="badge record-total">총 ${history.games}경기</span><span class="badge record-pending">미입력 ${history.pending || 0}</span></div>
                   <div class="record-line">
@@ -1039,7 +1056,7 @@
           <tbody>
             ${histories.map(history => `
               <tr>
-                <td class="history-name">${history.name}</td>
+                <td class="history-name">${history.name}${history.eventLosses ? `<span class="event-fine">E ${history.eventLosses}패 ${Number(history.eventFine || 0).toLocaleString("ko-KR")}원</span>` : ""}</td>
                 <td class="history-record">
                   <div class="record-line"><span class="badge record-total">총 ${history.games}경기</span><span class="badge record-pending">미입력 ${history.pending || 0}</span></div>
                   <div class="record-line">
@@ -1236,6 +1253,7 @@
       state.teamMap = data.teamMap || {};
       state.teamMode = data.teamMode === "blueWhite";
       state.nextMatchIds = Array.isArray(data.nextMatchIds) ? data.nextMatchIds.map(Number).filter(Boolean) : [];
+      state.eventFineAmount = Number(data.scheduleSettings?.eventFineAmount ?? data.eventFineAmount ?? 0);
       state.updatedAt = data.updatedAt || "";
       state.eventName = data.eventId || sessionStorage.getItem("badminton_viewer_event_id") || "";
       renderAll();

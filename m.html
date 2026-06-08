@@ -268,13 +268,22 @@
 
     .player-name {
       min-height: 34px;
-      display: flex;
-      align-items: center;
+      display: grid;
+      align-content: center;
       padding: 7px 9px;
       background: #f8fbf3;
       color: #17231d;
       font-size: 18px;
       font-weight: 900;
+    }
+
+    .event-fine {
+      display: block;
+      margin-top: 3px;
+      color: #b45309;
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
     }
 
     .player-record {
@@ -666,7 +675,7 @@
   </main>
 
   <script>
-    const state = { players: [], schedule: [], results: {}, updatedAt: "", teamMap: {}, teamMode: false, eventName: "", nextMatchIds: [], schedulePublic: true };
+    const state = { players: [], schedule: [], results: {}, updatedAt: "", teamMap: {}, teamMode: false, eventName: "", nextMatchIds: [], eventFineAmount: 0, schedulePublic: true };
     const el = id => document.getElementById(id);
     let supabaseClient = null;
     let realtimeChannel = null;
@@ -786,14 +795,16 @@
       state.teamMap = data.teamMap || {};
       state.teamMode = data.teamMode === "blueWhite";
       state.nextMatchIds = Array.isArray(data.nextMatchIds) ? data.nextMatchIds.map(Number).filter(Boolean) : [];
+      state.eventFineAmount = Number(data.scheduleSettings?.eventFineAmount ?? data.eventFineAmount ?? 0);
       state.updatedAt = data.updatedAt || "";
       state.eventName = data.eventId || sessionStorage.getItem("badminton_mobile_event_id") || "";
       renderAll();
     }
 
     function statsForPlayers() {
+      const eventFineAmount = Number(state.eventFineAmount || 0);
       const stats = new Map(state.players.map(name => [name, {
-        name, games: 0, wins: 0, losses: 0, done: 0, pending: 0, partners: new Map(), matches: [], team: state.teamMap[name] || ""
+        name, games: 0, wins: 0, losses: 0, eventLosses: 0, eventFine: 0, done: 0, pending: 0, partners: new Map(), matches: [], team: state.teamMap[name] || ""
       }]));
       for (const match of state.schedule) {
         const result = state.results[match.id] || "";
@@ -805,12 +816,16 @@
           const status = !result ? "미진행" : result === "P" ? "게임중" : result === "D" ? "완료" : result === team.code ? "승" : "패";
           for (const player of team.players) {
             if (!stats.has(player)) {
-              stats.set(player, { name: player, games: 0, wins: 0, losses: 0, done: 0, pending: 0, partners: new Map(), matches: [], team: team.team });
+              stats.set(player, { name: player, games: 0, wins: 0, losses: 0, eventLosses: 0, eventFine: 0, done: 0, pending: 0, partners: new Map(), matches: [], team: team.team });
             }
             const partner = team.players.find(name => name !== player) || "";
             const row = stats.get(player);
             if (team.team && !row.team) row.team = team.team;
             row.games++;
+            if (match.eventGame && ["A", "B"].includes(result) && result !== team.code) {
+              row.eventLosses++;
+              row.eventFine = row.eventLosses * eventFineAmount;
+            }
             if (status === "승") row.wins++;
             if (status === "패") row.losses++;
             if (status === "완료") row.done++;
@@ -898,7 +913,7 @@
     function playerCard(row) {
       return '<article class="player-card">' +
         '<div class="player-head">' +
-        '<div class="player-name">' + row.name + '</div>' +
+        '<div class="player-name">' + row.name + (row.eventLosses ? '<span class="event-fine">E ' + row.eventLosses + '패 ' + Number(row.eventFine || 0).toLocaleString("ko-KR") + '원</span>' : '') + '</div>' +
         '<div class="player-record"><span class="player-record-line">총 ' + row.games + '경기 / 미입력 ' + row.pending + '</span><span class="player-record-line">승 ' + row.wins + ' / 패 ' + row.losses + ' / 완료 ' + row.done + '</span></div>' +
         '</div>' +
         '<div class="player-block partner">' +
