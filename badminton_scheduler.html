@@ -4410,7 +4410,10 @@
         losers.forEach(name => ensure(name).losses++);
       }
       return [...stats.values()]
-        .map(row => ({ ...row, winRate: row.games ? row.wins / row.games : 0, partnerCount: row.partners.size }))
+        .map(row => {
+          const rankedGames = row.wins + row.losses + row.done;
+          return { ...row, rankedGames, winRate: rankedGames ? row.wins / rankedGames : 0, partnerCount: row.partners.size };
+        })
         .sort((a, b) => b.wins - a.wins || b.winRate - a.winRate || b.games - a.games || b.partnerCount - a.partnerCount || a.name.localeCompare(b.name, "ko-KR"));
     }
 

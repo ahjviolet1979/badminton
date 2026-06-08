@@ -958,7 +958,7 @@
       }
       const ranked = [...stats].sort((a, b) =>
         b.wins - a.wins ||
-        a.losses - b.losses ||
+        (b.wins / Math.max(1, b.wins + b.losses + b.done)) - (a.wins / Math.max(1, a.wins + a.losses + a.done)) ||
         b.games - a.games ||
         b.partners.size - a.partners.size ||
         a.name.localeCompare(b.name, "ko-KR")
@@ -972,7 +972,8 @@
       }
       const renderRows = (rows, baseRows = ranked) => rows.map(row => {
         const index = baseRows.findIndex(item => item.name === row.name);
-        const winRate = row.games ? Math.round((row.wins / row.games) * 100) : 0;
+        const rankedGames = row.wins + row.losses + row.done;
+        const winRate = rankedGames ? Math.round((row.wins / rankedGames) * 100) : 0;
         return '<div class="rank-row top-' + (index + 1) + '">' +
           '<div class="rank-no">' + (index + 1) + '</div>' +
           '<div class="rank-main">' +
