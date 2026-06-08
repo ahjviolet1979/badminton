@@ -839,6 +839,24 @@
       box-shadow: inset 4px 0 0 #10b981;
     }
 
+    .pending-match-row {
+      background: #fffdf2;
+    }
+
+    .in-progress-match-row {
+      background: #fff7ed;
+    }
+
+    .completed-match-row {
+      background: #f8faf9;
+      color: #5f6f66;
+    }
+
+    .next-match-row {
+      background: #f0fdf4;
+      color: inherit;
+    }
+
     .next-badge {
       display: inline-flex;
       align-items: center;
@@ -3889,8 +3907,12 @@
           ? ""
           : `<label class="winner"><input type="radio" name="winner-${match.id}" value="D" ${result === "D" ? "checked" : ""} ${resultDisabledAttr}> 완료</label>`;
         const progressOption = `<label class="winner in-progress"><input type="radio" name="winner-${match.id}" value="P" ${result === "P" ? "checked" : ""} ${resultDisabledAttr}> 게임중</label>`;
+        const rowClass = [
+          !recordedResult ? "pending-match-row" : result === "P" ? "in-progress-match-row" : "completed-match-row",
+          isNext ? "next-match-row" : ""
+        ].filter(Boolean).join(" ");
         return `
-          <tr class="${isNext ? "next-match-row" : ""}" data-match-id="${match.id}">
+          <tr class="${rowClass}" data-match-id="${match.id}">
             <td data-label="경기"><span class="match-cell"><button class="drag-handle" type="button" data-match-id="${match.id}" aria-label="${match.id}경기 순서 변경">≡</button><span>${match.id}</span>${match.eventGame ? `<span class="event-dot" title="이벤트 경기">E</span>` : ""}${canStart ? `<span class="available-dot" title="4명 모두 출전 가능">가</span>` : ""}</span></td>
             <td data-label="라운드"><span class="badge">${match.round}R</span></td>
             <td data-label="코트">${match.court}코트</td>
