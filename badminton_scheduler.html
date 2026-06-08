@@ -309,17 +309,30 @@
       min-height: 125px;
     }
 
-    .player-list-actions {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+    .player-list-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       gap: 6px;
       margin-bottom: 8px;
     }
 
+    .player-list-title-row label {
+      margin: 0;
+      flex: 0 0 auto;
+    }
+
+    .player-list-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+    }
+
     .player-list-actions .button {
-      width: 100%;
       justify-content: center;
-      padding: 0 6px;
+      min-height: 34px;
+      padding: 0 8px;
       font-size: 12px;
     }
 
@@ -419,8 +432,8 @@
     .checkrow {
       display: flex;
       align-items: center;
-      gap: 9px;
-      margin-top: 12px;
+      gap: 7px;
+      margin-top: 6px;
       color: var(--muted);
       font-size: 13px;
       white-space: nowrap;
@@ -433,13 +446,16 @@
     }
 
     .daily-priority-row {
-      gap: 7px;
+      grid-column: 1 / -1;
+      gap: 8px;
+      margin-top: 3px;
     }
 
     .daily-priority-row select {
       min-width: 0;
-      max-width: 154px;
-      padding: 6px 8px;
+      flex: 1 1 auto;
+      max-width: 210px;
+      padding: 5px 8px;
       font-size: 12px;
       font-weight: 800;
     }
@@ -447,12 +463,12 @@
     .compact-checks {
       display: grid;
       grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-      gap: 2px 4px;
-      margin-top: 4px;
+      gap: 1px 4px;
+      margin-top: 2px;
     }
 
     .compact-checks .checkrow {
-      margin-top: 2px;
+      margin-top: 0;
     }
 
     .compact-checks .wide-check {
@@ -1782,10 +1798,12 @@
           </div>
         </div>
         <div class="admin-session-info" id="adminSessionInfo">접속 아이디: -</div>
-        <label for="players">출전 선수 명단</label>
-        <div class="player-list-actions">
-          <button class="button" id="togglePlayersBtn" type="button">명단 숨기기</button>
-          <button class="button danger" id="clearPlayersBtn" type="button">명단전체삭제</button>
+        <div class="player-list-title-row">
+          <label for="players">출전 선수 명단</label>
+          <div class="player-list-actions">
+            <button class="button" id="togglePlayersBtn" type="button">명단숨기기</button>
+            <button class="button danger" id="clearPlayersBtn" type="button">명단전체삭제</button>
+          </div>
         </div>
         <textarea id="players" spellcheck="false" placeholder="선수명1 선수명2 (선수사이 띄어쓰기)&#10;샘플) 조현 안현진 박경희"></textarea>
         <div class="player-count-summary" id="playerCountSummary">선수 0명 / 대타 0명 / 총 0명</div>
@@ -1794,30 +1812,30 @@
         <div class="compact-checks">
           <label class="checkrow">
             <input id="autoCloudSave" type="checkbox" checked>
-            서버 즉시 저장
+            서버즉시저장
           </label>
 
           <label class="checkrow">
             <input id="blueWhiteMode" type="checkbox">
-            청백전 모드
+            청백전모드
           </label>
 
           <label class="checkrow">
             <input id="includeInProgressPlayers" type="checkbox">
-            게임중 포함
-          </label>
-
-          <label class="checkrow daily-priority-row">
-            <span>운영대진</span>
-            <select id="dailyPriorityMode">
-              <option value="latecomer">늦참자 우선적용</option>
-              <option value="equal">전체인원 동일적용</option>
-            </select>
+            게임중포함
           </label>
 
           <label class="checkrow">
             <input id="allowShortfall" type="checkbox" checked>
-            참가인원 4배수 대타적용
+            4배수대타적용
+          </label>
+
+          <label class="checkrow daily-priority-row">
+            <span>대진기준</span>
+            <select id="dailyPriorityMode">
+              <option value="latecomer">늦참자 배려모드</option>
+              <option value="equal">전체인원 균일모드</option>
+            </select>
           </label>
         </div>
 
@@ -5237,7 +5255,7 @@
     el("togglePlayersBtn").addEventListener("click", () => {
       const aside = el("players").closest("aside");
       const collapsed = aside.classList.toggle("player-list-collapsed");
-      el("togglePlayersBtn").textContent = collapsed ? "명단 보이기" : "명단 숨기기";
+      el("togglePlayersBtn").textContent = collapsed ? "명단보이기" : "명단숨기기";
     });
     el("clearPlayersBtn").addEventListener("click", () => {
       if (guardInputLocked()) return;
