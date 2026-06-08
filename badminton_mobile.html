@@ -334,9 +334,10 @@
       border: 1px solid transparent;
       border-radius: 8px;
       padding: 7px 6px;
+      position: relative;
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto;
-      gap: 5px;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 4px;
       align-items: center;
       min-width: 0;
       background: #fbfcfa;
@@ -350,6 +351,11 @@
     .team-row.win-b {
       background: #fff1f7;
       border-color: #fbcfe8;
+    }
+
+    .team-row:has(.win-mark),
+    .team-row:has(.done-mark) {
+      padding-right: 38px;
     }
 
     .match-card.next-match {
@@ -383,6 +389,10 @@
 
     .win-mark {
       flex: 0 0 auto;
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
       min-width: 24px;
       min-height: 21px;
       display: inline-grid;
@@ -406,6 +416,10 @@
 
     .done-mark {
       flex: 0 0 auto;
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
       display: inline-grid;
       place-items: center;
       min-height: 21px;
