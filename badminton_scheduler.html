@@ -2389,7 +2389,7 @@
         return;
       }
       list.innerHTML = `
-        <div class="player-status-head"><span>선수</span><button class="status-head-action" id="markAllPresentBtn" type="button" title="전체 출석 처리">출석</button><span>제외</span></div>
+        <div class="player-status-head"><span>선수</span><button class="status-head-action" id="markAllPresentBtn" type="button" title="전체 출석 처리">출석</button><button class="status-head-action" id="markAllExcludedBtn" type="button" title="전체 제외 처리">제외</button></div>
         ${names.map(name => {
           const status = statusMap[name] || { present: false, excluded: true, attendedAt: "" };
           const order = status.attendedAt ? attendanceRankMap(names).get(name) : "";
@@ -2424,6 +2424,20 @@
       });
       renderPlayerStatusList();
       setMessage(`운영모드 선수 ${names.length}명을 일괄 출석 처리했습니다.`);
+      if (el("autoCloudSave").checked) saveCloudData(true);
+    }
+
+    function markAllDailyPlayersExcluded() {
+      if (guardInputLocked()) return;
+      if (state.adminMode !== "daily") return;
+      const names = parsePlayers();
+      if (!names.length) {
+        setMessage("제외 처리할 선수 명단이 없습니다.", true);
+        return;
+      }
+      resetDailyStatusesToExcluded(names);
+      renderPlayerStatusList();
+      setMessage(`운영모드 선수 ${names.length}명을 일괄 제외 처리했습니다. 명단은 유지됩니다.`);
       if (el("autoCloudSave").checked) saveCloudData(true);
     }
 
@@ -5133,6 +5147,9 @@
     el("playerStatusList").addEventListener("click", event => {
       if (event.target.id === "markAllPresentBtn") {
         markAllDailyPlayersPresent();
+      }
+      if (event.target.id === "markAllExcludedBtn") {
+        markAllDailyPlayersExcluded();
       }
     });
     document.querySelectorAll(".stepper-button").forEach(button => {
