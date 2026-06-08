@@ -1128,6 +1128,33 @@
       font-weight: 700;
     }
 
+    .schedule-mode-badge {
+      min-height: 43px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 14px;
+      border: 1px solid #cfe3d7;
+      border-radius: 8px;
+      background: #f4faf6;
+      color: #315243;
+      font-size: 13px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .schedule-mode-badge.daily {
+      border-color: #bbf7d0;
+      background: #f0fdf4;
+      color: #047857;
+    }
+
+    .schedule-mode-badge.tournament {
+      border-color: #fde68a;
+      background: #fffbeb;
+      color: #92400e;
+    }
+
     .schedule-time-box {
       display: flex;
       align-items: center;
@@ -1982,6 +2009,7 @@
 
         <div class="player-search no-print">
           <input id="playerSearch" type="search" placeholder="선수 이름 검색" autocomplete="off">
+          <span class="schedule-mode-badge" id="scheduleModeBadge">대진 없음</span>
           <div class="schedule-time-box">
             <label for="scheduleStartAt">시작시간</label>
             <input id="scheduleStartAt" type="text" inputmode="numeric" placeholder="2026-06-05 16:00">
@@ -2049,6 +2077,7 @@
       teamMap: {},
       nextMatchIds: [],
       resultEditIds: [],
+      scheduleMode: "",
       schedulePublic: true,
       scheduleStartAt: "",
       inputLocked: localStorage.getItem("badminton_input_locked") === "1"
@@ -2807,6 +2836,7 @@
         state.schedule = [];
         state.results = {};
         state.nextMatchIds = [];
+        state.scheduleMode = "";
         clearManualMatchInputs();
         resetScheduleStartTimeToNow();
       }
@@ -3072,12 +3102,12 @@
 
     function contextForDailyAppend(players, existingSchedule) {
       const ctx = contextFromExistingSchedule(players, existingSchedule);
+      ctx.countPriorGamesTowardTarget = true;
       ctx.dailyPriorGames = new Map(players.map(player => [player, ctx.games.get(player) || 0]));
       const activeCourts = Math.max(1, Math.min(Number(el("courtCount").value) || 1, Math.floor(players.length / 4)));
       const totalPriorGames = players.reduce((sum, player) => sum + (ctx.games.get(player) || 0), 0);
       ctx.dailyIdealPriorPerGroup = totalPriorGames / activeCourts;
       players.forEach(player => {
-        ctx.games.set(player, 0);
         ctx.restGaps.set(player, []);
       });
       return ctx;
@@ -3097,7 +3127,9 @@
       const currentDeficit = initialCtx
         ? players.reduce((sum, player) => sum + Math.max(0, targetGames - (initialCtx.games.get(player) || 0)), 0)
         : neededTotal;
-      const targetMatches = allowOverTarget ? currentDeficit : Math.floor(neededTotal / 4);
+      const targetMatches = initialCtx?.countPriorGamesTowardTarget
+        ? Math.floor(currentDeficit / 4)
+        : (allowOverTarget ? currentDeficit : Math.floor(neededTotal / 4));
       const maxMatches = targetMatches;
       const rand = mulberry32(seed);
       const priority = randomPriority(players, rand);
@@ -3532,6 +3564,7 @@
       const scheduleSettings = {
         adminMode: state.adminMode,
         teamMode: state.teamMode ? "blueWhite" : "normal",
+        scheduleMode: state.scheduleMode || state.adminMode,
         blueWhiteMode: el("blueWhiteMode")?.checked === true,
         allowShortfall: el("allowShortfall")?.checked === true,
         includeInProgressPlayers: el("includeInProgressPlayers")?.checked === true,
@@ -3556,6 +3589,7 @@
         seed: state.seed,
         scheduleStartAt: scheduleSettings.scheduleStartAt,
         adminMode: state.adminMode,
+        scheduleMode: state.scheduleMode || "",
         scheduleSettings,
         allowShortfall: scheduleSettings.allowShortfall,
         includeInProgressPlayers: scheduleSettings.includeInProgressPlayers,
@@ -3567,6 +3601,7 @@
         teamMode: state.teamMode,
         teamMap: state.teamMap,
         nextMatchIds: state.nextMatchIds,
+        scheduleMode: state.scheduleMode || "",
         schedulePublic: isPublic,
         publicSchedule: isPublic
       };
@@ -3590,6 +3625,7 @@
       state.teamMode = savedSettings.blueWhiteMode === true || savedSettings.teamMode === "blueWhite" || data.teamMode === true || data.teamMode === "blueWhite";
       state.teamMap = data.teamMap || {};
       state.nextMatchIds = Array.isArray(data.nextMatchIds) ? data.nextMatchIds.map(Number).filter(Boolean) : [];
+      state.scheduleMode = state.schedule.length ? (savedSettings.scheduleMode || data.scheduleMode || state.adminMode || "") : "";
       state.schedulePublic = data.schedulePublic !== false;
       restoreCurrentModeRoster();
       el("seed").value = state.seed || "A01";
@@ -3734,6 +3770,7 @@
         state.schedule = [];
         state.results = {};
         state.nextMatchIds = [];
+        state.scheduleMode = "";
         state.playerStatus = {};
         state.modeRosters = { daily: "", tournament: "" };
         state.schedulePublic = true;
@@ -3815,7 +3852,26 @@
       const bWins = Object.values(state.results).filter(value => value === "B").length;
       const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
       el("winnerCount").textContent = blueWhite ? `청 ${aWins} / 백 ${bWins}` : `A ${aWins} / B ${bWins}`;
+      renderScheduleModeBadge();
       renderScheduleTimeEstimate();
+    }
+
+    function renderScheduleModeBadge() {
+      const badge = el("scheduleModeBadge");
+      if (!badge) return;
+      const mode = state.schedule.length ? (state.scheduleMode || state.adminMode) : "";
+      badge.classList.remove("daily", "tournament");
+      if (!mode) {
+        badge.textContent = "대진 없음";
+        return;
+      }
+      if (mode === "daily") {
+        badge.textContent = "운영모드 생성대진";
+        badge.classList.add("daily");
+        return;
+      }
+      badge.textContent = "대회모드 생성대진";
+      badge.classList.add("tournament");
     }
 
     function searchText() {
@@ -4240,6 +4296,7 @@
       state.schedule = [];
       state.results = {};
       state.nextMatchIds = [];
+      state.scheduleMode = "";
       state.players = parsePlayers();
       el("players").value = visibleRosterNames(state.players).join(" ");
       saveCurrentModeRoster();
@@ -4265,6 +4322,7 @@
       }
       if (!window.confirm(`승/패/완료/게임중이 없는 미완료 대진 ${pendingMatches.length}개를 삭제합니다. 계속하시겠습니까?`)) return;
       state.schedule = state.schedule.filter(match => state.results[match.id]);
+      if (!state.schedule.length) state.scheduleMode = "";
       normalizeSchedule();
       rebuildPlayersFromSchedule();
       state.resultEditIds = (state.resultEditIds || []).filter(id => state.results[Number(id)]);
@@ -4279,6 +4337,7 @@
       if (guardInputLocked()) return;
       if (!window.confirm(`${matchId}경기를 삭제하시겠습니까?`)) return;
       state.schedule = state.schedule.filter(match => Number(match.id) !== matchId);
+      if (!state.schedule.length) state.scheduleMode = "";
       delete state.results[matchId];
       state.nextMatchIds = (state.nextMatchIds || []).filter(id => Number(id) !== matchId);
       state.resultEditIds = (state.resultEditIds || []).filter(id => Number(id) !== matchId);
@@ -4707,6 +4766,7 @@
           state.results = {};
           state.nextMatchIds = [];
           state.resultEditIds = [];
+          state.scheduleMode = "";
           existingSchedule = [];
         }
       }
@@ -4758,9 +4818,7 @@
           const initialCtx = dailyPriorityMode === "equal"
             ? contextForDailyEqualAppend(players, existingSchedule)
             : contextForDailyAppend(players, existingSchedule);
-          const attendanceOrder = dailyPriorityMode === "equal"
-            ? lateAttendancePriorityMap(players)
-            : attendanceRankMap(players);
+          const attendanceOrder = lateAttendancePriorityMap(players);
           schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length, false, attendanceOrder).schedule;
         } else if (blueWhiteMode) {
           const prepared = prepareBlueWhitePlayers(enteredPlayers);
@@ -4777,6 +4835,7 @@
           schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length).schedule;
         }
         state.players = players;
+        state.scheduleMode = dailyMode ? "daily" : "tournament";
         if (dailyMode) {
           state.schedule = appendScheduleContinuing(existingSchedule, schedule, courtCount);
         } else if (regenerateMode === "keepCompleted") {
@@ -5282,6 +5341,7 @@
         state.schedule = [];
         state.results = {};
         state.nextMatchIds = [];
+        state.scheduleMode = "";
         clearManualMatchInputs();
       }
       renderTeamAssignments();
