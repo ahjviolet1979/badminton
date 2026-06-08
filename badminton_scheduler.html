@@ -907,6 +907,22 @@
       font-weight: 900;
     }
 
+    .status-head-action {
+      border: 0;
+      padding: 0;
+      background: transparent;
+      color: var(--accent-dark);
+      font: inherit;
+      font-weight: 900;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .status-head-action:hover {
+      color: var(--accent);
+    }
+
     .player-status-row {
       border-top: 1px solid var(--line);
     }
@@ -2373,7 +2389,7 @@
         return;
       }
       list.innerHTML = `
-        <div class="player-status-head"><span>선수</span><span>출석</span><span>제외</span></div>
+        <div class="player-status-head"><span>선수</span><button class="status-head-action" id="markAllPresentBtn" type="button" title="전체 출석 처리">출석</button><span>제외</span></div>
         ${names.map(name => {
           const status = statusMap[name] || { present: false, excluded: true, attendedAt: "" };
           const order = status.attendedAt ? attendanceRankMap(names).get(name) : "";
@@ -2385,6 +2401,30 @@
               <label><input type="checkbox" class="player-exclude-check" data-player="${key}" ${status.excluded ? "checked" : ""}></label>
             </div>`;
         }).join("")}`;
+    }
+
+    function resetDailyStatusesToExcluded(names = parsePlayers()) {
+      state.playerStatus = {};
+      names.filter(Boolean).forEach(name => {
+        state.playerStatus[name] = { present: false, excluded: true, attendedAt: "" };
+      });
+    }
+
+    function markAllDailyPlayersPresent() {
+      if (guardInputLocked()) return;
+      if (state.adminMode !== "daily") return;
+      const names = parsePlayers();
+      if (!names.length) {
+        setMessage("출석 처리할 선수 명단이 없습니다.", true);
+        return;
+      }
+      const now = new Date().toISOString();
+      names.filter(name => !isAutoSubstituteName(name)).forEach(name => {
+        state.playerStatus[name] = { present: true, excluded: false, attendedAt: state.playerStatus[name]?.attendedAt || now };
+      });
+      renderPlayerStatusList();
+      setMessage(`운영모드 선수 ${names.length}명을 일괄 출석 처리했습니다.`);
+      if (el("autoCloudSave").checked) saveCloudData(true);
     }
 
     function dailyEligiblePlayers() {
@@ -5090,6 +5130,11 @@
       renderPlayerStatusList();
       if (el("autoCloudSave").checked) saveCloudData(true);
     });
+    el("playerStatusList").addEventListener("click", event => {
+      if (event.target.id === "markAllPresentBtn") {
+        markAllDailyPlayersPresent();
+      }
+    });
     document.querySelectorAll(".stepper-button").forEach(button => {
       button.addEventListener("click", event => {
         const target = el(event.currentTarget.dataset.stepTarget);
@@ -5138,7 +5183,7 @@
       if (!window.confirm(message)) return;
       const removedSchedule = state.schedule.length > 0;
       el("players").value = "";
-      state.playerStatus = {};
+      resetDailyStatusesToExcluded([]);
       state.players = [];
       state.modeRosters[rosterModeKey()] = "";
       if (state.schedule.length) {
