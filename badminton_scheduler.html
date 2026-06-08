@@ -720,7 +720,7 @@
     .row-actions {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
+      gap: 4px;
       white-space: nowrap;
     }
 
@@ -750,6 +750,12 @@
       color: #b91c1c;
       border-color: #fecaca;
       background: #fff5f5;
+    }
+
+    .icon-row-button.event-toggle.active {
+      color: #c2410c;
+      border-color: #fdba74;
+      background: #fff7ed;
     }
 
     .icon-row-button:disabled {
@@ -3667,8 +3673,16 @@
       return (el("playerSearch")?.value || "").trim().toLowerCase();
     }
 
+    function hasRecordedResult(result) {
+      return ["A", "B", "D", "P", "완료", "게임중", "청승", "백승", "A승", "B승"].includes(String(result || "").trim());
+    }
+
+    function isFinalResult(result) {
+      return ["A", "B", "D", "완료", "청승", "백승", "A승", "B승"].includes(String(result || "").trim());
+    }
+
     function schedulePlayerButton(matchId, teamKey, index, name, result = "") {
-      if (["A", "B", "D", "P"].includes(result)) {
+      if (hasRecordedResult(result)) {
         return `<span class="player-edit locked" title="결과 입력 또는 게임중인 경기는 선수 교체가 잠겨 있습니다.">${name}</span>`;
       }
       return `<button class="player-edit" type="button" data-match-id="${matchId}" data-team="${teamKey}" data-index="${index}" title="선수 교체">${name}</button>`;
@@ -3706,7 +3720,7 @@
       }
       const match = state.schedule.find(item => item.id === matchId);
       if (!match) return;
-      if (["A", "B", "D", "P"].includes(state.results[match.id] || "")) {
+      if (hasRecordedResult(state.results[match.id])) {
         window.alert("결과가 입력되었거나 게임중인 경기는 선수 교체를 할 수 없습니다.");
         return;
       }
@@ -3735,7 +3749,7 @@
     function openPlayerPickDialog(matchId, teamKey, index, currentName) {
       const match = state.schedule.find(item => Number(item.id) === Number(matchId));
       if (!match) return;
-      if (["A", "B", "D", "P"].includes(state.results[match.id] || "")) {
+      if (hasRecordedResult(state.results[match.id])) {
         window.alert("결과가 입력되었거나 게임중인 경기는 선수 교체를 할 수 없습니다.");
         return;
       }
@@ -3853,10 +3867,14 @@
         return;
       }
       el("scheduleOutput").className = "tablewrap";
+      state.nextMatchIds = (state.nextMatchIds || [])
+        .map(Number)
+        .filter(id => !hasRecordedResult(state.results[id]));
       const inProgressPlayers = inProgressPlayerSet();
       const rows = schedule.map(match => {
         const result = state.results[match.id] || "";
-        const finalResultLocked = ["A", "B", "D"].includes(result);
+        const recordedResult = hasRecordedResult(result);
+        const finalResultLocked = isFinalResult(result);
         const resultEditEnabled = (state.resultEditIds || []).map(Number).includes(Number(match.id));
         const resultDisabled = finalResultLocked && !resultEditEnabled;
         const resultDisabledAttr = resultDisabled ? "disabled" : "";
@@ -3865,6 +3883,7 @@
         const labelA = match.teamALabel ? `${match.teamALabel}팀` : "A팀";
         const labelB = match.teamBLabel ? `${match.teamBLabel}팀` : "B팀";
         const isNext = (state.nextMatchIds || []).map(Number).includes(Number(match.id));
+        const nextDisabledAttr = recordedResult ? "disabled" : "";
         const isBlueWhiteMatch = match.mode === "blueWhite" || match.teamALabel === "청" || match.teamBLabel === "백";
         const doneOption = !dailyMode && isBlueWhiteMatch
           ? ""
@@ -3884,8 +3903,8 @@
               ${doneOption}
               ${progressOption}
             </td>
-            <td data-label="다음게임"><label class="next-check"><input type="checkbox" class="next-match-check" data-match-id="${match.id}" ${isNext ? "checked" : ""}> 다음게임</label></td>
-            <td data-label="관리"><span class="row-actions"><button class="icon-row-button edit-result" type="button" data-match-id="${match.id}" title="결과 수정" ${finalResultLocked ? "" : "disabled"}>✎</button><button class="icon-row-button danger delete-match" type="button" data-match-id="${match.id}" title="대진 삭제">×</button></span></td>
+            <td data-label="다음게임"><label class="next-check"><input type="checkbox" class="next-match-check" data-match-id="${match.id}" ${isNext ? "checked" : ""} ${nextDisabledAttr}> 다음게임</label></td>
+            <td data-label="관리"><span class="row-actions"><button class="icon-row-button event-toggle ${match.eventGame ? "active" : ""}" type="button" data-match-id="${match.id}" title="${match.eventGame ? "이벤트 경기 해제" : "이벤트 경기 지정"}">E</button><button class="icon-row-button edit-result" type="button" data-match-id="${match.id}" title="결과 수정" ${finalResultLocked ? "" : "disabled"}>✎</button><button class="icon-row-button danger delete-match" type="button" data-match-id="${match.id}" title="대진 삭제">×</button></span></td>
           </tr>`;
       }).join("");
       const headerA = schedule.some(match => match.teamALabel) ? "청팀" : "A팀";
@@ -3913,8 +3932,13 @@
         button.addEventListener("click", event => {
           if (guardInputLocked()) return;
           const target = event.currentTarget;
+          const matchId = Number(target.dataset.matchId);
+          if (hasRecordedResult(state.results[matchId])) {
+            window.alert("결과가 입력되었거나 게임중인 경기는 선수 교체를 할 수 없습니다.");
+            return;
+          }
           openPlayerPickDialog(
-            Number(target.dataset.matchId),
+            matchId,
             target.dataset.team,
             Number(target.dataset.index),
             target.textContent.trim()
@@ -3925,6 +3949,13 @@
         input.addEventListener("change", event => {
           if (guardInputLocked()) return;
           const matchId = Number(event.target.dataset.matchId);
+          if (hasRecordedResult(state.results[matchId])) {
+            event.target.checked = false;
+            state.nextMatchIds = (state.nextMatchIds || []).filter(id => Number(id) !== matchId);
+            window.alert("결과가 입력되었거나 게임중인 경기는 다음게임으로 지정할 수 없습니다.");
+            renderAll(true);
+            return;
+          }
           const set = new Set((state.nextMatchIds || []).map(Number));
           if (event.target.checked) set.add(matchId);
           else set.delete(matchId);
@@ -3935,6 +3966,18 @@
       });
       el("scheduleOutput").querySelectorAll(".delete-match").forEach(button => {
         button.addEventListener("click", event => deleteMatch(Number(event.currentTarget.dataset.matchId)));
+      });
+      el("scheduleOutput").querySelectorAll(".event-toggle").forEach(button => {
+        button.addEventListener("click", event => {
+          if (guardInputLocked()) return;
+          const matchId = Number(event.currentTarget.dataset.matchId);
+          const match = state.schedule.find(item => Number(item.id) === matchId);
+          if (!match) return;
+          match.eventGame = !match.eventGame;
+          renderAll(true);
+          setMessage(`${matchId}경기를 이벤트 경기${match.eventGame ? "로 지정" : "에서 해제"}했습니다.`);
+          if (el("autoCloudSave").checked) saveCloudData(true);
+        });
       });
       el("scheduleOutput").querySelectorAll(".edit-result").forEach(button => {
         button.addEventListener("click", event => {
@@ -4367,7 +4410,7 @@
           <tbody>
             ${histories.map(history => `
               <tr>
-                <td class="history-name">${history.name}${history.eventLosses ? `<span class="event-fine">E ${history.eventLosses}패 ${formatWon(history.eventFine)}</span>` : ""}</td>
+                <td class="history-name">${history.name}${history.eventLosses ? `<span class="event-fine">E ${history.eventLosses}패<br>${formatWon(history.eventFine)}</span>` : ""}</td>
                 <td class="history-record">
                   <div class="record-line"><span class="badge record-total">총 ${history.games}경기</span></div>
                   <div class="record-line">
@@ -4414,7 +4457,7 @@
           <tbody>
             ${histories.map(history => `
               <tr>
-                <td class="history-name">${history.name}${history.eventLosses ? `<span class="event-fine">E ${history.eventLosses}패 ${formatWon(history.eventFine)}</span>` : ""}</td>
+                <td class="history-name">${history.name}${history.eventLosses ? `<span class="event-fine">E ${history.eventLosses}패<br>${formatWon(history.eventFine)}</span>` : ""}</td>
                 <td class="history-record">
                   <span class="badge record-total">${history.games}경기</span>
                   <span class="badge record-win">승 ${history.wins}</span>
