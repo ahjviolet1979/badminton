@@ -3612,17 +3612,19 @@
       const savedSettings = data.scheduleSettings || {};
       state.seed = savedSettings.seed || data.seed || state.seed;
       state.scheduleStartAt = normalizeDateTimeText(savedSettings.scheduleStartAt || data.scheduleStartAt || state.scheduleStartAt) || formatDateTimeLocal();
-      state.adminMode = savedSettings.adminMode || data.adminMode || state.adminMode || "tournament";
+      const savedAdminMode = savedSettings.adminMode || data.adminMode || "tournament";
+      const savedScheduleMode = savedSettings.scheduleMode || data.scheduleMode || "";
+      state.scheduleMode = state.schedule.length ? (savedScheduleMode || savedAdminMode) : "";
+      state.adminMode = state.scheduleMode || savedAdminMode;
       localStorage.setItem("badminton_admin_mode", state.adminMode);
       state.modeRosters = data.modeRosters || {
-        daily: data.adminMode === "daily" ? visibleRosterNames(state.players).join(" ") : "",
-        tournament: data.adminMode !== "daily" ? visibleRosterNames(state.players).join(" ") : ""
+        daily: state.adminMode === "daily" ? visibleRosterNames(state.players).join(" ") : "",
+        tournament: state.adminMode !== "daily" ? visibleRosterNames(state.players).join(" ") : ""
       };
       state.playerStatus = data.playerStatus || {};
       state.teamMode = savedSettings.blueWhiteMode === true || savedSettings.teamMode === "blueWhite" || data.teamMode === true || data.teamMode === "blueWhite";
       state.teamMap = data.teamMap || {};
       state.nextMatchIds = Array.isArray(data.nextMatchIds) ? data.nextMatchIds.map(Number).filter(Boolean) : [];
-      state.scheduleMode = state.schedule.length ? (savedSettings.scheduleMode || data.scheduleMode || state.adminMode || "") : "";
       state.schedulePublic = data.schedulePublic !== false;
       restoreCurrentModeRoster();
       el("seed").value = state.seed || "A01";
