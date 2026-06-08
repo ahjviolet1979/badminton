@@ -142,15 +142,15 @@
     }
 
     .toolbar .button {
+      width: 34px;
       min-height: 34px;
-      padding: 0 9px;
-      gap: 5px;
-      font-size: 12px;
+      padding: 0;
+      justify-content: center;
     }
 
     .toolbar .button svg {
-      width: 15px;
-      height: 15px;
+      width: 17px;
+      height: 17px;
     }
 
     .button.locked-on {
@@ -1788,38 +1788,32 @@
         <div class="input-lock-notice" id="inputLockNotice">입력 잠금 상태입니다. 결과 입력, 대진 수정, 설정 변경이 막혀 있습니다.</div>
       </div>
       <div class="toolbar no-print">
-        <button class="button" id="toggleInputLockBtn" type="button" title="결과 입력과 대진 수정을 잠그기">
-          입력잠금
-        </button>
-        <a class="button" href="admin_manual.html" target="_blank" rel="noopener" title="대회관리자 설명서 열기">
-          설명서
+        <a class="button" href="admin_manual.html" target="_blank" rel="noopener" title="대회관리자 설명서" aria-label="대회관리자 설명서 열기">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
         </a>
-        <button class="button" id="printBtn" type="button" title="현재 화면 인쇄" hidden>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
-          인쇄
+        <button class="button" id="toggleInputLockBtn" type="button" title="입력잠금" aria-label="입력잠금">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
         </button>
-        <button class="button" id="newTournamentBtn" type="button" title="새 대회 시작">
+        <button class="button" id="exportScheduleBtn" type="button" title="엑셀용 대진표 다운로드" aria-label="엑셀용 대진표 다운로드">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M4 3h12l4 4v14H4z"/><path d="M16 3v5h5"/><path d="M8 12l4 5"/><path d="M12 12l-4 5"/></svg>
+        </button>
+        <button class="button" id="newTournamentBtn" type="button" title="새 대회 시작" aria-label="새 대회 시작">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
-          새 대회
         </button>
-        <button class="button primary" id="saveCloudBtn" type="button" title="Supabase에 현재 상태 저장">
+        <button class="button primary" id="saveCloudBtn" type="button" title="서버 저장" aria-label="서버 저장">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v12"/><path d="M17 8l-5-5-5 5"/><path d="M5 21h14"/></svg>
-          서버 저장
         </button>
-        <button class="button" id="togglePublicBtn" type="button" title="사용자 화면 대진 공개/비공개">
-          대진비공개
+        <button class="button" id="togglePublicBtn" type="button" title="대진비공개" aria-label="대진비공개">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
         </button>
-        <button class="button danger" id="endTournamentBtn" type="button" title="사용자에게 대회 내용을 더 이상 보여주지 않기">
+        <button class="button danger" id="endTournamentBtn" type="button" title="대회 종료" aria-label="대회 종료">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6"/><path d="M15 9l-6 6"/></svg>
-          대회 종료
         </button>
-        <button class="button danger" id="deleteCloudBtn" type="button" title="Supabase에 저장된 대회 데이터 삭제">
+        <button class="button danger" id="deleteCloudBtn" type="button" title="대회 삭제" aria-label="대회 삭제">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
-          대회 삭제
         </button>
-        <button class="button" id="logoutAdminBtn" type="button" title="관리자 로그아웃">
+        <button class="button" id="logoutAdminBtn" type="button" title="로그아웃" aria-label="로그아웃">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 3v18"/></svg>
-          로그아웃
         </button>
       </div>
     </header>
@@ -2593,11 +2587,12 @@
     function renderSchedulePublicButton() {
       const button = el("togglePublicBtn");
       if (!button) return;
-      button.textContent = state.schedulePublic === false ? "대진공개" : "대진비공개";
       button.classList.toggle("primary", state.schedulePublic === false);
-      button.title = state.schedulePublic === false
+      const label = state.schedulePublic === false
         ? "사용자 화면에 대진/선수이력/순위를 공개합니다."
         : "사용자 화면에서 대진/선수이력/순위를 숨깁니다.";
+      button.title = label;
+      button.setAttribute("aria-label", state.schedulePublic === false ? "대진공개" : "대진비공개");
     }
 
     function isInputLockExempt(control) {
@@ -2610,11 +2605,11 @@
       document.body.classList.toggle("input-locked", state.inputLocked);
       const button = el("toggleInputLockBtn");
       if (button) {
-        button.textContent = state.inputLocked ? "잠금해제" : "입력잠금";
         button.classList.toggle("locked-on", state.inputLocked);
         button.title = state.inputLocked
           ? "결과 입력과 대진 수정을 다시 허용합니다."
           : "결과 입력, 대진 수정, 관리설정 입력을 잠급니다.";
+        button.setAttribute("aria-label", state.inputLocked ? "잠금해제" : "입력잠금");
       }
       document.querySelectorAll(".app input, .app select, .app textarea, .app button").forEach(control => {
         if (isInputLockExempt(control)) return;
@@ -4913,14 +4908,35 @@
 
     function exportSchedule() {
       if (!state.schedule.length) {
-        setMessage("먼저 대진을 생성해야 대진 CSV를 만들 수 있습니다.", true);
+        window.alert("다운로드할 대진표가 없습니다.");
+        setMessage("먼저 대진을 생성해야 엑셀용 대진표를 만들 수 있습니다.", true);
         return;
       }
-      const rows = [["경기", "라운드", "코트", "A팀1", "A팀2", "B팀1", "B팀2", "승리팀"]];
+      const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
+      const teamAName = blueWhite ? "청팀" : "A팀";
+      const teamBName = blueWhite ? "백팀" : "B팀";
+      const resultLabel = (match, result) => {
+        if (result === "A" || result === "A승" || result === "청승") return `${match.teamALabel || teamAName.replace("팀", "")}승`;
+        if (result === "B" || result === "B승" || result === "백승") return `${match.teamBLabel || teamBName.replace("팀", "")}승`;
+        if (result === "D" || result === "완료") return "완료";
+        if (result === "P" || result === "게임중") return "게임중";
+        return "미입력";
+      };
+      const rows = [["경기", "이벤트", "라운드", "코트", `${teamAName}1`, `${teamAName}2`, `${teamBName}1`, `${teamBName}2`, "결과", "다음게임"]];
       state.schedule.forEach(match => rows.push([
-        match.id, match.round, match.court, match.teamA[0], match.teamA[1], match.teamB[0], match.teamB[1], state.results[match.id] || ""
+        match.id,
+        match.eventGame ? "E" : "",
+        match.round,
+        match.court,
+        match.teamA[0],
+        match.teamA[1],
+        match.teamB[0],
+        match.teamB[1],
+        resultLabel(match, state.results[match.id]),
+        (state.nextMatchIds || []).map(Number).includes(Number(match.id)) ? "다음게임" : ""
       ]));
-      downloadCsv("badminton_schedule.csv", rows, "대진 CSV");
+      const eventId = (el("supabaseEventId")?.value || "badminton").trim().replace(/[\\/:*?"<>|]+/g, "_");
+      downloadCsv(`${eventId}_대진표.csv`, rows, "엑셀용 대진표");
     }
 
     function exportRanking() {
@@ -5383,7 +5399,7 @@
       setMessage("경기 결과와 다음게임 표시를 초기화했습니다.");
       if (el("autoCloudSave").checked) saveCloudData(true);
     });
-    el("printBtn").addEventListener("click", () => window.print());
+    el("exportScheduleBtn").addEventListener("click", exportSchedule);
     el("newTournamentBtn").addEventListener("click", startNewTournament);
     el("saveCloudBtn").addEventListener("click", () => saveCloudData(false));
     el("togglePublicBtn").addEventListener("click", async () => {
