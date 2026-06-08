@@ -2976,6 +2976,13 @@
       return best;
     }
 
+    function attendancePriorityValue(attendanceOrder, player, ctx) {
+      if (!attendanceOrder) return 9999;
+      const orderMap = attendanceOrder.map || attendanceOrder;
+      if (attendanceOrder.firstOnly && (ctx.games.get(player) || 0) > 0) return 9999;
+      return orderMap.get(player) || 9999;
+    }
+
     function evaluateGroup(group, ctx, target, roundUsed, rand, nextMatchId, idealRest, attendanceOrder = null) {
       const games = group.map(p => ctx.games.get(p) || 0);
       const minGame = Math.min(...games);
@@ -3005,17 +3012,7 @@
         }
       }
       if (attendanceOrder) {
-        score += group.reduce((sum, player) => sum + (attendanceOrder.get(player) || 9999), 0) * 8;
-      }
-      if (ctx.dailyPriorGames) {
-        const priorGames = group.map(player => ctx.dailyPriorGames.get(player) || 0);
-        const minPrior = Math.min(...priorGames);
-        const maxPrior = Math.max(...priorGames);
-        const priorTotal = priorGames.reduce((sum, value) => sum + value, 0);
-        const idealPriorTotal = ctx.dailyIdealPriorPerGroup ?? priorTotal;
-        score += Math.abs(priorTotal - idealPriorTotal) * 2200;
-        score += priorGames.reduce((sum, value) => sum + value, 0) * 180;
-        score += Math.max(0, maxPrior - minPrior - 1) * 1600;
+        score += group.reduce((sum, player) => sum + attendancePriorityValue(attendanceOrder, player, ctx), 0) * 8;
       }
       return score + rand() * 0.1;
     }
@@ -3103,10 +3100,6 @@
     function contextForDailyAppend(players, existingSchedule) {
       const ctx = contextFromExistingSchedule(players, existingSchedule);
       ctx.countPriorGamesTowardTarget = true;
-      ctx.dailyPriorGames = new Map(players.map(player => [player, ctx.games.get(player) || 0]));
-      const activeCourts = Math.max(1, Math.min(Number(el("courtCount").value) || 1, Math.floor(players.length / 4)));
-      const totalPriorGames = players.reduce((sum, player) => sum + (ctx.games.get(player) || 0), 0);
-      ctx.dailyIdealPriorPerGroup = totalPriorGames / activeCourts;
       players.forEach(player => {
         ctx.restGaps.set(player, []);
       });
@@ -3158,7 +3151,7 @@
               deficit: group.filter(p => (ctx.games.get(p) || 0) < targetGames).length,
               over: group.filter(p => (ctx.games.get(p) || 0) >= targetGames).length,
               restTotal: group.reduce((sum, p) => sum + ((ctx.lastPlayed.get(p) || 0) ? existingMatchCount + schedule.length + 1 - (ctx.lastPlayed.get(p) || 0) - 1 : 999), 0),
-              attendance: attendanceOrder ? group.reduce((sum, p) => sum + (attendanceOrder.get(p) || 9999), 0) : 0
+              attendance: attendanceOrder ? group.reduce((sum, p) => sum + attendancePriorityValue(attendanceOrder, p, ctx), 0) : 0
             };
           };
           if (allowOverTarget) {
@@ -4818,7 +4811,7 @@
           const initialCtx = dailyPriorityMode === "equal"
             ? contextForDailyEqualAppend(players, existingSchedule)
             : contextForDailyAppend(players, existingSchedule);
-          const attendanceOrder = lateAttendancePriorityMap(players);
+          const attendanceOrder = { map: lateAttendancePriorityMap(players), firstOnly: true };
           schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length, false, attendanceOrder).schedule;
         } else if (blueWhiteMode) {
           const prepared = prepareBlueWhitePlayers(enteredPlayers);
