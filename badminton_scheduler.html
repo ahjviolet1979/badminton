@@ -3904,7 +3904,7 @@
               ${progressOption}
             </td>
             <td data-label="다음게임"><label class="next-check"><input type="checkbox" class="next-match-check" data-match-id="${match.id}" ${isNext ? "checked" : ""} ${nextDisabledAttr}> 다음게임</label></td>
-            <td data-label="관리"><span class="row-actions"><button class="icon-row-button event-toggle ${match.eventGame ? "active" : ""}" type="button" data-match-id="${match.id}" title="${match.eventGame ? "이벤트 경기 해제" : "이벤트 경기 지정"}">E</button><button class="icon-row-button edit-result" type="button" data-match-id="${match.id}" title="결과 수정" ${finalResultLocked ? "" : "disabled"}>✎</button><button class="icon-row-button danger delete-match" type="button" data-match-id="${match.id}" title="대진 삭제">×</button></span></td>
+            <td data-label="관리"><span class="row-actions"><button class="icon-row-button event-toggle ${match.eventGame ? "active" : ""}" type="button" data-match-id="${match.id}" title="${recordedResult ? "결과 입력 또는 게임중인 경기는 이벤트 설정이 잠겨 있습니다." : match.eventGame ? "이벤트 경기 해제" : "이벤트 경기 지정"}" ${recordedResult ? "disabled" : ""}>E</button><button class="icon-row-button edit-result" type="button" data-match-id="${match.id}" title="결과 수정" ${finalResultLocked ? "" : "disabled"}>✎</button><button class="icon-row-button danger delete-match" type="button" data-match-id="${match.id}" title="대진 삭제">×</button></span></td>
           </tr>`;
       }).join("");
       const headerA = schedule.some(match => match.teamALabel) ? "청팀" : "A팀";
@@ -3973,6 +3973,10 @@
           const matchId = Number(event.currentTarget.dataset.matchId);
           const match = state.schedule.find(item => Number(item.id) === matchId);
           if (!match) return;
+          if (hasRecordedResult(state.results[matchId])) {
+            window.alert("결과가 입력되었거나 게임중인 경기는 이벤트 설정을 변경할 수 없습니다.");
+            return;
+          }
           match.eventGame = !match.eventGame;
           renderAll(true);
           setMessage(`${matchId}경기를 이벤트 경기${match.eventGame ? "로 지정" : "에서 해제"}했습니다.`);
