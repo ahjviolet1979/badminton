@@ -418,6 +418,23 @@
       white-space: nowrap;
     }
 
+    .event-dot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      margin-left: 6px;
+      border-radius: 999px;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fcd34d;
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1;
+      vertical-align: middle;
+    }
+
     .team-win-badge {
       display: inline-flex;
       align-items: center;
@@ -806,7 +823,7 @@
               const progressBadge = result === "P" ? '<span class="team-win-badge progress">게임중</span>' : '';
               return `
                 <tr class="${isNext ? "next-match-row" : ""}">
-                  <td data-label="경기">${match.id}</td>
+                  <td data-label="경기">${match.id}${match.eventGame ? '<span class="event-dot" title="이벤트 경기">E</span>' : ''}</td>
                   <td data-label="라운드"><span class="badge">${match.round}R</span></td>
                   <td data-label="코트">${match.court}코트</td>
                   <td data-label="${labelA}팀" class="team-cell ${teamAClass}"><div class="team-result-row"><div class="team"><span class="pair">${match.teamA[0]}</span><span class="pair">${match.teamA[1]}</span></div>${teamAWinBadge}</div></td>

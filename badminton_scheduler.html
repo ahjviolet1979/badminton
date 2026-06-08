@@ -153,6 +153,37 @@
       height: 15px;
     }
 
+    .button.locked-on {
+      background: #fff7ed;
+      color: #9a3412;
+      border-color: #fed7aa;
+      box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.12);
+    }
+
+    .input-lock-notice {
+      display: none;
+      margin: 8px 0 0;
+      padding: 8px 10px;
+      border: 1px solid #fed7aa;
+      border-radius: 8px;
+      background: #fff7ed;
+      color: #9a3412;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    body.input-locked .input-lock-notice {
+      display: block;
+    }
+
+    body.input-locked .app input:disabled,
+    body.input-locked .app select:disabled,
+    body.input-locked .app textarea:disabled,
+    body.input-locked .app button:disabled:not(#toggleInputLockBtn):not(.tab):not(#logoutAdminBtn) {
+      opacity: 0.62;
+      cursor: not-allowed;
+    }
+
     .grid {
       display: grid;
       grid-template-columns: minmax(300px, 380px) 1fr;
@@ -351,6 +382,34 @@
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
+    .event-match-setting {
+      display: grid;
+      grid-template-columns: auto 64px 1fr;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .event-match-setting input {
+      width: 64px;
+      padding: 7px 8px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .event-match-setting span {
+      min-width: 0;
+      color: #7b8780;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
     .checkrow {
       display: flex;
       align-items: center;
@@ -475,6 +534,67 @@
       gap: 8px;
     }
 
+    .player-pick-card {
+      width: min(520px, 100%);
+    }
+
+    .player-pick-search {
+      width: 100%;
+      margin: 0 0 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .player-pick-list {
+      display: grid;
+      gap: 6px;
+      max-height: min(440px, 58vh);
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .player-pick-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px 11px;
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 900;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .player-pick-item:hover:not(:disabled) {
+      border-color: var(--accent);
+      background: #f0fdf4;
+    }
+
+    .player-pick-item:disabled {
+      background: #f8fafc;
+      color: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    .player-pick-badge {
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 3px 7px;
+      font-size: 11px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
     .actions {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -591,12 +711,83 @@
       background: #fff5f5;
     }
 
+    .row-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      white-space: nowrap;
+    }
+
+    .icon-row-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: #475569;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .icon-row-button:hover:not(:disabled) {
+      border-color: var(--accent);
+      color: var(--accent-dark);
+      background: #f0fdf4;
+    }
+
+    .icon-row-button.danger {
+      color: #b91c1c;
+      border-color: #fecaca;
+      background: #fff5f5;
+    }
+
+    .icon-row-button:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
     .match-cell {
-      display: inline-grid;
-      grid-template-columns: 18px auto;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
       white-space: nowrap;
+    }
+
+    .available-dot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 19px;
+      height: 19px;
+      border-radius: 999px;
+      background: #dcfce7;
+      color: #047857;
+      border: 1px solid #86efac;
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1;
+      vertical-align: middle;
+    }
+
+    .event-dot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fcd34d;
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1;
+      vertical-align: middle;
     }
 
     .drag-handle {
@@ -1478,8 +1669,12 @@
       <div>
         <h1>배드민턴 대진표 생성기</h1>
         <p class="subtitle">출전 명단과 1인당 경기 수를 넣으면 파트너 중복을 줄인 복식 라운드 대진을 만듭니다.</p>
+        <div class="input-lock-notice" id="inputLockNotice">입력 잠금 상태입니다. 결과 입력, 대진 수정, 설정 변경이 막혀 있습니다.</div>
       </div>
       <div class="toolbar no-print">
+        <button class="button" id="toggleInputLockBtn" type="button" title="결과 입력과 대진 수정을 잠그기">
+          입력잠금
+        </button>
         <button class="button" id="printBtn" type="button" title="현재 화면 인쇄" hidden>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 14h12v8H6z"/></svg>
           인쇄
@@ -1613,6 +1808,12 @@
           </div>
         </div>
 
+        <div class="event-match-setting">
+          <label for="eventMatchCount">이벤트경기수</label>
+          <input id="eventMatchCount" type="number" min="0" max="50" step="1" inputmode="numeric" value="0">
+          <span>생성된 대진 중 랜덤 지정</span>
+        </div>
+
         <div class="settings">
           <div>
             <label for="tournamentSelect">대회 선택</label>
@@ -1728,6 +1929,19 @@
     </div>
   </div>
 
+  <div class="choice-backdrop" id="playerPickChoice" aria-hidden="true">
+    <div class="choice-card player-pick-card" role="dialog" aria-modal="true" aria-labelledby="playerPickTitle">
+      <h3 id="playerPickTitle">선수 교체</h3>
+      <p id="playerPickSubtitle">교체할 선수를 선택하세요.</p>
+      <input class="player-pick-search" id="playerPickSearch" type="search" placeholder="선수 이름 검색" autocomplete="off">
+      <div class="player-pick-list" id="playerPickList"></div>
+      <div class="choice-actions" style="margin-top: 12px;">
+        <button class="button" id="cancelPlayerPickBtn" type="button">취소</button>
+        <span></span>
+      </div>
+    </div>
+  </div>
+
   <script>
     const state = {
       players: [],
@@ -1740,8 +1954,10 @@
       teamMode: false,
       teamMap: {},
       nextMatchIds: [],
+      resultEditIds: [],
       schedulePublic: true,
-      scheduleStartAt: ""
+      scheduleStartAt: "",
+      inputLocked: localStorage.getItem("badminton_input_locked") === "1"
     };
 
     const el = id => document.getElementById(id);
@@ -1950,6 +2166,24 @@
         hash = Math.imul(hash, 16777619);
       }
       return hash >>> 0 || 1;
+    }
+
+    function clearEventMatches(matches = state.schedule) {
+      matches.forEach(match => {
+        delete match.eventGame;
+      });
+    }
+
+    function assignEventMatches(count, seedText, matches = state.schedule) {
+      const eventCount = Math.max(0, Math.floor(Number(count) || 0));
+      clearEventMatches(matches);
+      if (!eventCount || !matches.length) return;
+      const rand = mulberry32(seedToNumber(`${seedText || state.seed || "A01"}-event`));
+      shuffle(matches.slice(), rand)
+        .slice(0, Math.min(eventCount, matches.length))
+        .forEach(match => {
+          match.eventGame = true;
+        });
     }
 
     function isAutoSubstituteName(name) {
@@ -2168,6 +2402,54 @@
         : "사용자 화면에서 대진/선수이력/순위를 숨깁니다.";
     }
 
+    function isInputLockExempt(control) {
+      return control.id === "toggleInputLockBtn"
+        || control.id === "logoutAdminBtn"
+        || control.classList.contains("tab");
+    }
+
+    function applyInputLockControls() {
+      document.body.classList.toggle("input-locked", state.inputLocked);
+      const button = el("toggleInputLockBtn");
+      if (button) {
+        button.textContent = state.inputLocked ? "잠금해제" : "입력잠금";
+        button.classList.toggle("locked-on", state.inputLocked);
+        button.title = state.inputLocked
+          ? "결과 입력과 대진 수정을 다시 허용합니다."
+          : "결과 입력, 대진 수정, 관리설정 입력을 잠급니다.";
+      }
+      document.querySelectorAll(".app input, .app select, .app textarea, .app button").forEach(control => {
+        if (isInputLockExempt(control)) return;
+        if (state.inputLocked) {
+          if (!control.dataset.inputLockTouched) {
+            control.dataset.inputLockPrevDisabled = control.disabled ? "1" : "0";
+          }
+          control.dataset.inputLockTouched = "1";
+          control.disabled = true;
+        } else if (control.dataset.inputLockTouched) {
+          control.disabled = control.dataset.inputLockPrevDisabled === "1";
+          delete control.dataset.inputLockTouched;
+          delete control.dataset.inputLockPrevDisabled;
+        }
+      });
+      if (!state.inputLocked) renderAdminAccessControls();
+    }
+
+    function setInputLocked(locked) {
+      state.inputLocked = Boolean(locked);
+      localStorage.setItem("badminton_input_locked", state.inputLocked ? "1" : "0");
+      applyInputLockControls();
+      setMessage(state.inputLocked
+        ? "입력 잠금 상태입니다. 결과 입력, 대진 수정, 관리설정 변경을 막았습니다."
+        : "입력 잠금을 해제했습니다.");
+    }
+
+    function guardInputLocked() {
+      if (!state.inputLocked) return false;
+      window.alert("입력 잠금 상태입니다. 잠금해제 후 수정하세요.");
+      return true;
+    }
+
     function pad2(value) {
       return String(value).padStart(2, "0");
     }
@@ -2243,17 +2525,21 @@
     function normalizeSchedule() {
       const oldResults = { ...state.results };
       const oldNext = new Set((state.nextMatchIds || []).map(Number));
+      const oldEdit = new Set((state.resultEditIds || []).map(Number));
       const nextResults = {};
       const nextIds = [];
+      const nextEditIds = [];
       state.schedule.forEach((match, index) => {
         const oldId = Number(match.id);
         const newId = index + 1;
         match.id = newId;
         if (oldResults[oldId]) nextResults[newId] = oldResults[oldId];
         if (oldNext.has(oldId)) nextIds.push(newId);
+        if (oldEdit.has(oldId)) nextEditIds.push(newId);
       });
       state.results = nextResults;
       state.nextMatchIds = nextIds;
+      state.resultEditIds = nextEditIds;
     }
 
     function appendScheduleContinuing(existingSchedule, newSchedule, courtCount) {
@@ -3084,6 +3370,7 @@
         courtCount: Number(el("courtCount")?.value || 0),
         seed: el("seed")?.value.trim() || state.seed || "A01",
         tries: Number(el("tries")?.value || 0),
+        eventMatchCount: Number(el("eventMatchCount")?.value || 0),
         scheduleStartAt: normalizeDateTimeText(el("scheduleStartAt")?.value || state.scheduleStartAt || "")
       };
       return {
@@ -3139,6 +3426,7 @@
       if (savedSettings.targetGames) el("targetGames").value = savedSettings.targetGames;
       if (savedSettings.courtCount) el("courtCount").value = savedSettings.courtCount;
       if (savedSettings.tries) el("tries").value = savedSettings.tries;
+      el("eventMatchCount").value = savedSettings.eventMatchCount ?? data.eventMatchCount ?? 0;
       el("allowShortfall").checked = savedSettings.allowShortfall ?? data.allowShortfall ?? el("allowShortfall").checked;
       el("includeInProgressPlayers").checked = savedSettings.includeInProgressPlayers ?? data.includeInProgressPlayers ?? el("includeInProgressPlayers").checked;
       localStorage.setItem("badminton_include_in_progress", el("includeInProgressPlayers").checked ? "1" : "0");
@@ -3327,6 +3615,7 @@
       state.schedule = [];
       state.results = {};
       state.nextMatchIds = [];
+      state.resultEditIds = [];
       state.playerStatus = {};
       state.modeRosters = { daily: "", tournament: "" };
       state.schedulePublic = false;
@@ -3388,9 +3677,7 @@
         .join("");
     }
 
-    function replaceScheduledPlayer(matchId, teamKey, index, currentName) {
-      const nextName = window.prompt("교체할 선수 이름을 입력하세요.", currentName);
-      if (nextName === null) return;
+    function replaceScheduledPlayer(matchId, teamKey, index, currentName, nextName) {
       const clean = nextName.trim();
       if (!clean) {
         setMessage("선수 이름은 비워둘 수 없습니다.", true);
@@ -3417,8 +3704,63 @@
       team[index] = clean;
       rebuildPlayersFromSchedule();
       renderAll(true);
-      setMessage(`${currentName} 선수를 ${clean}(으)로 교체했습니다. 집계를 다시 계산했습니다.`);
       if (el("autoCloudSave").checked) saveCloudData(true);
+    }
+
+    function openPlayerPickDialog(matchId, teamKey, index, currentName) {
+      const match = state.schedule.find(item => Number(item.id) === Number(matchId));
+      if (!match) return;
+      const backdrop = el("playerPickChoice");
+      const searchInput = el("playerPickSearch");
+      const list = el("playerPickList");
+      const currentPlayers = [
+        match.teamA[0],
+        match.teamA[1],
+        match.teamB[0],
+        match.teamB[1]
+      ];
+      const occupied = new Set(currentPlayers
+        .filter(name => name !== currentName)
+        .map(name => name.toLocaleLowerCase("ko-KR")));
+      const candidates = [...new Set([...state.players, ...parsePlayers(), ...currentPlayers])]
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b, "ko-KR"));
+
+      const close = () => {
+        backdrop.classList.remove("active");
+        backdrop.setAttribute("aria-hidden", "true");
+        searchInput.value = "";
+      };
+
+      const renderList = () => {
+        const keyword = searchInput.value.trim().toLocaleLowerCase("ko-KR");
+        const visible = candidates.filter(name => !keyword || name.toLocaleLowerCase("ko-KR").includes(keyword));
+        list.innerHTML = visible.length ? visible.map(name => {
+          const blocked = occupied.has(name.toLocaleLowerCase("ko-KR"));
+          return `<button class="player-pick-item" type="button" data-player="${escapeHtml(name)}" ${blocked ? "disabled" : ""}>
+            <span>${escapeHtml(name)}</span>
+            ${blocked ? `<span class="player-pick-badge">현재 경기</span>` : ""}
+          </button>`;
+        }).join("") : `<div class="empty" style="padding: 14px;">검색된 선수가 없습니다.</div>`;
+        list.querySelectorAll(".player-pick-item:not(:disabled)").forEach(button => {
+          button.addEventListener("click", event => {
+            replaceScheduledPlayer(matchId, teamKey, index, currentName, event.currentTarget.dataset.player);
+            close();
+          });
+        });
+      };
+
+      el("playerPickSubtitle").textContent = `${currentName} 대신 들어갈 선수를 선택하세요.`;
+      renderList();
+      backdrop.classList.add("active");
+      backdrop.setAttribute("aria-hidden", "false");
+      window.setTimeout(() => searchInput.focus(), 0);
+
+      searchInput.oninput = renderList;
+      el("cancelPlayerPickBtn").onclick = close;
+      backdrop.onclick = event => {
+        if (event.target === backdrop) close();
+      };
     }
 
     function applyExplicitPlayerRename() {
@@ -3482,8 +3824,14 @@
         return;
       }
       el("scheduleOutput").className = "tablewrap";
+      const inProgressPlayers = inProgressPlayerSet();
       const rows = schedule.map(match => {
         const result = state.results[match.id] || "";
+        const finalResultLocked = ["A", "B", "D"].includes(result);
+        const resultEditEnabled = (state.resultEditIds || []).map(Number).includes(Number(match.id));
+        const resultDisabled = finalResultLocked && !resultEditEnabled;
+        const resultDisabledAttr = resultDisabled ? "disabled" : "";
+        const canStart = !result && [...match.teamA, ...match.teamB].every(name => !inProgressPlayers.has(name));
         const dailyMode = state.adminMode === "daily";
         const labelA = match.teamALabel ? `${match.teamALabel}팀` : "A팀";
         const labelB = match.teamBLabel ? `${match.teamBLabel}팀` : "B팀";
@@ -3491,38 +3839,40 @@
         const isBlueWhiteMatch = match.mode === "blueWhite" || match.teamALabel === "청" || match.teamBLabel === "백";
         const doneOption = !dailyMode && isBlueWhiteMatch
           ? ""
-          : `<label class="winner"><input type="radio" name="winner-${match.id}" value="D" ${result === "D" ? "checked" : ""}> 완료</label>`;
-        const progressOption = `<label class="winner in-progress"><input type="radio" name="winner-${match.id}" value="P" ${result === "P" ? "checked" : ""}> 게임중</label>`;
+          : `<label class="winner"><input type="radio" name="winner-${match.id}" value="D" ${result === "D" ? "checked" : ""} ${resultDisabledAttr}> 완료</label>`;
+        const progressOption = `<label class="winner in-progress"><input type="radio" name="winner-${match.id}" value="P" ${result === "P" ? "checked" : ""} ${resultDisabledAttr}> 게임중</label>`;
         return `
           <tr class="${isNext ? "next-match-row" : ""}" data-match-id="${match.id}">
-            <td data-label="경기"><span class="match-cell"><button class="drag-handle" type="button" data-match-id="${match.id}" aria-label="${match.id}경기 순서 변경">≡</button><span>${match.id}</span></span></td>
+            <td data-label="경기"><span class="match-cell"><button class="drag-handle" type="button" data-match-id="${match.id}" aria-label="${match.id}경기 순서 변경">≡</button><span>${match.id}</span>${match.eventGame ? `<span class="event-dot" title="이벤트 경기">E</span>` : ""}${canStart ? `<span class="available-dot" title="4명 모두 출전 가능">가</span>` : ""}</span></td>
             <td data-label="라운드"><span class="badge">${match.round}R</span></td>
             <td data-label="코트">${match.court}코트</td>
             <td data-label="${labelA}"><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamA", 0, match.teamA[0])}</span><span class="pair">${schedulePlayerButton(match.id, "teamA", 1, match.teamA[1])}</span></div></td>
             <td data-label="" class="versus">VS</td>
             <td data-label="${labelB}"><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamB", 0, match.teamB[0])}</span><span class="pair">${schedulePlayerButton(match.id, "teamB", 1, match.teamB[1])}</span></div></td>
             <td data-label="결과">
-              <label class="winner"><input type="radio" name="winner-${match.id}" value="A" ${result === "A" ? "checked" : ""}> ${match.teamALabel || "A"}승</label>
-              <label class="winner"><input type="radio" name="winner-${match.id}" value="B" ${result === "B" ? "checked" : ""}> ${match.teamBLabel || "B"}승</label>
+              <label class="winner"><input type="radio" name="winner-${match.id}" value="A" ${result === "A" ? "checked" : ""} ${resultDisabledAttr}> ${match.teamALabel || "A"}승</label>
+              <label class="winner"><input type="radio" name="winner-${match.id}" value="B" ${result === "B" ? "checked" : ""} ${resultDisabledAttr}> ${match.teamBLabel || "B"}승</label>
               ${doneOption}
               ${progressOption}
             </td>
             <td data-label="다음게임"><label class="next-check"><input type="checkbox" class="next-match-check" data-match-id="${match.id}" ${isNext ? "checked" : ""}> 다음게임</label></td>
-            <td data-label="삭제"><button class="row-button danger delete-match" type="button" data-match-id="${match.id}">삭제</button></td>
+            <td data-label="관리"><span class="row-actions"><button class="icon-row-button edit-result" type="button" data-match-id="${match.id}" title="결과 수정" ${finalResultLocked ? "" : "disabled"}>✎</button><button class="icon-row-button danger delete-match" type="button" data-match-id="${match.id}" title="대진 삭제">×</button></span></td>
           </tr>`;
       }).join("");
       const headerA = schedule.some(match => match.teamALabel) ? "청팀" : "A팀";
       const headerB = schedule.some(match => match.teamBLabel) ? "백팀" : "B팀";
       el("scheduleOutput").innerHTML = `
         <table class="responsive-card">
-          <thead><tr><th>경기</th><th>라운드</th><th>코트</th><th>${headerA}</th><th></th><th>${headerB}</th><th>결과</th><th>다음게임</th><th>삭제</th></tr></thead>
+          <thead><tr><th>경기</th><th>라운드</th><th>코트</th><th>${headerA}</th><th></th><th>${headerB}</th><th>결과</th><th>다음게임</th><th>관리</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>`;
 
       el("scheduleOutput").querySelectorAll("input[type='radio']").forEach(input => {
         input.addEventListener("change", event => {
+          if (guardInputLocked()) return;
           const matchId = Number(event.target.name.replace("winner-", ""));
           state.results[matchId] = event.target.value;
+          state.resultEditIds = (state.resultEditIds || []).filter(id => Number(id) !== matchId);
           state.nextMatchIds = (state.nextMatchIds || []).filter(id => Number(id) !== matchId);
           const nextCheck = event.target.closest("tr")?.querySelector(".next-match-check");
           if (nextCheck) nextCheck.checked = false;
@@ -3532,8 +3882,9 @@
       });
       el("scheduleOutput").querySelectorAll(".player-edit").forEach(button => {
         button.addEventListener("click", event => {
+          if (guardInputLocked()) return;
           const target = event.currentTarget;
-          replaceScheduledPlayer(
+          openPlayerPickDialog(
             Number(target.dataset.matchId),
             target.dataset.team,
             Number(target.dataset.index),
@@ -3543,6 +3894,7 @@
       });
       el("scheduleOutput").querySelectorAll(".next-match-check").forEach(input => {
         input.addEventListener("change", event => {
+          if (guardInputLocked()) return;
           const matchId = Number(event.target.dataset.matchId);
           const set = new Set((state.nextMatchIds || []).map(Number));
           if (event.target.checked) set.add(matchId);
@@ -3555,10 +3907,23 @@
       el("scheduleOutput").querySelectorAll(".delete-match").forEach(button => {
         button.addEventListener("click", event => deleteMatch(Number(event.currentTarget.dataset.matchId)));
       });
+      el("scheduleOutput").querySelectorAll(".edit-result").forEach(button => {
+        button.addEventListener("click", event => {
+          if (guardInputLocked()) return;
+          const matchId = Number(event.currentTarget.dataset.matchId);
+          const result = state.results[matchId];
+          if (!["A", "B", "D"].includes(result)) return;
+          const editSet = new Set((state.resultEditIds || []).map(Number));
+          editSet.add(matchId);
+          state.resultEditIds = [...editSet];
+          renderAll(true);
+        });
+      });
       setupScheduleReorder(Boolean(search));
     }
 
     function applyScheduleOrderFromRows(rows) {
+      if (guardInputLocked()) return;
       const orderedIds = rows.map(row => Number(row.dataset.matchId)).filter(Boolean);
       if (orderedIds.length !== state.schedule.length) return;
       const byId = new Map(state.schedule.map(match => [Number(match.id), match]));
@@ -3572,7 +3937,7 @@
 
     function setupScheduleReorder(disabled) {
       const tbody = el("scheduleOutput").querySelector("tbody");
-      if (!tbody || disabled) return;
+      if (!tbody || disabled || state.inputLocked) return;
       let draggedRow = null;
       let activeHandle = null;
       const rows = () => [...tbody.querySelectorAll("tr[data-match-id]")];
@@ -3616,6 +3981,7 @@
       tbody.querySelectorAll(".drag-handle").forEach(handle => {
         const row = handle.closest("tr[data-match-id]");
         handle.addEventListener("pointerdown", event => {
+          if (guardInputLocked()) return;
           if (event.button !== undefined && event.button !== 0) return;
           event.preventDefault();
           draggedRow = row;
@@ -3631,6 +3997,7 @@
     }
 
     function deleteAllSchedule() {
+      if (guardInputLocked()) return;
       if (!state.schedule.length) {
         window.alert("삭제할 대진이 없습니다.");
         setMessage("삭제할 대진이 없습니다.", true);
@@ -3651,6 +4018,7 @@
     }
 
     function deletePendingSchedule() {
+      if (guardInputLocked()) return;
       if (!state.schedule.length) {
         window.alert("삭제할 대진이 없습니다.");
         setMessage("삭제할 대진이 없습니다.", true);
@@ -3666,6 +4034,7 @@
       state.schedule = state.schedule.filter(match => state.results[match.id]);
       normalizeSchedule();
       rebuildPlayersFromSchedule();
+      state.resultEditIds = (state.resultEditIds || []).filter(id => state.results[Number(id)]);
       clearManualMatchInputs();
       renderAll(true);
       renderScheduleTimeEstimate();
@@ -3674,14 +4043,17 @@
     }
 
     function deleteMatch(matchId) {
+      if (guardInputLocked()) return;
       if (!window.confirm(`${matchId}경기를 삭제하시겠습니까?`)) return;
       state.schedule = state.schedule.filter(match => Number(match.id) !== matchId);
       delete state.results[matchId];
       state.nextMatchIds = (state.nextMatchIds || []).filter(id => Number(id) !== matchId);
+      state.resultEditIds = (state.resultEditIds || []).filter(id => Number(id) !== matchId);
       refreshAfterScheduleEdit(`${matchId}경기를 삭제했습니다.`);
     }
 
     function addManualMatch() {
+      if (guardInputLocked()) return;
       const names = ["manualA1", "manualA2", "manualB1", "manualB2"].map(id => el(id).value.trim());
       if (names.some(name => !name)) {
         window.alert("수동 추가할 선수 4명을 모두 입력하세요.");
@@ -4026,6 +4398,7 @@
       renderRanking();
       renderMatrix();
       renderPlayerHistory();
+      applyInputLockControls();
     }
 
     function askRegenerateChoice() {
@@ -4068,6 +4441,7 @@
     }
 
     async function generate() {
+      if (guardInputLocked()) return;
       const dailyMode = state.adminMode === "daily";
       let existingSchedule = state.schedule.slice();
       let regenerateMode = "none";
@@ -4088,6 +4462,7 @@
           state.schedule = [];
           state.results = {};
           state.nextMatchIds = [];
+          state.resultEditIds = [];
           existingSchedule = [];
         }
       }
@@ -4104,6 +4479,7 @@
       const tries = Number(el("tries").value);
       const seedText = el("seed").value.trim() || "A01";
       const seed = seedToNumber(seedText);
+      const eventMatchCount = Number(el("eventMatchCount").value) || 0;
       const applySubstitutes = el("allowShortfall").checked;
       const dailyPlayers = dailyMode ? dailyEligiblePlayers() : [];
 
@@ -4160,7 +4536,9 @@
           state.schedule = schedule;
           state.results = {};
           state.nextMatchIds = [];
+          state.resultEditIds = [];
         }
+        assignEventMatches(eventMatchCount, seedText, state.schedule);
         state.seed = seedText;
         if (!dailyMode) {
           el("players").value = visibleRosterNames(players).join(" ");
@@ -4535,7 +4913,9 @@
       renderAdminRosterControls();
     });
     el("playerSearch").addEventListener("input", () => renderAll(true));
+    el("toggleInputLockBtn").addEventListener("click", () => setInputLocked(!state.inputLocked));
     el("scheduleStartAt").addEventListener("change", () => {
+      if (guardInputLocked()) return;
       state.scheduleStartAt = normalizeDateTimeText(el("scheduleStartAt").value) || formatDateTimeLocal();
       el("scheduleStartAt").value = state.scheduleStartAt;
       renderScheduleTimeEstimate();
@@ -4610,6 +4990,7 @@
       el("togglePlayersBtn").textContent = collapsed ? "명단 보이기" : "명단 숨기기";
     });
     el("clearPlayersBtn").addEventListener("click", () => {
+      if (guardInputLocked()) return;
       if (!el("players").value.trim()) {
         setMessage("삭제할 선수 명단이 없습니다.", true);
         return;
@@ -4657,6 +5038,7 @@
     el("deletePendingScheduleBtn").addEventListener("click", deletePendingSchedule);
     el("manualAddBtn").addEventListener("click", addManualMatch);
     el("clearResultsBtn").addEventListener("click", () => {
+      if (guardInputLocked()) return;
       const hasResultData = Object.keys(state.results || {}).length > 0 || (state.nextMatchIds || []).length > 0;
       if (!hasResultData) {
         window.alert("초기화 할 결과 데이터가 없습니다.");
@@ -4665,6 +5047,7 @@
       }
       state.results = {};
       state.nextMatchIds = [];
+      state.resultEditIds = [];
       renderAll(true);
       renderScheduleTimeEstimate();
       setMessage("경기 결과와 다음게임 표시를 초기화했습니다.");
