@@ -4906,6 +4906,40 @@
       setMessage(`${title} 다운로드를 시도했습니다. 저장 창이 안 뜨면 아래 CSV 내용을 복사해서 엑셀에 붙여넣으세요.`);
     }
 
+    function downloadExcel(filename, rows) {
+      const escapeHtml = value => String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+      const tableRows = rows.map((row, rowIndex) => {
+        const tag = rowIndex === 0 ? "th" : "td";
+        return `<tr>${row.map(value => `<${tag}>${escapeHtml(value)}</${tag}>`).join("")}</tr>`;
+      }).join("");
+      const workbook = `<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <style>
+    table { border-collapse: collapse; font-family: "Malgun Gothic", sans-serif; }
+    th, td { border: 1px solid #b7c4bc; padding: 6px 10px; white-space: nowrap; }
+    th { background: #eaf3ed; font-weight: bold; }
+  </style>
+</head>
+<body><table>${tableRows}</table></body>
+</html>`;
+      const blob = new Blob(["\ufeff", workbook], { type: "application/vnd.ms-excel;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      setMessage("엑셀 대진표 다운로드를 시작했습니다.");
+    }
+
     function exportSchedule() {
       if (!state.schedule.length) {
         window.alert("다운로드할 대진표가 없습니다.");
@@ -4922,7 +4956,7 @@
         if (result === "P" || result === "게임중") return "게임중";
         return "미입력";
       };
-      const rows = [["경기", "이벤트", "라운드", "코트", `${teamAName}1`, `${teamAName}2`, `${teamBName}1`, `${teamBName}2`, "결과", "다음게임"]];
+      const rows = [["경기", "이벤트", "라운드", "코트", `${teamAName}1`, `${teamAName}2`, `${teamBName}1`, `${teamBName}2`, "결과"]];
       state.schedule.forEach(match => rows.push([
         match.id,
         match.eventGame ? "E" : "",
@@ -4932,11 +4966,10 @@
         match.teamA[1],
         match.teamB[0],
         match.teamB[1],
-        resultLabel(match, state.results[match.id]),
-        (state.nextMatchIds || []).map(Number).includes(Number(match.id)) ? "다음게임" : ""
+        resultLabel(match, state.results[match.id])
       ]));
       const eventId = (el("supabaseEventId")?.value || "badminton").trim().replace(/[\\/:*?"<>|]+/g, "_");
-      downloadCsv(`${eventId}_대진표.csv`, rows, "엑셀용 대진표");
+      downloadExcel(`${eventId}_대진표.xls`, rows);
     }
 
     function exportRanking() {
