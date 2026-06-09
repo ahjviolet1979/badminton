@@ -167,17 +167,21 @@
 
     body.mobile-admin .compact-checks {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 2px 6px;
-      margin-top: 5px;
+      gap: 0 6px;
+      margin-top: 4px;
     }
 
     body.mobile-admin .checkrow {
-      min-height: 34px;
+      min-height: 28px;
+      margin: 0;
       font-size: 12px;
+      line-height: 1.08;
     }
 
     body.mobile-admin .daily-priority-row {
       grid-column: 1 / -1;
+      min-height: 30px;
+      gap: 5px;
     }
 
     body.mobile-admin .team-assign {
@@ -202,6 +206,7 @@
       min-height: 46px;
       padding: 0 3px;
       font-size: 13px;
+      line-height: 1.05;
     }
 
     body.mobile-admin .settings.four-cols {
@@ -296,6 +301,7 @@
       min-width: 0;
       padding: 0 3px;
       font-size: 11px;
+      line-height: 1.05;
     }
 
     body.mobile-admin #settingsPanel input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
@@ -349,6 +355,23 @@
 
     body.mobile-admin #settingsPanel .manual-match-title {
       margin-bottom: 6px;
+    }
+
+    body.mobile-admin #settingsPanel label,
+    body.mobile-admin #settingsPanel .button,
+    body.mobile-admin #settingsPanel .player-count-summary,
+    body.mobile-admin #settingsPanel .player-status-head,
+    body.mobile-admin #settingsPanel .player-status-row,
+    body.mobile-admin #settingsPanel .team-assign-head,
+    body.mobile-admin #settingsPanel .team-assign-summary,
+    body.mobile-admin #settingsPanel .manual-match-title,
+    body.mobile-admin #settingsPanel .notice {
+      line-height: 1.08;
+    }
+
+    body.mobile-admin #settingsPanel .player-list-actions .button,
+    body.mobile-admin #settingsPanel .rename-row .button {
+      line-height: 1.05;
     }
 
     body.mobile-admin .tabs {
