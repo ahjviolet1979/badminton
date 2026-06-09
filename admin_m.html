@@ -392,7 +392,7 @@
     }
 
     body.mobile-admin .stats {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(68px, 1.18fr);
       gap: 4px;
       margin: 8px 0;
     }
@@ -404,6 +404,13 @@
 
     body.mobile-admin .stat b {
       font-size: 15px;
+      overflow: hidden;
+      text-overflow: clip;
+      white-space: nowrap;
+    }
+
+    body.mobile-admin .stat:last-child b {
+      font-size: 13px;
     }
 
     body.mobile-admin .stat span {
@@ -439,7 +446,7 @@
     body.mobile-admin .schedule-time-box {
       grid-column: 1 / -1;
       display: grid;
-      grid-template-columns: auto minmax(150px, 1fr) auto;
+      grid-template-columns: auto minmax(0, 1fr) auto;
       align-items: center;
       gap: 6px;
       width: 100%;
@@ -465,7 +472,7 @@
 
     body.mobile-admin .schedule-time-result {
       margin-left: 0;
-      font-size: 11px;
+      font-size: 10px;
       line-height: 1;
       text-align: right;
       white-space: nowrap;
@@ -3531,7 +3538,7 @@
       const start = parseScheduleDateTime(startValue);
       const pendingMatchCount = state.schedule.filter(match => !state.results[match.id]).length;
       if (!pendingMatchCount || Number.isNaN(start.getTime())) {
-        output.textContent = "종료예상: -";
+        output.textContent = "종료 -";
         return;
       }
       const courtCount = Math.max(
@@ -3541,7 +3548,7 @@
       );
       const roundCount = Math.ceil(pendingMatchCount / courtCount);
       const end = new Date(start.getTime() + roundCount * 15 * 60 * 1000);
-      output.textContent = `종료예상: ${formatKoreanDateTime(end)}`;
+      output.textContent = `종료 ${pad2(end.getMonth() + 1)}-${pad2(end.getDate())} ${pad2(end.getHours())}:${pad2(end.getMinutes())}`;
     }
 
     function resetScheduleStartTimeToNow() {
