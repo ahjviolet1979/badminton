@@ -2083,7 +2083,10 @@
       scheduleMode: "",
       schedulePublic: true,
       scheduleStartAt: "",
-      inputLocked: localStorage.getItem("badminton_input_locked") === "1"
+      inputLocked: localStorage.getItem("badminton_input_locked") === "1",
+      cloudUpdatedAt: "",
+      cloudSyncBusy: false,
+      cloudSaving: false
     };
 
     const el = id => document.getElementById(id);
@@ -3653,20 +3656,25 @@
         if (!silent) setMessage("사용자 접속 비밀번호를 먼저 입력하세요.", true);
         return;
       }
+      state.cloudSaving = true;
       try {
         const { client, eventId } = await getSupabaseClient();
+        const updatedAt = new Date().toISOString();
         const { error } = await client
           .from("badminton_events")
           .upsert({
             id: eventId,
             data: sharedPayload(),
-            updated_at: new Date().toISOString()
+            updated_at: updatedAt
           });
         if (error) throw error;
+        state.cloudUpdatedAt = updatedAt;
         if (!silent) setMessage("서버에 저장했습니다. 사용자 화면은 새로고침하거나 실시간 연결로 최신 내용을 볼 수 있습니다.");
         loadAdminEventOptions();
       } catch (error) {
         if (!silent) setMessage(`서버 저장 실패: ${error.message}`, true);
+      } finally {
+        state.cloudSaving = false;
       }
     }
 
@@ -3732,10 +3740,34 @@
           throw error;
         }
         applySharedPayload(data.data);
+        state.cloudUpdatedAt = data.updated_at || data.data?.updatedAt || "";
         const updated = data.updated_at ? new Date(data.updated_at).toLocaleString("ko-KR") : "알 수 없음";
         if (!silent) setMessage(`서버 데이터를 불러왔습니다. 마지막 저장: ${updated}`);
       } catch (error) {
         if (!silent) setMessage(`서버 불러오기 실패: ${error.message}`, true);
+      }
+    }
+
+    async function syncCloudDataIfChanged() {
+      if (state.cloudSyncBusy || state.cloudSaving || document.body.classList.contains("locked") || document.hidden) return;
+      const eventId = el("supabaseEventId")?.value.trim();
+      if (!eventId) return;
+      state.cloudSyncBusy = true;
+      try {
+        const { client } = await getSupabaseClient();
+        const { data, error } = await client
+          .from("badminton_events")
+          .select("updated_at")
+          .eq("id", eventId)
+          .single();
+        if (error || !data?.updated_at) return;
+        const remoteTime = Date.parse(data.updated_at) || 0;
+        const localTime = Date.parse(state.cloudUpdatedAt) || 0;
+        if (remoteTime > localTime) await loadCloudData(true);
+      } catch (error) {
+        // 다음 자동 확인 주기에 다시 시도합니다.
+      } finally {
+        state.cloudSyncBusy = false;
       }
     }
 
@@ -5468,6 +5500,11 @@
     loadCloudConfigToForm();
     setupAdminLogin();
     renderAll(true);
+    window.setInterval(syncCloudDataIfChanged, 2000);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) syncCloudDataIfChanged();
+    });
+    window.addEventListener("focus", syncCloudDataIfChanged);
   </script>
 </body>
 </html>
