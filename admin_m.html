@@ -206,11 +206,41 @@
 
     body.mobile-admin .settings.four-cols {
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 5px 8px;
+      gap: 6px;
+      margin-top: 7px;
+    }
+
+    body.mobile-admin .settings.four-cols > div {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
     }
 
     body.mobile-admin .settings.four-cols label {
-      margin-top: 6px;
+      margin: 0;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    body.mobile-admin .settings.four-cols input,
+    body.mobile-admin .settings.four-cols select,
+    body.mobile-admin .settings.four-cols .number-stepper {
+      width: 100%;
+      min-width: 0;
+    }
+
+    body.mobile-admin .settings.four-cols input,
+    body.mobile-admin .settings.four-cols select {
+      height: 38px;
+      min-height: 38px;
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+
+    body.mobile-admin .settings.four-cols .number-stepper {
+      height: 38px;
     }
 
     body.mobile-admin .rename-row {
@@ -221,11 +251,17 @@
     }
 
     body.mobile-admin .rename-row input {
+      height: 40px;
+      min-height: 40px;
       width: 100%;
       min-width: 0;
+      padding-top: 0;
+      padding-bottom: 0;
     }
 
     body.mobile-admin .rename-row .button {
+      height: 40px;
+      min-height: 40px;
       width: 100%;
       min-width: 0;
       padding: 0 3px;
