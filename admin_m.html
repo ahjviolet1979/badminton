@@ -4618,9 +4618,9 @@
           .eq("id", eventId)
           .single();
         if (error || !data?.updated_at) return;
-        const remoteTime = Date.parse(data.updated_at) || 0;
-        const localTime = Date.parse(state.cloudUpdatedAt) || 0;
-        if (remoteTime > localTime) await loadCloudData(true);
+        const remoteMarker = String(data.updated_at || "");
+        const localMarker = String(state.cloudUpdatedAt || "");
+        if (remoteMarker && remoteMarker !== localMarker) await loadCloudData(true);
       } catch (error) {
         // 다음 자동 확인 주기에 다시 시도합니다.
       } finally {
@@ -5716,7 +5716,8 @@
             ? contextForDailyEqualAppend(players, existingSchedule)
             : contextForDailyAppend(players, existingSchedule);
           const attendanceOrder = { map: lateAttendancePriorityMap(players), firstOnly: true };
-          schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length, false, attendanceOrder).schedule;
+          const guaranteeEqualTarget = dailyPriorityMode === "equal";
+          schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length, guaranteeEqualTarget, attendanceOrder).schedule;
         } else if (blueWhiteMode) {
           const prepared = prepareBlueWhitePlayers(enteredPlayers);
           players = prepared.players;
@@ -5761,6 +5762,7 @@
         const totalSlots = players.length * targetGames;
         const madeSlots = (regenerateMode === "keepCompleted" ? state.schedule.length : schedule.length) * 4;
         const short = totalSlots - madeSlots;
+        const extra = Math.max(0, madeSlots - totalSlots);
         const substituteText = substituteCount ? " 대타 " + substituteCount + "명을 자동 추가했습니다." : "";
         const preserveText = regenerateMode === "keepCompleted"
           ? ` 완료된 대진 ${preservedCount}개를 유지하고 미완료 대진 ${removedPendingCount}개를 삭제했습니다.`
@@ -5768,10 +5770,12 @@
         const modeText = dailyMode && existingSchedule.length
           ? ` 운영모드 ${el("dailyPriorityMode")?.value === "equal" ? "전체인원 동일적용" : "늦참자 우선적용"} 방식으로 추가`
           : (dailyMode ? " 운영모드 출석자 기준으로" : (blueWhiteMode ? " 청백전 방식으로" : ""));
-        setMessage(short > 0
+        setMessage(extra > 0 && dailyMode && el("dailyPriorityMode")?.value === "equal"
+          ? schedule.length + "경기를 전체인원 균일모드로 추가 생성했습니다. 전원이 " + targetGames + "경기 이상 배정되며, 복식 출전 수를 맞추기 위해 " + extra + "명에게 1경기가 추가 배정되었습니다."
+          : short > 0
           ? schedule.length + "경기를" + modeText + " 생성했습니다." + preserveText + substituteText + " 총 " + short + "회 출전 슬롯은 인원/조건 때문에 비워졌습니다."
           : schedule.length + "경기를" + modeText + " 생성했습니다." + preserveText + substituteText + " 파트너 중복이 생기면 랜덤 시드를 바꿔 다시 생성해보세요."
-        , short > 0 || substituteCount > 0);
+        , short > 0 || extra > 0 || substituteCount > 0);
       } catch (error) {
         if (error.alert) window.alert(error.message);
         setMessage(error.message, true);
