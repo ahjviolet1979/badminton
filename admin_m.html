@@ -442,6 +442,248 @@
       height: 32px;
     }
 
+    body.mobile-admin .mobile-section-stack {
+      display: grid;
+      gap: 8px;
+    }
+
+    body.mobile-admin .mobile-section-title {
+      padding: 8px 10px;
+      border-radius: 7px;
+      background: #eaf3ed;
+      color: var(--accent-dark);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    body.mobile-admin .mobile-rank-list {
+      display: grid;
+      gap: 6px;
+    }
+
+    body.mobile-admin .mobile-rank-row {
+      display: grid;
+      grid-template-columns: 36px minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      min-height: 60px;
+      padding: 9px 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    body.mobile-admin .mobile-rank-row.rank-1 {
+      background: #fff8dd;
+      box-shadow: inset 4px 0 0 #f1c94b;
+    }
+
+    body.mobile-admin .mobile-rank-row.rank-2 {
+      background: #f3f7fb;
+      box-shadow: inset 4px 0 0 #b8c5d6;
+    }
+
+    body.mobile-admin .mobile-rank-row.rank-3 {
+      background: #fff1e8;
+      box-shadow: inset 4px 0 0 #f0a36b;
+    }
+
+    body.mobile-admin .mobile-rank-no {
+      font-size: 18px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    body.mobile-admin .mobile-rank-name {
+      overflow: hidden;
+      font-size: 16px;
+      font-weight: 900;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    body.mobile-admin .mobile-rank-record {
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.4;
+    }
+
+    body.mobile-admin .mobile-rank-rate {
+      min-width: 50px;
+      color: var(--accent-dark);
+      font-size: 15px;
+      font-weight: 900;
+      text-align: right;
+    }
+
+    body.mobile-admin .mobile-history-list {
+      display: grid;
+      gap: 9px;
+    }
+
+    body.mobile-admin .mobile-history-card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    body.mobile-admin .mobile-history-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      padding: 10px;
+      background: #eef6f0;
+    }
+
+    body.mobile-admin .mobile-history-name {
+      font-size: 17px;
+      font-weight: 900;
+    }
+
+    body.mobile-admin .mobile-history-record {
+      color: #405048;
+      font-size: 11px;
+      font-weight: 800;
+      text-align: right;
+      line-height: 1.45;
+    }
+
+    body.mobile-admin .mobile-history-fine {
+      display: block;
+      margin-top: 3px;
+      color: #b45309;
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    body.mobile-admin .mobile-history-block {
+      padding: 9px 10px;
+      border-top: 1px solid var(--line);
+    }
+
+    body.mobile-admin .mobile-history-block-title {
+      margin-bottom: 6px;
+      color: var(--accent-dark);
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    body.mobile-admin .mobile-partner-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    body.mobile-admin .mobile-partner-chip {
+      padding: 4px 7px;
+      border-radius: 999px;
+      background: #edf4ff;
+      color: #31547a;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    body.mobile-admin .mobile-match-history {
+      display: grid;
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    body.mobile-admin .mobile-match-history li {
+      padding: 7px 8px;
+      border-radius: 6px;
+      background: #f8faf8;
+      color: #34443b;
+      font-size: 12px;
+      line-height: 1.5;
+      word-break: keep-all;
+    }
+
+    body.mobile-admin .mobile-matrix-summary {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 7px;
+    }
+
+    body.mobile-admin .mobile-matrix-card {
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    body.mobile-admin .mobile-matrix-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    body.mobile-admin .mobile-matrix-value {
+      margin-top: 4px;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    body.mobile-admin .mobile-matrix-status {
+      margin-top: 4px;
+      color: var(--accent-dark);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    body.mobile-admin .mobile-matrix-status.warn {
+      color: #b45309;
+    }
+
+    body.mobile-admin .mobile-duplicate-box {
+      grid-column: 1 / -1;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    body.mobile-admin .mobile-duplicate-box .duplicate-list {
+      max-height: none;
+      margin-top: 7px;
+      overflow: visible;
+    }
+
+    body.mobile-admin .mobile-game-counts {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 5px;
+    }
+
+    body.mobile-admin .mobile-game-count-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 7px 9px;
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fff;
+      font-size: 12px;
+    }
+
+    body.mobile-admin .mobile-game-count-row strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    body.mobile-admin .mobile-game-count-row span {
+      flex: 0 0 auto;
+      color: var(--accent-dark);
+      font-weight: 900;
+    }
+
     @media (max-width: 370px) {
       body.mobile-admin .app { padding: 5px; }
       body.mobile-admin header h1 { font-size: 18px; }
@@ -4871,40 +5113,37 @@
       const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
       const renderRows = (rows, baseRows = ranking) => rows.map(row => {
         const rank = baseRows.findIndex(item => item.name === row.name) + 1;
-        return '<tr class="rank-' + rank + '">' +
-        '<td>' + rank + '</td>' +
-        '<td>' + row.name + '</td>' +
-        '<td>' + row.games + '</td>' +
-        '<td>' + row.wins + '</td>' +
-        '<td>' + row.losses + '</td>' +
-        '<td>' + (row.done || 0) + '</td>' +
-        '<td>' + Math.round(row.winRate * 100) + '%</td>' +
-        '<td>' + row.partnerCount + '</td>' +
-        '</tr>';
+        return `<div class="mobile-rank-row rank-${rank}">
+          <div class="mobile-rank-no">${rank}</div>
+          <div>
+            <div class="mobile-rank-name">${row.name}</div>
+            <div class="mobile-rank-record">총 ${row.games}경기 · ${row.wins}승 · ${row.losses}패 · 완료 ${row.done || 0} · 파트너 ${row.partnerCount}명</div>
+          </div>
+          <div class="mobile-rank-rate">${Math.round(row.winRate * 100)}%</div>
+        </div>`;
       }).join("");
-      el("rankingOutput").className = "tablewrap";
+      el("rankingOutput").className = "mobile-section-stack";
       if (blueWhite) {
         const blueRows = ranking.filter(row => row.team === "blue");
         const whiteRows = ranking.filter(row => row.team === "white");
         const visibleBlueRows = search ? blueRows.filter(row => row.name.toLowerCase().includes(search)) : blueRows;
         const visibleWhiteRows = search ? whiteRows.filter(row => row.name.toLowerCase().includes(search)) : whiteRows;
-        const header = '<tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>완료</th><th>승률</th><th>파트너 수</th></tr>';
         el("rankingOutput").innerHTML =
-          '<table>' +
-          '<thead><tr><th colspan="8">전체 순위</th></tr>' + header + '</thead>' +
-          '<tbody>' + renderRows(visibleRanking, ranking) + '</tbody>' +
-          '<thead><tr><th colspan="8">청팀 순위 (' + blueRows.length + '명)</th></tr>' + header + '</thead>' +
-          '<tbody>' + renderRows(visibleBlueRows, blueRows) + '</tbody>' +
-          '<thead><tr><th colspan="8">백팀 순위 (' + whiteRows.length + '명)</th></tr>' + header + '</thead>' +
-          '<tbody>' + renderRows(visibleWhiteRows, whiteRows) + '</tbody>' +
-          '</table>';
+          `<section class="mobile-section-stack">
+            <div class="mobile-section-title">전체 순위</div>
+            <div class="mobile-rank-list">${renderRows(visibleRanking, ranking)}</div>
+          </section>
+          <section class="mobile-section-stack">
+            <div class="mobile-section-title">청팀 순위 (${blueRows.length}명)</div>
+            <div class="mobile-rank-list">${renderRows(visibleBlueRows, blueRows)}</div>
+          </section>
+          <section class="mobile-section-stack">
+            <div class="mobile-section-title">백팀 순위 (${whiteRows.length}명)</div>
+            <div class="mobile-rank-list">${renderRows(visibleWhiteRows, whiteRows)}</div>
+          </section>`;
         return;
       }
-      el("rankingOutput").innerHTML =
-        '<table>' +
-        '<thead><tr><th>순위</th><th>선수</th><th>경기</th><th>승</th><th>패</th><th>완료</th><th>승률</th><th>파트너 수</th></tr></thead>' +
-        '<tbody>' + renderRows(visibleRanking, ranking) + '</tbody>' +
-        '</table>';
+      el("rankingOutput").innerHTML = `<div class="mobile-rank-list">${renderRows(visibleRanking, ranking)}</div>`;
     }
 
     function renderMatrix() {
@@ -4939,16 +5178,28 @@
       const duplicateText = duplicatePartners.length
         ? '<div class="duplicate-list">' + duplicatePartners.map(([k, c]) => `<span class="duplicate-chip">${k} (${c}회)</span>`).join("") + '</div>'
         : "없음";
-      el("matrixOutput").className = "tablewrap";
+      el("matrixOutput").className = "mobile-section-stack";
       el("matrixOutput").innerHTML = `
-        <table class="matrix-table">
-          <thead><tr><th>구분</th><th>항목</th><th>값</th><th>상태</th></tr></thead>
-          <tbody>
-            <tr><td>경기 수</td><td>최대/최소</td><td>${Math.max(...games.values())} / ${Math.min(...games.values())}</td><td><span class="badge">균형 확인</span></td></tr>
-            <tr><td>파트너 중복</td><td>중복 조합</td><td>${duplicateText}</td><td><span class="badge ${duplicatePartners.length ? "warn" : ""}">${duplicatePartners.length ? "일부 중복" : "좋음"}</span></td></tr>
-            ${gameRows.map(([name, count]) => `<tr><td>선수별 경기</td><td>${name}</td><td>${count}</td><td></td></tr>`).join("")}
-          </tbody>
-        </table>`;
+        <div class="mobile-matrix-summary">
+          <div class="mobile-matrix-card">
+            <div class="mobile-matrix-label">경기 수 최대 / 최소</div>
+            <div class="mobile-matrix-value">${Math.max(...games.values())} / ${Math.min(...games.values())}</div>
+            <div class="mobile-matrix-status">균형 확인</div>
+          </div>
+          <div class="mobile-matrix-card">
+            <div class="mobile-matrix-label">파트너 중복 조합</div>
+            <div class="mobile-matrix-value">${duplicatePartners.length}</div>
+            <div class="mobile-matrix-status ${duplicatePartners.length ? "warn" : ""}">${duplicatePartners.length ? "일부 중복" : "좋음"}</div>
+          </div>
+          <div class="mobile-duplicate-box">
+            <div class="mobile-matrix-label">중복된 파트너</div>
+            ${duplicateText}
+          </div>
+        </div>
+        <div class="mobile-section-title">선수별 경기 수</div>
+        <div class="mobile-game-counts">
+          ${gameRows.map(([name, count]) => `<div class="mobile-game-count-row"><strong>${name}</strong><span>${count}경기</span></div>`).join("")}
+        </div>`;
     }
 
     function countLabel(count) {
@@ -5056,40 +5307,37 @@
         el("historyOutput").textContent = "검색된 선수의 선수별이력이 없습니다.";
         return;
       }
-      el("historyOutput").className = "tablewrap";
+      el("historyOutput").className = "mobile-history-list";
       el("historyOutput").innerHTML = `
-        <table class="history-table">
-          <colgroup>
-            <col style="width: 10%;">
-            <col style="width: 16%;">
-            <col style="width: 16%;">
-            <col style="width: 58%;">
-          </colgroup>
-          <thead><tr><th>선수</th><th>전적</th><th>파트너</th><th>경기별 요약</th></tr></thead>
-          <tbody>
-            ${histories.map(history => `
-              <tr>
-                <td class="history-name">${history.name}${history.eventLosses ? `<span class="event-fine">E ${history.eventLosses}패<br>${formatWon(history.eventFine)}</span>` : ""}</td>
-                <td class="history-record">
-                  <div class="record-line"><span class="badge record-total">총 ${history.games}경기</span></div>
-                  <div class="record-line">
-                    <span class="badge record-win">승 ${history.wins}</span>
-                    <span class="badge record-loss">패 ${history.losses}</span>
-                    <span class="badge record-done">완료 ${history.done || 0}</span>
-                  </div>
-                  <div class="record-line"><span class="badge record-pending">미입력 ${history.pending || 0}</span></div>
-                </td>
-                <td class="history-text history-partners">${summarizePartnersByMatch(history.matches)}</td>
-                <td class="history-text history-summary-text">
-                  ${history.matches.map((match, index) => {
-                    const next = history.matches[index + 1];
-                    const restText = next ? `, ${next.id - match.id - 1}게임쉼` : "";
-                    return `${match.id}경기 ${match.round}R/${match.court}코트: 팀 ${match.partner}, vs ${match.opponents}, ${match.status}${restText}`;
-                  }).join("<br>")}
-                </td>
-              </tr>`).join("")}
-          </tbody>
-        </table>`;
+        ${histories.map(history => {
+          const partnerCounts = [...history.partners.entries()]
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"));
+          return `<article class="mobile-history-card">
+            <div class="mobile-history-head">
+              <div class="mobile-history-name">${history.name}${history.eventLosses ? `<span class="mobile-history-fine">E ${history.eventLosses}패<br>${formatWon(history.eventFine)}</span>` : ""}</div>
+              <div class="mobile-history-record">
+                총 ${history.games}경기 / 미입력 ${history.pending || 0}<br>
+                승 ${history.wins} / 패 ${history.losses} / 완료 ${history.done || 0}
+              </div>
+            </div>
+            <div class="mobile-history-block">
+              <div class="mobile-history-block-title">파트너</div>
+              <div class="mobile-partner-chips">
+                ${partnerCounts.length ? partnerCounts.map(([name, count]) => `<span class="mobile-partner-chip">${name} (${countLabel(count)})</span>`).join("") : `<span class="mobile-partner-chip">없음</span>`}
+              </div>
+            </div>
+            <div class="mobile-history-block">
+              <div class="mobile-history-block-title">경기별 이력</div>
+              <ul class="mobile-match-history">
+                ${history.matches.map((match, index) => {
+                  const next = history.matches[index + 1];
+                  const restText = next ? `, ${next.id - match.id - 1}게임쉼` : "";
+                  return `<li>${match.id}경기 ${match.round}R/${match.court}코트: 팀 ${match.partner}, vs ${match.opponents}, ${match.status}${restText}</li>`;
+                }).join("")}
+              </ul>
+            </div>
+          </article>`;
+        }).join("")}`;
     }
 
     function summarizeRestGaps(matches) {
