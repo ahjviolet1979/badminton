@@ -214,8 +214,23 @@
     }
 
     body.mobile-admin .rename-row {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 76px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 72px;
       gap: 5px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    body.mobile-admin .rename-row input {
+      width: 100%;
+      min-width: 0;
+    }
+
+    body.mobile-admin .rename-row .button {
+      width: 100%;
+      min-width: 0;
+      padding: 0 3px;
+      font-size: 11px;
+      white-space: nowrap;
     }
 
     body.mobile-admin .event-match-setting {
@@ -229,8 +244,22 @@
     }
 
     body.mobile-admin .manual-match-grid {
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 72px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 70px;
       gap: 5px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    body.mobile-admin .manual-match-grid input {
+      width: 100%;
+      min-width: 0;
+    }
+
+    body.mobile-admin .manual-match-grid .manual-add-button {
+      width: 100%;
+      min-width: 0;
+      padding: 0 3px;
+      font-size: 11px;
     }
 
     body.mobile-admin .tabs {
@@ -277,14 +306,22 @@
     }
 
     body.mobile-admin .player-search input {
+      height: 40px;
+      min-height: 40px;
       min-width: 0;
+      padding-top: 0;
+      padding-bottom: 0;
       font-size: 13px;
     }
 
     body.mobile-admin .schedule-mode-badge {
+      height: 40px;
+      min-height: 40px;
+      max-height: 40px;
       min-width: 0;
       padding: 0 9px;
       font-size: 11px;
+      line-height: 1;
     }
 
     body.mobile-admin .schedule-time-box {
