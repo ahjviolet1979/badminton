@@ -298,6 +298,59 @@
       font-size: 11px;
     }
 
+    body.mobile-admin #settingsPanel input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+    body.mobile-admin #settingsPanel select {
+      height: 34px;
+      min-height: 34px;
+      padding-top: 0;
+      padding-bottom: 0;
+      line-height: 1.2;
+    }
+
+    body.mobile-admin #settingsPanel .number-stepper {
+      height: 34px;
+    }
+
+    body.mobile-admin #settingsPanel .rename-row .button {
+      height: 34px;
+      min-height: 34px;
+    }
+
+    body.mobile-admin #settingsPanel .event-match-setting input,
+    body.mobile-admin #settingsPanel .event-match-setting .money-input {
+      height: 34px;
+      min-height: 34px;
+    }
+
+    body.mobile-admin #settingsPanel .rename-row,
+    body.mobile-admin #settingsPanel .settings,
+    body.mobile-admin #settingsPanel .event-match-setting,
+    body.mobile-admin #settingsPanel .manual-match {
+      margin-top: 6px;
+    }
+
+    body.mobile-admin #settingsPanel .settings,
+    body.mobile-admin #settingsPanel .settings.four-cols,
+    body.mobile-admin #settingsPanel .manual-match-grid {
+      row-gap: 6px;
+    }
+
+    body.mobile-admin #settingsPanel .settings > div {
+      min-width: 0;
+    }
+
+    body.mobile-admin #settingsPanel .settings:not(.four-cols) label {
+      margin: 0 0 6px;
+    }
+
+    body.mobile-admin #settingsPanel .event-match-setting label {
+      margin: 0;
+    }
+
+    body.mobile-admin #settingsPanel .manual-match-title {
+      margin-bottom: 6px;
+    }
+
     body.mobile-admin .tabs {
       position: sticky;
       top: 0;
