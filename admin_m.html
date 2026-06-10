@@ -5363,7 +5363,7 @@
           <div class="mobile-rank-info">
             <span class="mobile-rank-no">${rank}.</span>
             <span class="mobile-rank-name">${row.name}</span>
-            <span class="mobile-rank-record">/ 총 ${row.games}경기 / ${row.wins}승 ${row.losses}패 완료 ${row.done || 0} / 파트너 ${row.partnerCount}명 / E ${row.eventLosses || 0}패 ${formatWon(row.eventFine)} /</span>
+            <span class="mobile-rank-record">/ 총 ${row.games}경기 / ${row.wins}승 ${row.losses}패 완료 ${row.done || 0} / 파트너 ${row.partnerCount}명${row.eventLosses ? ` / E ${row.eventLosses}패 ${formatWon(row.eventFine)}` : ""} /</span>
             <span class="mobile-rank-rate">승률 ${Math.round(row.winRate * 100)}%</span>
           </div>
         </div>`;
