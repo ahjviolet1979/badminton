@@ -733,7 +733,7 @@
 
     body.mobile-admin .mobile-history-head {
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-columns: auto auto minmax(0, 1fr);
       align-items: center;
       gap: 7px;
       padding: 8px 10px;
@@ -742,7 +742,7 @@
 
     body.mobile-admin .mobile-history-name {
       min-width: 0;
-      max-width: 92px;
+      max-width: 76px;
       overflow: hidden;
       font-size: 13px;
       font-weight: 800;
@@ -763,11 +763,12 @@
     }
 
     body.mobile-admin .mobile-history-fine {
-      display: inline;
-      margin-left: 4px;
+      display: block;
+      margin: 0;
       color: #b45309;
       font-size: 10px;
       font-weight: 800;
+      white-space: nowrap;
     }
 
     body.mobile-admin .mobile-history-block {
@@ -785,13 +786,13 @@
     body.mobile-admin .mobile-partner-chips {
       display: flex;
       flex-wrap: wrap;
-      gap: 5px;
+      gap: 3px 7px;
     }
 
     body.mobile-admin .mobile-partner-chip {
-      padding: 4px 7px;
-      border-radius: 999px;
-      background: #edf4ff;
+      padding: 0;
+      border-radius: 0;
+      background: transparent;
       color: #274866;
       font-size: 11px;
       font-weight: 800;
@@ -5571,7 +5572,8 @@
             .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"));
           return `<article class="mobile-history-card">
             <div class="mobile-history-head">
-              <div class="mobile-history-name">${history.name}${history.eventLosses ? `<span class="mobile-history-fine">E ${history.eventLosses}패 ${formatWon(history.eventFine)}</span>` : ""}</div>
+              <div class="mobile-history-name">${history.name}</div>
+              ${history.eventLosses ? `<div class="mobile-history-fine">E ${history.eventLosses}패 ${formatWon(history.eventFine)}</div>` : `<div></div>`}
               <div class="mobile-history-record">총 ${history.games}경기 · 승 ${history.wins} · 패 ${history.losses} · 완료 ${history.done || 0} · 미입력 ${history.pending || 0}</div>
             </div>
             <div class="mobile-history-block">
