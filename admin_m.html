@@ -733,7 +733,7 @@
 
     body.mobile-admin .mobile-history-head {
       display: grid;
-      grid-template-columns: auto auto minmax(0, 1fr);
+      grid-template-columns: auto minmax(0, 1fr) auto;
       align-items: center;
       gap: 7px;
       padding: 8px 10px;
@@ -765,7 +765,7 @@
     body.mobile-admin .mobile-history-fine {
       display: block;
       margin: 0;
-      color: #b45309;
+      color: #2563eb;
       font-size: 10px;
       font-weight: 800;
       white-space: nowrap;
@@ -5573,11 +5573,10 @@
           return `<article class="mobile-history-card">
             <div class="mobile-history-head">
               <div class="mobile-history-name">${history.name}</div>
-              ${history.eventLosses ? `<div class="mobile-history-fine">E ${history.eventLosses}패 ${formatWon(history.eventFine)}</div>` : `<div></div>`}
               <div class="mobile-history-record">총 ${history.games}경기 · 승 ${history.wins} · 패 ${history.losses} · 완료 ${history.done || 0} · 미입력 ${history.pending || 0}</div>
+              ${history.eventLosses ? `<div class="mobile-history-fine">E ${history.eventLosses}패 ${formatWon(history.eventFine)}</div>` : ""}
             </div>
             <div class="mobile-history-block">
-              <div class="mobile-history-block-title">파트너</div>
               <div class="mobile-partner-chips">
                 ${partnerCounts.length ? partnerCounts.map(([name, count]) => `<span class="mobile-partner-chip">${name} (${countLabel(count)})</span>`).join("") : `<span class="mobile-partner-chip">없음</span>`}
               </div>
