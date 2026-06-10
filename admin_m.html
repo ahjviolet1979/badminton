@@ -130,12 +130,15 @@
 
     body.mobile-admin .player-list-title-row {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 154px;
+      grid-template-columns: minmax(0, 1fr) 129px;
       align-items: center;
       gap: 4px;
       width: 100%;
+      max-width: 100%;
       min-width: 0;
       margin-bottom: 5px;
+      overflow: hidden;
+      box-sizing: border-box;
     }
 
     body.mobile-admin .player-list-title-row label {
@@ -146,18 +149,22 @@
 
     body.mobile-admin .player-list-actions {
       display: grid;
-      grid-template-columns: 70px 80px;
-      gap: 4px;
-      width: 154px;
+      grid-template-columns: 58px 68px;
+      gap: 3px;
+      width: 129px;
+      max-width: 129px;
       min-width: 0;
+      overflow: hidden;
     }
 
     body.mobile-admin .player-list-actions .button {
       width: 100%;
       min-width: 0;
-      min-height: 28px;
-      padding: 0 2px;
-      font-size: 10px;
+      min-height: 25px;
+      height: 25px;
+      padding: 0 1px;
+      font-size: 9px;
+      line-height: 1;
       white-space: nowrap;
     }
 
