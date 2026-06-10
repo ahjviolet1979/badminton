@@ -129,21 +129,36 @@
     }
 
     body.mobile-admin .player-list-title-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 184px;
+      align-items: center;
+      gap: 4px;
+      width: 100%;
+      min-width: 0;
       margin-bottom: 5px;
     }
 
     body.mobile-admin .player-list-title-row label {
+      min-width: 0;
       font-size: 13px;
+      white-space: nowrap;
     }
 
     body.mobile-admin .player-list-actions {
+      display: grid;
+      grid-template-columns: 84px 96px;
       gap: 4px;
+      width: 184px;
+      min-width: 0;
     }
 
     body.mobile-admin .player-list-actions .button {
+      width: 100%;
+      min-width: 0;
       min-height: 32px;
-      padding: 0 7px;
+      padding: 0 3px;
       font-size: 11px;
+      white-space: nowrap;
     }
 
     body.mobile-admin textarea,
@@ -716,7 +731,7 @@
     }
 
     body.mobile-admin .mobile-history-record {
-      color: #405048;
+      color: #26382e;
       font-size: 11px;
       font-weight: 800;
       text-align: right;
@@ -753,7 +768,7 @@
       padding: 4px 7px;
       border-radius: 999px;
       background: #edf4ff;
-      color: #31547a;
+      color: #274866;
       font-size: 11px;
       font-weight: 800;
     }
@@ -770,7 +785,7 @@
       padding: 7px 8px;
       border-radius: 6px;
       background: #f8faf8;
-      color: #34443b;
+      color: #25372d;
       font-size: 12px;
       line-height: 1.5;
       word-break: keep-all;
@@ -6260,9 +6275,6 @@
     el("includeInProgressPlayers").checked = localStorage.getItem("badminton_include_in_progress") === "1";
     el("includeInProgressPlayers").addEventListener("change", () => {
       localStorage.setItem("badminton_include_in_progress", el("includeInProgressPlayers").checked ? "1" : "0");
-      setMessage(el("includeInProgressPlayers").checked
-        ? "운영모드 대진 생성 시 게임중 인원도 후보에 포함합니다."
-        : "운영모드 대진 생성 시 게임중 인원은 후보에서 제외합니다.");
     });
     el("applyRenameBtn").addEventListener("click", applyExplicitPlayerRename);
     el("togglePlayersBtn").addEventListener("click", () => {
