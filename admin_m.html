@@ -649,15 +649,14 @@
     }
 
     body.mobile-admin .mobile-rank-row {
-      display: grid;
-      grid-template-columns: 30px minmax(0, 1fr) 44px;
-      align-items: center;
-      gap: 6px;
+      display: block;
       min-height: 46px;
       padding: 7px 8px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
+      overflow-x: auto;
+      text-align: left;
     }
 
     body.mobile-admin .mobile-rank-row.rank-1 {
@@ -675,48 +674,41 @@
       box-shadow: inset 4px 0 0 #f0a36b;
     }
 
-    body.mobile-admin .mobile-rank-no {
-      font-size: 14px;
-      font-weight: 900;
-      text-align: center;
-    }
-
     body.mobile-admin .mobile-rank-info {
       display: flex;
       align-items: center;
-      gap: 7px;
-      min-width: 0;
-      overflow: hidden;
+      gap: 4px;
+      width: max-content;
+      min-width: 100%;
       white-space: nowrap;
+    }
+
+    body.mobile-admin .mobile-rank-no {
+      font-size: 12px;
+      font-weight: 900;
     }
 
     body.mobile-admin .mobile-rank-name {
       flex: 0 0 auto;
-      overflow: hidden;
-      max-width: 82px;
       font-size: 12px;
       font-weight: 800;
-      text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     body.mobile-admin .mobile-rank-record {
-      min-width: 0;
-      overflow: hidden;
       margin-top: 0;
-      color: var(--muted);
+      color: #35473d;
       font-size: 11px;
       line-height: 1.2;
-      text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     body.mobile-admin .mobile-rank-rate {
-      min-width: 44px;
+      min-width: 0;
       color: var(--accent-dark);
-      font-size: 13px;
-      font-weight: 900;
-      text-align: right;
+      font-size: 11px;
+      font-weight: 800;
+      text-align: left;
     }
 
     body.mobile-admin .mobile-history-list {
@@ -733,7 +725,7 @@
 
     body.mobile-admin .mobile-history-head {
       display: grid;
-      grid-template-columns: auto minmax(0, 1fr) auto;
+      grid-template-columns: auto minmax(0, 1fr);
       align-items: center;
       gap: 7px;
       padding: 8px 10px;
@@ -759,15 +751,6 @@
       text-align: left;
       line-height: 1.2;
       text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    body.mobile-admin .mobile-history-fine {
-      display: block;
-      margin: 0;
-      color: #2563eb;
-      font-size: 10px;
-      font-weight: 800;
       white-space: nowrap;
     }
 
@@ -5317,11 +5300,12 @@
     }
 
     function calculateRanking() {
+      const eventFineAmount = Number(el("eventFineAmount")?.value || 0);
       const stats = new Map(state.players.map(name => [name, {
-        name, games: 0, wins: 0, losses: 0, done: 0, winRate: 0, partners: new Set(), team: state.teamMap[name] || ""
+        name, games: 0, wins: 0, losses: 0, done: 0, eventLosses: 0, winRate: 0, partners: new Set(), team: state.teamMap[name] || ""
       }]));
       const ensure = (name, team = "") => {
-        if (!stats.has(name)) stats.set(name, { name, games: 0, wins: 0, losses: 0, done: 0, winRate: 0, partners: new Set(), team });
+        if (!stats.has(name)) stats.set(name, { name, games: 0, wins: 0, losses: 0, done: 0, eventLosses: 0, winRate: 0, partners: new Set(), team });
         if (team && !stats.get(name).team) stats.get(name).team = team;
         return stats.get(name);
       };
@@ -5344,12 +5328,16 @@
         const winners = result === "A" ? match.teamA : match.teamB;
         const losers = result === "A" ? match.teamB : match.teamA;
         winners.forEach(name => ensure(name).wins++);
-        losers.forEach(name => ensure(name).losses++);
+        losers.forEach(name => {
+          const row = ensure(name);
+          row.losses++;
+          if (match.eventGame) row.eventLosses++;
+        });
       }
       return [...stats.values()]
         .map(row => {
           const rankedGames = row.wins + row.losses + row.done;
-          return { ...row, rankedGames, winRate: rankedGames ? row.wins / rankedGames : 0, partnerCount: row.partners.size };
+          return { ...row, rankedGames, winRate: rankedGames ? row.wins / rankedGames : 0, partnerCount: row.partners.size, eventFine: row.eventLosses * eventFineAmount };
         })
         .sort((a, b) => b.wins - a.wins || b.winRate - a.winRate || b.games - a.games || b.partnerCount - a.partnerCount || a.name.localeCompare(b.name, "ko-KR"));
     }
@@ -5372,12 +5360,12 @@
       const renderRows = (rows, baseRows = ranking) => rows.map(row => {
         const rank = baseRows.findIndex(item => item.name === row.name) + 1;
         return `<div class="mobile-rank-row rank-${rank}">
-          <div class="mobile-rank-no">${rank}</div>
           <div class="mobile-rank-info">
-            <div class="mobile-rank-name">${row.name}</div>
-            <div class="mobile-rank-record">총 ${row.games}경기 · ${row.wins}승 · ${row.losses}패 · 완료 ${row.done || 0} · 파트너 ${row.partnerCount}명</div>
+            <span class="mobile-rank-no">${rank}.</span>
+            <span class="mobile-rank-name">${row.name}</span>
+            <span class="mobile-rank-record">/ 총 ${row.games}경기 / ${row.wins}승 ${row.losses}패 완료 ${row.done || 0} / 파트너 ${row.partnerCount}명 / E ${row.eventLosses || 0}패 ${formatWon(row.eventFine)} /</span>
+            <span class="mobile-rank-rate">승률 ${Math.round(row.winRate * 100)}%</span>
           </div>
-          <div class="mobile-rank-rate">${Math.round(row.winRate * 100)}%</div>
         </div>`;
       }).join("");
       el("rankingOutput").className = "mobile-section-stack";
@@ -5573,8 +5561,7 @@
           return `<article class="mobile-history-card">
             <div class="mobile-history-head">
               <div class="mobile-history-name">${history.name}</div>
-              <div class="mobile-history-record">총 ${history.games}경기 · 승 ${history.wins} · 패 ${history.losses} · 완료 ${history.done || 0} · 미입력 ${history.pending || 0}</div>
-              ${history.eventLosses ? `<div class="mobile-history-fine">E ${history.eventLosses}패 ${formatWon(history.eventFine)}</div>` : ""}
+              <div class="mobile-history-record">총 ${history.games}경기 · 승 ${history.wins} · 패 ${history.losses} · 완료 ${history.done || 0} · 미입력 ${history.pending || 0}${history.eventLosses ? ` / <span style="color:#2563eb;font-weight:800;">E ${history.eventLosses}패 ${formatWon(history.eventFine)}</span>` : ""}</div>
             </div>
             <div class="mobile-history-block">
               <div class="mobile-partner-chips">
@@ -5582,7 +5569,6 @@
               </div>
             </div>
             <div class="mobile-history-block">
-              <div class="mobile-history-block-title">경기별 이력</div>
               <ul class="mobile-match-history">
                 ${history.matches.map((match, index) => {
                   const next = history.matches[index + 1];
