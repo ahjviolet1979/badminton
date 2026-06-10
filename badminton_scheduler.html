@@ -2092,11 +2092,14 @@
       inputLocked: localStorage.getItem("badminton_input_locked") === "1",
       cloudUpdatedAt: "",
       cloudSyncBusy: false,
-      cloudSaving: false
+      cloudSaving: false,
+      localEditDirty: false,
+      localEditVersion: 0
     };
 
     const el = id => document.getElementById(id);
     let supabaseClient = null;
+    let rosterSaveTimer = null;
     const config = window.BADMINTON_SUPABASE || {};
 
     function getAdminSession() {
@@ -3620,6 +3623,8 @@
 
     function applySharedPayload(data) {
       if (!data) throw new Error("저장된 대회 데이터가 없습니다.");
+      window.clearTimeout(rosterSaveTimer);
+      state.localEditDirty = false;
       state.players = Array.isArray(data.players) ? data.players : [];
       state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
       state.results = data.results || {};
@@ -3667,6 +3672,7 @@
         if (!silent) setMessage("사용자 접속 비밀번호를 먼저 입력하세요.", true);
         return;
       }
+      const editVersion = state.localEditVersion;
       state.cloudSaving = true;
       try {
         const { client, eventId } = await getSupabaseClient();
@@ -3680,6 +3686,7 @@
           });
         if (error) throw error;
         state.cloudUpdatedAt = updatedAt;
+        if (state.localEditVersion === editVersion) state.localEditDirty = false;
         if (!silent) setMessage("서버에 저장했습니다. 사용자 화면은 새로고침하거나 실시간 연결로 최신 내용을 볼 수 있습니다.");
         loadAdminEventOptions();
       } catch (error) {
@@ -3760,7 +3767,7 @@
     }
 
     async function syncCloudDataIfChanged() {
-      if (state.cloudSyncBusy || state.cloudSaving || document.body.classList.contains("locked") || document.hidden) return;
+      if (state.cloudSyncBusy || state.cloudSaving || state.localEditDirty || document.body.classList.contains("locked") || document.hidden) return;
       const eventId = el("supabaseEventId")?.value.trim();
       if (!eventId) return;
       state.cloudSyncBusy = true;
@@ -5310,10 +5317,23 @@
       });
     });
 
+    function scheduleRosterSave(immediate = false) {
+      state.localEditDirty = true;
+      state.localEditVersion++;
+      window.clearTimeout(rosterSaveTimer);
+      if (!el("autoCloudSave").checked) return;
+      if (immediate) {
+        saveCloudData(true);
+        return;
+      }
+      rosterSaveTimer = window.setTimeout(() => saveCloudData(true), 700);
+    }
+
     el("players").addEventListener("input", () => {
       saveCurrentModeRoster();
       renderTeamAssignments();
       renderAdminRosterControls();
+      scheduleRosterSave();
     });
     el("players").addEventListener("paste", () => {
       window.setTimeout(() => {
@@ -5321,6 +5341,7 @@
         saveCurrentModeRoster();
         renderTeamAssignments();
         renderAdminRosterControls();
+        scheduleRosterSave();
       }, 0);
     });
     el("players").addEventListener("blur", () => {
@@ -5328,6 +5349,7 @@
       saveCurrentModeRoster();
       renderTeamAssignments();
       renderAdminRosterControls();
+      scheduleRosterSave(true);
     });
     el("playerSearch").addEventListener("input", () => renderAll(true));
     el("toggleInputLockBtn").addEventListener("click", () => setInputLocked(!state.inputLocked));

@@ -130,7 +130,7 @@
 
     body.mobile-admin .player-list-title-row {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 184px;
+      grid-template-columns: minmax(0, 1fr) 154px;
       align-items: center;
       gap: 4px;
       width: 100%;
@@ -146,18 +146,18 @@
 
     body.mobile-admin .player-list-actions {
       display: grid;
-      grid-template-columns: 84px 96px;
+      grid-template-columns: 70px 80px;
       gap: 4px;
-      width: 184px;
+      width: 154px;
       min-width: 0;
     }
 
     body.mobile-admin .player-list-actions .button {
       width: 100%;
       min-width: 0;
-      min-height: 32px;
-      padding: 0 3px;
-      font-size: 11px;
+      min-height: 28px;
+      padding: 0 2px;
+      font-size: 10px;
       white-space: nowrap;
     }
 
@@ -650,11 +650,11 @@
 
     body.mobile-admin .mobile-rank-row {
       display: grid;
-      grid-template-columns: 36px minmax(0, 1fr) auto;
+      grid-template-columns: 30px minmax(0, 1fr) 44px;
       align-items: center;
-      gap: 8px;
-      min-height: 60px;
-      padding: 9px 10px;
+      gap: 6px;
+      min-height: 46px;
+      padding: 7px 8px;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
@@ -676,30 +676,45 @@
     }
 
     body.mobile-admin .mobile-rank-no {
-      font-size: 18px;
+      font-size: 14px;
       font-weight: 900;
       text-align: center;
     }
 
-    body.mobile-admin .mobile-rank-name {
+    body.mobile-admin .mobile-rank-info {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
       overflow: hidden;
-      font-size: 16px;
-      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    body.mobile-admin .mobile-rank-name {
+      flex: 0 0 auto;
+      overflow: hidden;
+      max-width: 82px;
+      font-size: 12px;
+      font-weight: 800;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     body.mobile-admin .mobile-rank-record {
-      margin-top: 3px;
+      min-width: 0;
+      overflow: hidden;
+      margin-top: 0;
       color: var(--muted);
       font-size: 11px;
-      line-height: 1.4;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     body.mobile-admin .mobile-rank-rate {
-      min-width: 50px;
+      min-width: 44px;
       color: var(--accent-dark);
-      font-size: 15px;
+      font-size: 13px;
       font-weight: 900;
       text-align: right;
     }
@@ -718,32 +733,41 @@
 
     body.mobile-admin .mobile-history-head {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: auto minmax(0, 1fr);
       align-items: center;
-      gap: 8px;
-      padding: 10px;
+      gap: 7px;
+      padding: 8px 10px;
       background: #eef6f0;
     }
 
     body.mobile-admin .mobile-history-name {
-      font-size: 17px;
-      font-weight: 900;
+      min-width: 0;
+      max-width: 92px;
+      overflow: hidden;
+      font-size: 13px;
+      font-weight: 800;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     body.mobile-admin .mobile-history-record {
+      min-width: 0;
+      overflow: hidden;
       color: #26382e;
       font-size: 11px;
-      font-weight: 800;
-      text-align: right;
-      line-height: 1.45;
+      font-weight: 700;
+      text-align: left;
+      line-height: 1.2;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     body.mobile-admin .mobile-history-fine {
-      display: block;
-      margin-top: 3px;
+      display: inline;
+      margin-left: 4px;
       color: #b45309;
-      font-size: 11px;
-      font-weight: 900;
+      font-size: 10px;
+      font-weight: 800;
     }
 
     body.mobile-admin .mobile-history-block {
@@ -2952,11 +2976,14 @@
       inputLocked: localStorage.getItem("badminton_input_locked") === "1",
       cloudUpdatedAt: "",
       cloudSyncBusy: false,
-      cloudSaving: false
+      cloudSaving: false,
+      localEditDirty: false,
+      localEditVersion: 0
     };
 
     const el = id => document.getElementById(id);
     let supabaseClient = null;
+    let rosterSaveTimer = null;
     const config = window.BADMINTON_SUPABASE || {};
 
     function getAdminSession() {
@@ -4480,6 +4507,8 @@
 
     function applySharedPayload(data) {
       if (!data) throw new Error("저장된 대회 데이터가 없습니다.");
+      window.clearTimeout(rosterSaveTimer);
+      state.localEditDirty = false;
       state.players = Array.isArray(data.players) ? data.players : [];
       state.schedule = Array.isArray(data.schedule) ? data.schedule : [];
       state.results = data.results || {};
@@ -4527,6 +4556,7 @@
         if (!silent) setMessage("사용자 접속 비밀번호를 먼저 입력하세요.", true);
         return;
       }
+      const editVersion = state.localEditVersion;
       state.cloudSaving = true;
       try {
         const { client, eventId } = await getSupabaseClient();
@@ -4540,6 +4570,7 @@
           });
         if (error) throw error;
         state.cloudUpdatedAt = updatedAt;
+        if (state.localEditVersion === editVersion) state.localEditDirty = false;
         if (!silent) setMessage("서버에 저장했습니다. 사용자 화면은 새로고침하거나 실시간 연결로 최신 내용을 볼 수 있습니다.");
         loadAdminEventOptions();
       } catch (error) {
@@ -4620,7 +4651,7 @@
     }
 
     async function syncCloudDataIfChanged() {
-      if (state.cloudSyncBusy || state.cloudSaving || document.body.classList.contains("locked") || document.hidden) return;
+      if (state.cloudSyncBusy || state.cloudSaving || state.localEditDirty || document.body.classList.contains("locked") || document.hidden) return;
       const eventId = el("supabaseEventId")?.value.trim();
       if (!eventId) return;
       state.cloudSyncBusy = true;
@@ -5341,7 +5372,7 @@
         const rank = baseRows.findIndex(item => item.name === row.name) + 1;
         return `<div class="mobile-rank-row rank-${rank}">
           <div class="mobile-rank-no">${rank}</div>
-          <div>
+          <div class="mobile-rank-info">
             <div class="mobile-rank-name">${row.name}</div>
             <div class="mobile-rank-record">총 ${row.games}경기 · ${row.wins}승 · ${row.losses}패 · 완료 ${row.done || 0} · 파트너 ${row.partnerCount}명</div>
           </div>
@@ -5540,11 +5571,8 @@
             .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"));
           return `<article class="mobile-history-card">
             <div class="mobile-history-head">
-              <div class="mobile-history-name">${history.name}${history.eventLosses ? `<span class="mobile-history-fine">E ${history.eventLosses}패<br>${formatWon(history.eventFine)}</span>` : ""}</div>
-              <div class="mobile-history-record">
-                총 ${history.games}경기 / 미입력 ${history.pending || 0}<br>
-                승 ${history.wins} / 패 ${history.losses} / 완료 ${history.done || 0}
-              </div>
+              <div class="mobile-history-name">${history.name}${history.eventLosses ? `<span class="mobile-history-fine">E ${history.eventLosses}패 ${formatWon(history.eventFine)}</span>` : ""}</div>
+              <div class="mobile-history-record">총 ${history.games}경기 · 승 ${history.wins} · 패 ${history.losses} · 완료 ${history.done || 0} · 미입력 ${history.pending || 0}</div>
             </div>
             <div class="mobile-history-block">
               <div class="mobile-history-block-title">파트너</div>
@@ -6176,10 +6204,23 @@
       });
     });
 
+    function scheduleRosterSave(immediate = false) {
+      state.localEditDirty = true;
+      state.localEditVersion++;
+      window.clearTimeout(rosterSaveTimer);
+      if (!el("autoCloudSave").checked) return;
+      if (immediate) {
+        saveCloudData(true);
+        return;
+      }
+      rosterSaveTimer = window.setTimeout(() => saveCloudData(true), 700);
+    }
+
     el("players").addEventListener("input", () => {
       saveCurrentModeRoster();
       renderTeamAssignments();
       renderAdminRosterControls();
+      scheduleRosterSave();
     });
     el("players").addEventListener("paste", () => {
       window.setTimeout(() => {
@@ -6187,6 +6228,7 @@
         saveCurrentModeRoster();
         renderTeamAssignments();
         renderAdminRosterControls();
+        scheduleRosterSave();
       }, 0);
     });
     el("players").addEventListener("blur", () => {
@@ -6194,6 +6236,7 @@
       saveCurrentModeRoster();
       renderTeamAssignments();
       renderAdminRosterControls();
+      scheduleRosterSave(true);
     });
     el("playerSearch").addEventListener("input", () => renderAll(true));
     el("toggleInputLockBtn").addEventListener("click", () => setInputLocked(!state.inputLocked));
