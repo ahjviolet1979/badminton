@@ -4509,7 +4509,7 @@
       el("eventMatchCount").value = savedSettings.eventMatchCount ?? data.eventMatchCount ?? 0;
       el("eventFineAmount").value = savedSettings.eventFineAmount ?? data.eventFineAmount ?? 1000;
       el("allowShortfall").checked = savedSettings.allowShortfall ?? data.allowShortfall ?? el("allowShortfall").checked;
-      el("includeInProgressPlayers").checked = savedSettings.includeInProgressPlayers ?? data.includeInProgressPlayers ?? el("includeInProgressPlayers").checked;
+      el("includeInProgressPlayers").checked = savedSettings.includeInProgressPlayers ?? data.includeInProgressPlayers ?? false;
       el("dailyPriorityMode").value = savedSettings.dailyPriorityMode || data.dailyPriorityMode || "latecomer";
       localStorage.setItem("badminton_include_in_progress", el("includeInProgressPlayers").checked ? "1" : "0");
       el("blueWhiteMode").checked = state.teamMode;
@@ -4732,6 +4732,8 @@
       state.modeRosters = { daily: "", tournament: "" };
       state.schedulePublic = false;
       state.scheduleStartAt = formatDateTimeLocal();
+      el("includeInProgressPlayers").checked = false;
+      localStorage.setItem("badminton_include_in_progress", "0");
       el("players").value = "";
       el("scheduleStartAt").value = state.scheduleStartAt;
       el("supabaseEventId").value = nextEventId;

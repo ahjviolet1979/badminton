@@ -1665,6 +1665,9 @@
       .actions .button { width: 100%; }
       .toolbar { width: 100%; }
       .schedule-time-box {
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr) 112px;
+        align-items: center;
         gap: 6px;
         padding: 7px 8px;
       }
@@ -1674,7 +1677,10 @@
         max-width: none;
       }
       .schedule-time-result {
+        margin-left: 0;
         font-size: 12px;
+        text-align: right;
+        overflow: hidden;
       }
 
       .responsive-card table,
@@ -2016,7 +2022,7 @@
           <div class="schedule-time-box">
             <label for="scheduleStartAt">시작시간</label>
             <input id="scheduleStartAt" type="text" inputmode="numeric" placeholder="2026-06-05 16:00">
-            <span class="schedule-time-result" id="scheduleEndEstimate">종료예상: -</span>
+            <span class="schedule-time-result" id="scheduleEndEstimate">종료 -</span>
           </div>
         </div>
 
@@ -2690,7 +2696,7 @@
       const start = parseScheduleDateTime(startValue);
       const pendingMatchCount = state.schedule.filter(match => !state.results[match.id]).length;
       if (!pendingMatchCount || Number.isNaN(start.getTime())) {
-        output.textContent = "종료예상: -";
+        output.textContent = "종료 -";
         return;
       }
       const courtCount = Math.max(
@@ -2700,7 +2706,12 @@
       );
       const roundCount = Math.ceil(pendingMatchCount / courtCount);
       const end = new Date(start.getTime() + roundCount * 15 * 60 * 1000);
-      output.textContent = `종료예상: ${formatKoreanDateTime(end)}`;
+      const sameDate = start.getFullYear() === end.getFullYear()
+        && start.getMonth() === end.getMonth()
+        && start.getDate() === end.getDate();
+      output.textContent = sameDate
+        ? `종료 ${pad2(end.getHours())}:${pad2(end.getMinutes())}`
+        : `종료 ${pad2(end.getMonth() + 1)}-${pad2(end.getDate())} ${pad2(end.getHours())}:${pad2(end.getMinutes())}`;
     }
 
     function resetScheduleStartTimeToNow() {
@@ -3638,7 +3649,7 @@
       el("eventMatchCount").value = savedSettings.eventMatchCount ?? data.eventMatchCount ?? 0;
       el("eventFineAmount").value = savedSettings.eventFineAmount ?? data.eventFineAmount ?? 1000;
       el("allowShortfall").checked = savedSettings.allowShortfall ?? data.allowShortfall ?? el("allowShortfall").checked;
-      el("includeInProgressPlayers").checked = savedSettings.includeInProgressPlayers ?? data.includeInProgressPlayers ?? el("includeInProgressPlayers").checked;
+      el("includeInProgressPlayers").checked = savedSettings.includeInProgressPlayers ?? data.includeInProgressPlayers ?? false;
       el("dailyPriorityMode").value = savedSettings.dailyPriorityMode || data.dailyPriorityMode || "latecomer";
       localStorage.setItem("badminton_include_in_progress", el("includeInProgressPlayers").checked ? "1" : "0");
       el("blueWhiteMode").checked = state.teamMode;
@@ -3861,6 +3872,8 @@
       state.modeRosters = { daily: "", tournament: "" };
       state.schedulePublic = false;
       state.scheduleStartAt = formatDateTimeLocal();
+      el("includeInProgressPlayers").checked = false;
+      localStorage.setItem("badminton_include_in_progress", "0");
       el("players").value = "";
       el("scheduleStartAt").value = state.scheduleStartAt;
       el("supabaseEventId").value = nextEventId;
@@ -5398,9 +5411,6 @@
     el("includeInProgressPlayers").checked = localStorage.getItem("badminton_include_in_progress") === "1";
     el("includeInProgressPlayers").addEventListener("change", () => {
       localStorage.setItem("badminton_include_in_progress", el("includeInProgressPlayers").checked ? "1" : "0");
-      setMessage(el("includeInProgressPlayers").checked
-        ? "운영모드 대진 생성 시 게임중 인원도 후보에 포함합니다."
-        : "운영모드 대진 생성 시 게임중 인원은 후보에서 제외합니다.");
     });
     el("applyRenameBtn").addEventListener("click", applyExplicitPlayerRename);
     el("togglePlayersBtn").addEventListener("click", () => {
