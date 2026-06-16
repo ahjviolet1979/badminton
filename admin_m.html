@@ -3632,6 +3632,16 @@
       return players;
     }
 
+    function reservedPlayerSet() {
+      const players = inProgressPlayerSet();
+      const nextIds = new Set((state.nextMatchIds || []).map(Number));
+      state.schedule.forEach(match => {
+        if (!nextIds.has(Number(match.id))) return;
+        [...match.teamA, ...match.teamB].forEach(name => players.add(name));
+      });
+      return players;
+    }
+
     function excludeInProgressPlayers(names) {
       const inProgress = inProgressPlayerSet();
       return names.filter(name => !inProgress.has(name));
@@ -5216,7 +5226,7 @@
       state.nextMatchIds = (state.nextMatchIds || [])
         .map(Number)
         .filter(id => !hasRecordedResult(state.results[id]));
-      const inProgressPlayers = inProgressPlayerSet();
+      const reservedPlayers = reservedPlayerSet();
       const rows = schedule.map(match => {
         const result = state.results[match.id] || "";
         const recordedResult = hasRecordedResult(result);
@@ -5224,7 +5234,7 @@
         const resultEditEnabled = (state.resultEditIds || []).map(Number).includes(Number(match.id));
         const resultDisabled = finalResultLocked && !resultEditEnabled;
         const resultDisabledAttr = resultDisabled ? "disabled" : "";
-        const canStart = !result && [...match.teamA, ...match.teamB].every(name => !inProgressPlayers.has(name));
+        const canStart = !result && [...match.teamA, ...match.teamB].every(name => !reservedPlayers.has(name));
         const dailyMode = state.adminMode === "daily";
         const labelA = match.teamALabel ? `${match.teamALabel}팀` : "A팀";
         const labelB = match.teamBLabel ? `${match.teamBLabel}팀` : "B팀";
