@@ -4401,6 +4401,17 @@
         </table>`;
 
       el("scheduleOutput").querySelectorAll("input[type='radio']").forEach(input => {
+        input.addEventListener("click", event => {
+          if (guardInputLocked()) return;
+          if (event.target.value !== "P") return;
+          const matchId = Number(event.target.name.replace("winner-", ""));
+          if (!isInProgressResult(state.results[matchId])) return;
+          event.preventDefault();
+          delete state.results[matchId];
+          state.resultEditIds = (state.resultEditIds || []).filter(id => Number(id) !== matchId);
+          renderAll(true);
+          if (el("autoCloudSave").checked) saveCloudData(true);
+        });
         input.addEventListener("change", event => {
           if (guardInputLocked()) return;
           const matchId = Number(event.target.name.replace("winner-", ""));
@@ -5815,6 +5826,10 @@
       if (!hasResultData) {
         window.alert("초기화 할 결과 데이터가 없습니다.");
         setMessage("초기화 할 결과 데이터가 없습니다.", true);
+        return;
+      }
+      if (!window.confirm("입력된 승/패/완료/게임중 결과와 다음게임 표시가 모두 초기화됩니다. 계속하시겠습니까?")) {
+        setMessage("결과 초기화를 취소했습니다.");
         return;
       }
       state.results = {};
