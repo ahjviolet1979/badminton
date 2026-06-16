@@ -888,6 +888,12 @@
       background: #dcebe1;
     }
 
+    .drag-handle:disabled {
+      opacity: 0.28;
+      cursor: not-allowed;
+      background: #f1f5f2;
+    }
+
     .next-check {
       display: inline-flex;
       align-items: center;
@@ -4458,7 +4464,7 @@
         ].filter(Boolean).join(" ");
         return `
           <tr class="${rowClass}" data-match-id="${match.id}">
-            <td data-label="경기"><span class="match-cell"><button class="drag-handle" type="button" data-match-id="${match.id}" aria-label="${match.id}경기 순서 변경">≡</button><span>${match.id}</span>${match.eventGame ? `<span class="event-dot" title="이벤트 경기">E</span>` : ""}${canStart ? `<span class="available-dot" title="4명 모두 출전 가능">가</span>` : ""}</span></td>
+            <td data-label="경기"><span class="match-cell"><button class="drag-handle" type="button" data-match-id="${match.id}" aria-label="${match.id}경기 순서 변경" title="${finalResultLocked ? "완료된 대진은 순서를 변경할 수 없습니다." : "순서 변경"}" ${finalResultLocked ? "disabled" : ""}>≡</button><span>${match.id}</span>${match.eventGame ? `<span class="event-dot" title="이벤트 경기">E</span>` : ""}${canStart ? `<span class="available-dot" title="4명 모두 출전 가능">가</span>` : ""}</span></td>
             <td data-label="라운드"><span class="badge">${match.round}R</span></td>
             <td data-label="코트">${match.court}코트</td>
             <td data-label="${labelA}"><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamA", 0, match.teamA[0], result)}</span><span class="pair">${schedulePlayerButton(match.id, "teamA", 1, match.teamA[1], result)}</span></div></td>
@@ -4580,6 +4586,17 @@
       if (guardInputLocked()) return;
       const orderedIds = rows.map(row => Number(row.dataset.matchId)).filter(Boolean);
       if (orderedIds.length !== state.schedule.length) return;
+      const currentFinalPositions = state.schedule
+        .map((match, index) => isFinalResult(state.results[match.id]) ? `${index}:${Number(match.id)}` : "")
+        .filter(Boolean);
+      const nextFinalPositions = orderedIds
+        .map((id, index) => isFinalResult(state.results[id]) ? `${index}:${id}` : "")
+        .filter(Boolean);
+      if (currentFinalPositions.join("|") !== nextFinalPositions.join("|")) {
+        window.alert("완료된 대진은 순서를 변경할 수 없습니다.");
+        renderAll(true);
+        return;
+      }
       const byId = new Map(state.schedule.map(match => [Number(match.id), match]));
       state.schedule = orderedIds.map(id => byId.get(id)).filter(Boolean);
       normalizeSchedule();
@@ -4595,9 +4612,10 @@
       let draggedRow = null;
       let activeHandle = null;
       const rows = () => [...tbody.querySelectorAll("tr[data-match-id]")];
+      const isFinalRow = row => isFinalResult(state.results[Number(row.dataset.matchId)]);
       const moveDraggedRow = clientY => {
         if (!draggedRow) return;
-        const siblings = rows().filter(row => row !== draggedRow);
+        const siblings = rows().filter(row => row !== draggedRow && !isFinalRow(row));
         const beforeRow = siblings.find(row => {
           const rect = row.getBoundingClientRect();
           return clientY < rect.top + rect.height / 2;
@@ -4636,6 +4654,7 @@
         const row = handle.closest("tr[data-match-id]");
         handle.addEventListener("pointerdown", event => {
           if (guardInputLocked()) return;
+          if (handle.disabled || isFinalRow(row)) return;
           if (event.button !== undefined && event.button !== 0) return;
           event.preventDefault();
           draggedRow = row;
