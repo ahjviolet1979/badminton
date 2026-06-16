@@ -3623,6 +3623,25 @@
       });
     }
 
+    function hasOpenScheduleForPlayer(player) {
+      const key = String(player || "").toLocaleLowerCase("ko-KR");
+      const nextIds = new Set((state.nextMatchIds || []).map(Number));
+      return state.schedule.some(match => {
+        const players = [...match.teamA, ...match.teamB].map(name => String(name || "").toLocaleLowerCase("ko-KR"));
+        if (!players.includes(key)) return false;
+        const result = state.results[match.id] || "";
+        return !isFinalResult(result) || nextIds.has(Number(match.id));
+      });
+    }
+
+    function blockScheduledPlayerExclusion(player) {
+      if (!hasOpenScheduleForPlayer(player)) return false;
+      window.alert("출전할 대진이 있습니다. 대진을 삭제하고 출석을 해제하세요.");
+      setMessage(`${player} 선수는 출전할 대진이 있어 출석을 해제할 수 없습니다.`, true);
+      renderPlayerStatusList();
+      return true;
+    }
+
     function inProgressPlayerSet() {
       const players = new Set();
       state.schedule.forEach(match => {
@@ -6526,6 +6545,7 @@
       if (!player) return;
       const status = state.playerStatus[player] || { present: false, excluded: true, attendedAt: "" };
       if (event.target.classList.contains("player-present-check")) {
+        if (!event.target.checked && blockScheduledPlayerExclusion(player)) return;
         status.present = event.target.checked;
         if (status.present) {
           status.excluded = false;
@@ -6536,6 +6556,7 @@
         }
       }
       if (event.target.classList.contains("player-exclude-check")) {
+        if (event.target.checked && blockScheduledPlayerExclusion(player)) return;
         status.excluded = event.target.checked;
         if (status.excluded) {
           status.present = false;
@@ -6585,6 +6606,7 @@
       if (!player) return;
       const status = state.playerStatus[player] || { present: false, excluded: true, attendedAt: "" };
       if (event.target.classList.contains("player-present-check")) {
+        if (!event.target.checked && blockScheduledPlayerExclusion(player)) return;
         status.present = event.target.checked;
         if (status.present) {
           status.excluded = false;
@@ -6595,6 +6617,7 @@
         }
       }
       if (event.target.classList.contains("player-exclude-check")) {
+        if (event.target.checked && blockScheduledPlayerExclusion(player)) return;
         status.excluded = event.target.checked;
         if (status.excluded) {
           status.present = false;
