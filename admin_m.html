@@ -215,7 +215,7 @@
       position: sticky;
       bottom: 4px;
       z-index: 8;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       padding: 5px;
       margin: 8px -2px;
       border: 1px solid rgba(4, 120, 87, 0.18);
@@ -1512,7 +1512,7 @@
 
     .actions {
       display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       gap: 6px;
       margin-top: 14px;
     }
@@ -1545,6 +1545,13 @@
       color: #92400e;
       font-weight: 900;
       box-shadow: 0 8px 16px rgba(245, 158, 11, 0.12);
+    }
+
+    #refreshDailyScheduleBtn {
+      background: #dcfce7;
+      color: #047857;
+      font-weight: 900;
+      box-shadow: 0 8px 16px rgba(4, 120, 87, 0.12);
     }
 
     .rename-row {
@@ -2766,6 +2773,9 @@
           <button class="button" id="deletePendingScheduleBtn" type="button">
             미완료<br>삭제
           </button>
+          <button class="button" id="refreshDailyScheduleBtn" type="button">
+            미완료삭제<br>추가생성
+          </button>
           <button class="button" id="clearResultsBtn" type="button">
             결과<br>초기화
           </button>
@@ -3344,6 +3354,11 @@
       const priorityMode = el("dailyPriorityMode");
       if (priorityMode) {
         priorityMode.disabled = state.adminMode !== "daily";
+      }
+      const refreshDailyButton = el("refreshDailyScheduleBtn");
+      if (refreshDailyButton) {
+        refreshDailyButton.disabled = state.adminMode !== "daily";
+        refreshDailyButton.title = state.adminMode === "daily" ? "미완료 대진 삭제 후 추가 대진 생성" : "운영모드에서만 사용할 수 있습니다.";
       }
     }
 
@@ -5233,20 +5248,21 @@
       if (el("autoCloudSave").checked) saveCloudData(true);
     }
 
-    function deletePendingSchedule() {
-      if (guardInputLocked()) return;
+    function deletePendingScheduleCore({ confirmDelete = true, alertIfNone = true, save = true } = {}) {
       if (!state.schedule.length) {
-        window.alert("삭제할 대진이 없습니다.");
+        if (alertIfNone) window.alert("삭제할 대진이 없습니다.");
         setMessage("삭제할 대진이 없습니다.", true);
-        return;
+        return { deleted: false, deletedCount: 0, reason: "empty" };
       }
       const pendingMatches = state.schedule.filter(match => !state.results[match.id]);
       if (!pendingMatches.length) {
-        window.alert("삭제할 미완료 대진이 없습니다.");
+        if (alertIfNone) window.alert("삭제할 미완료 대진이 없습니다.");
         setMessage("미완료 대진이 없습니다. 승/패/완료/게임중 대진은 유지됩니다.", true);
-        return;
+        return { deleted: false, deletedCount: 0, reason: "noPending" };
       }
-      if (!window.confirm(`승/패/완료/게임중이 없는 미완료 대진 ${pendingMatches.length}개를 삭제합니다. 계속하시겠습니까?`)) return;
+      if (confirmDelete && !window.confirm(`승/패/완료/게임중이 없는 미완료 대진 ${pendingMatches.length}개를 삭제합니다. 계속하시겠습니까?`)) {
+        return { deleted: false, deletedCount: 0, reason: "cancel" };
+      }
       state.schedule = state.schedule.filter(match => state.results[match.id]);
       if (!state.schedule.length) state.scheduleMode = "";
       normalizeSchedule();
@@ -5256,7 +5272,30 @@
       renderAll(true);
       renderScheduleTimeEstimate();
       setMessage(`미완료 대진 ${pendingMatches.length}개를 삭제했습니다. 승/패/완료/게임중 대진은 유지했습니다.`);
-      if (el("autoCloudSave").checked) saveCloudData(true);
+      if (save && el("autoCloudSave").checked) saveCloudData(true);
+      return { deleted: true, deletedCount: pendingMatches.length, reason: "deleted" };
+    }
+
+    function deletePendingSchedule() {
+      if (guardInputLocked()) return;
+      deletePendingScheduleCore();
+    }
+
+    async function refreshDailySchedule() {
+      if (guardInputLocked()) return;
+      if (state.adminMode !== "daily") {
+        window.alert("운영모드에서만 사용할 수 있습니다.");
+        setMessage("미완료 삭제 후 추가대진생성은 운영모드에서만 사용할 수 있습니다.", true);
+        return;
+      }
+      const pendingCount = state.schedule.filter(match => !state.results[match.id]).length;
+      if (pendingCount) {
+        const ok = window.confirm(`미완료 대진 ${pendingCount}개를 삭제하고 추가 대진을 생성하시겠습니까?\n승/패/완료/게임중 대진은 유지됩니다.`);
+        if (!ok) return;
+        const result = deletePendingScheduleCore({ confirmDelete: false, alertIfNone: false, save: false });
+        if (result.reason === "cancel") return;
+      }
+      await generate();
     }
 
     function deleteMatch(matchId) {
@@ -6369,6 +6408,7 @@
     el("generateBtn").addEventListener("click", generate);
     el("deleteScheduleBtn").addEventListener("click", deleteAllSchedule);
     el("deletePendingScheduleBtn").addEventListener("click", deletePendingSchedule);
+    el("refreshDailyScheduleBtn").addEventListener("click", refreshDailySchedule);
     el("manualAddBtn").addEventListener("click", addManualMatch);
     el("clearResultsBtn").addEventListener("click", () => {
       if (guardInputLocked()) return;
