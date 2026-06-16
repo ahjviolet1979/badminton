@@ -1548,10 +1548,12 @@
     }
 
     #refreshDailyScheduleBtn {
-      background: #dcfce7;
-      color: #047857;
+      background: #2563eb;
+      color: #fff;
+      font-size: 12px;
+      line-height: 1.15;
       font-weight: 900;
-      box-shadow: 0 8px 16px rgba(4, 120, 87, 0.12);
+      box-shadow: 0 8px 16px rgba(37, 99, 235, 0.22);
     }
 
     .rename-row {
@@ -1864,6 +1866,100 @@
       width: 16px;
       height: 16px;
       accent-color: var(--accent);
+    }
+
+    .player-status-summary {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 9px;
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .player-status-summary strong {
+      color: var(--accent-dark);
+    }
+
+    .player-status-actions {
+      display: flex;
+      gap: 6px;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .player-status-mini-btn {
+      border: 1px solid #cfe3d7;
+      border-radius: 7px;
+      background: #fff;
+      color: #315243;
+      padding: 6px 8px;
+      font-size: 12px;
+      font-weight: 900;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .player-status-mini-btn.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .player-status-modal-card {
+      width: min(560px, 100%);
+    }
+
+    .player-status-toolbar {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto auto auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .player-status-search {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .player-status-filter {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--muted);
+      padding: 9px 10px;
+      font-size: 13px;
+      font-weight: 900;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .player-status-filter.active {
+      border-color: var(--accent);
+      background: #e7f7ef;
+      color: var(--accent-dark);
+    }
+
+    .player-status-modal-list {
+      max-height: min(58vh, 520px);
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcfa;
+    }
+
+    .player-status-empty {
+      padding: 16px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+      text-align: center;
     }
 
     .player-count-summary {
@@ -2774,7 +2870,7 @@
             미완료<br>삭제
           </button>
           <button class="button" id="refreshDailyScheduleBtn" type="button">
-            미완료삭제<br>추가생성
+            미완료<br>삭제후<br>대진생성
           </button>
           <button class="button" id="clearResultsBtn" type="button">
             결과<br>초기화
@@ -2958,6 +3054,24 @@
     </div>
   </div>
 
+  <div class="choice-backdrop" id="playerStatusChoice" aria-hidden="true">
+    <div class="choice-card player-status-modal-card" role="dialog" aria-modal="true" aria-labelledby="playerStatusTitle">
+      <h3 id="playerStatusTitle">출석 명단 관리</h3>
+      <p id="playerStatusSubtitle">선수를 검색하거나 필터를 눌러 출석/제외 상태를 바꿉니다.</p>
+      <div class="player-status-toolbar">
+        <input class="player-status-search" id="playerStatusSearch" type="search" placeholder="선수 이름 검색" autocomplete="off">
+        <button class="player-status-filter active" data-status-filter="all" type="button">전체</button>
+        <button class="player-status-filter" data-status-filter="present" type="button">출석</button>
+        <button class="player-status-filter" data-status-filter="excluded" type="button">제외</button>
+      </div>
+      <div class="player-status-modal-list" id="playerStatusModalList"></div>
+      <div class="choice-actions" style="margin-top: 12px;">
+        <button class="button" id="closePlayerStatusBtn" type="button">닫기</button>
+        <span></span>
+      </div>
+    </div>
+  </div>
+
   <script>
     const state = {
       players: [],
@@ -2985,6 +3099,7 @@
     const el = id => document.getElementById(id);
     let supabaseClient = null;
     let rosterSaveTimer = null;
+    let playerStatusFilter = "all";
     const config = window.BADMINTON_SUPABASE || {};
 
     function getAdminSession() {
@@ -3374,11 +3489,46 @@
         list.innerHTML = "";
         return;
       }
+      const presentCount = names.filter(name => statusMap[name]?.present && !statusMap[name]?.excluded).length;
+      const excludedCount = names.filter(name => statusMap[name]?.excluded || !statusMap[name]?.present).length;
       list.innerHTML = `
-        <div class="player-status-head"><span>선수</span><button class="status-head-action" id="markAllPresentBtn" type="button" title="전체 출석 처리">출석</button><button class="status-head-action" id="markAllExcludedBtn" type="button" title="전체 제외 처리">제외</button></div>
-        ${names.map(name => {
+        <div class="player-status-summary">
+          <span><strong>출석 ${presentCount}명</strong> / 제외 ${excludedCount}명 / 전체 ${names.length}명</span>
+          <div class="player-status-actions">
+            <button class="player-status-mini-btn primary" id="openPlayerStatusBtn" type="button">명단관리</button>
+            <button class="player-status-mini-btn" id="markAllPresentBtn" type="button">전체출석</button>
+            <button class="player-status-mini-btn" id="markAllExcludedBtn" type="button">전체제외</button>
+          </div>
+        </div>`;
+      renderPlayerStatusModal();
+    }
+
+    function renderPlayerStatusModal() {
+      const modalList = el("playerStatusModalList");
+      if (!modalList) return;
+      const names = parsePlayers();
+      const statusMap = syncPlayerStatuses(names);
+      const ranks = attendanceRankMap(names);
+      const query = (el("playerStatusSearch")?.value || "").trim().toLowerCase();
+      const filtered = names.filter(name => {
+        const status = statusMap[name] || { present: false, excluded: true, attendedAt: "" };
+        if (query && !name.toLowerCase().includes(query)) return false;
+        if (playerStatusFilter === "present") return status.present && !status.excluded;
+        if (playerStatusFilter === "excluded") return status.excluded || !status.present;
+        return true;
+      });
+      document.querySelectorAll(".player-status-filter").forEach(button => {
+        button.classList.toggle("active", button.dataset.statusFilter === playerStatusFilter);
+      });
+      if (!filtered.length) {
+        modalList.innerHTML = `<div class="player-status-empty">표시할 선수가 없습니다.</div>`;
+        return;
+      }
+      modalList.innerHTML = `
+        <div class="player-status-head"><span>선수</span><button class="status-head-action" id="modalMarkAllPresentBtn" type="button" title="전체 출석 처리">출석</button><button class="status-head-action" id="modalMarkAllExcludedBtn" type="button" title="전체 제외 처리">제외</button></div>
+        ${filtered.map(name => {
           const status = statusMap[name] || { present: false, excluded: true, attendedAt: "" };
-          const order = status.attendedAt ? attendanceRankMap(names).get(name) : "";
+          const order = status.attendedAt ? ranks.get(name) : "";
           const key = escapeHtml(name);
           return `
             <div class="player-status-row">
@@ -3865,18 +4015,28 @@
       return new Map(shuffle(players, rand).map((name, index) => [name, index]));
     }
 
+    function partnerDuplicateCountForPairing(pairing, ctx) {
+      return [pairing.a, pairing.b].reduce((sum, pair) => sum + (ctx.partners.get(keyOf(pair[0], pair[1])) || 0), 0);
+    }
+
+    function minPartnerDuplicateCountForGroup(group, ctx) {
+      return Math.min(...allPairings(group).map(pairing => partnerDuplicateCountForPairing(pairing, ctx)));
+    }
+
     function chooseBestPairing(group, ctx, rand) {
       const options = allPairings(group);
+      const minDuplicateCount = Math.min(...options.map(option => partnerDuplicateCountForPairing(option, ctx)));
+      const candidates = options.filter(option => partnerDuplicateCountForPairing(option, ctx) === minDuplicateCount);
       let best = null;
       let bestScore = Infinity;
-      for (const option of shuffle(options, rand)) {
+      for (const option of shuffle(candidates, rand)) {
         const partnerKeys = [keyOf(option.a[0], option.a[1]), keyOf(option.b[0], option.b[1])];
         const opponentPairs = [
           keyOf(option.a[0], option.b[0]), keyOf(option.a[0], option.b[1]),
           keyOf(option.a[1], option.b[0]), keyOf(option.a[1], option.b[1])
         ];
         let score = 0;
-        score += partnerKeys.reduce((sum, key) => sum + (ctx.partners.get(key) || 0) * 260, 0);
+        score += partnerKeys.reduce((sum, key) => sum + (ctx.partners.get(key) || 0) * 1000000, 0);
         score += opponentPairs.reduce((sum, key) => sum + (ctx.opponents.get(key) || 0) * 22, 0);
         score += rand() * 0.01;
         if (score < bestScore) {
@@ -3901,6 +4061,7 @@
       const overTarget = group.filter(p => (ctx.games.get(p) || 0) >= target).length;
       let recentPenalty = group.reduce((sum, p) => sum + (roundUsed.has(p) ? 500 : 0), 0);
       let score = overTarget * 100000 + maxGame * 900 + (maxGame - minGame) * 700 + recentPenalty;
+      score += minPartnerDuplicateCountForGroup(group, ctx) * 1000000;
       score += (ctx.groups.get(groupKey(group)) || 0) * 50000;
       for (const previousGroup of ctx.groupMembers) {
         const overlap = group.filter(player => previousGroup.includes(player)).length;
@@ -6292,6 +6453,10 @@
         saveCurrentModeRoster();
         state.adminMode = event.currentTarget.dataset.adminMode || "tournament";
         localStorage.setItem("badminton_admin_mode", state.adminMode);
+        if (state.adminMode === "daily") {
+          el("includeInProgressPlayers").checked = true;
+          localStorage.setItem("badminton_include_in_progress", "1");
+        }
         restoreCurrentModeRoster();
         renderAll(true);
         setMessage(state.adminMode === "daily"
@@ -6326,12 +6491,64 @@
       if (el("autoCloudSave").checked) saveCloudData(true);
     });
     el("playerStatusList").addEventListener("click", event => {
+      if (event.target.id === "openPlayerStatusBtn") {
+        playerStatusFilter = "all";
+        el("playerStatusSearch").value = "";
+        renderPlayerStatusModal();
+        el("playerStatusChoice").classList.add("active");
+        el("playerStatusChoice").setAttribute("aria-hidden", "false");
+        setTimeout(() => el("playerStatusSearch")?.focus(), 0);
+      }
       if (event.target.id === "markAllPresentBtn") {
         markAllDailyPlayersPresent();
       }
       if (event.target.id === "markAllExcludedBtn") {
         markAllDailyPlayersExcluded();
       }
+    });
+    el("playerStatusModalList").addEventListener("change", event => {
+      const player = event.target.dataset.player;
+      if (!player) return;
+      const status = state.playerStatus[player] || { present: false, excluded: true, attendedAt: "" };
+      if (event.target.classList.contains("player-present-check")) {
+        status.present = event.target.checked;
+        if (status.present) {
+          status.excluded = false;
+          if (!status.attendedAt) status.attendedAt = new Date().toISOString();
+        } else {
+          status.excluded = true;
+          status.attendedAt = "";
+        }
+      }
+      if (event.target.classList.contains("player-exclude-check")) {
+        status.excluded = event.target.checked;
+        if (status.excluded) {
+          status.present = false;
+          status.attendedAt = "";
+        }
+      }
+      state.playerStatus[player] = status;
+      renderPlayerStatusList();
+      if (el("autoCloudSave").checked) saveCloudData(true);
+    });
+    el("playerStatusModalList").addEventListener("click", event => {
+      if (event.target.id === "modalMarkAllPresentBtn") {
+        markAllDailyPlayersPresent();
+      }
+      if (event.target.id === "modalMarkAllExcludedBtn") {
+        markAllDailyPlayersExcluded();
+      }
+    });
+    el("playerStatusSearch").addEventListener("input", renderPlayerStatusModal);
+    document.querySelectorAll(".player-status-filter").forEach(button => {
+      button.addEventListener("click", event => {
+        playerStatusFilter = event.currentTarget.dataset.statusFilter || "all";
+        renderPlayerStatusModal();
+      });
+    });
+    el("closePlayerStatusBtn").addEventListener("click", () => {
+      el("playerStatusChoice").classList.remove("active");
+      el("playerStatusChoice").setAttribute("aria-hidden", "true");
     });
     document.querySelectorAll(".stepper-button").forEach(button => {
       button.addEventListener("click", event => {
@@ -6350,7 +6567,7 @@
       renderAdminRosterControls();
     });
     el("resetTeamAssignBtn").addEventListener("click", resetTeamAssignments);
-    el("includeInProgressPlayers").checked = localStorage.getItem("badminton_include_in_progress") === "1";
+    el("includeInProgressPlayers").checked = state.adminMode === "daily" || localStorage.getItem("badminton_include_in_progress") === "1";
     el("includeInProgressPlayers").addEventListener("change", () => {
       localStorage.setItem("badminton_include_in_progress", el("includeInProgressPlayers").checked ? "1" : "0");
     });
