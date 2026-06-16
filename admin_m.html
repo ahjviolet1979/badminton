@@ -4153,7 +4153,12 @@
     function attendancePriorityValue(attendanceOrder, player, ctx) {
       if (!attendanceOrder) return 9999;
       const orderMap = attendanceOrder.map || attendanceOrder;
-      if (attendanceOrder.firstOnly && (ctx.games.get(player) || 0) > 0) return 9999;
+      if (attendanceOrder.firstOnly) {
+        const priorPlayed = attendanceOrder.priorGames?.get(player) || 0;
+        const sessionStartPlayed = attendanceOrder.startGames?.get(player) || 0;
+        if (priorPlayed > 0) return 9999;
+        if ((ctx.games.get(player) || 0) > sessionStartPlayed) return 9999;
+      }
       return orderMap.get(player) || 9999;
     }
 
@@ -4274,6 +4279,7 @@
 
     function contextForDailyAppend(players, existingSchedule) {
       const ctx = contextFromExistingSchedule(players, existingSchedule);
+      ctx.priorGames = new Map(ctx.games);
       ctx.countPriorGamesTowardTarget = true;
       players.forEach(player => {
         ctx.restGaps.set(player, []);
@@ -4283,6 +4289,7 @@
 
     function contextForDailyEqualAppend(players, existingSchedule) {
       const ctx = contextFromExistingSchedule(players, existingSchedule);
+      ctx.priorGames = new Map(ctx.games);
       players.forEach(player => {
         ctx.games.set(player, 0);
         ctx.restGaps.set(player, []);
@@ -6068,7 +6075,12 @@
           const initialCtx = dailyPriorityMode === "equal"
             ? contextForDailyEqualAppend(players, existingSchedule)
             : contextForDailyAppend(players, existingSchedule);
-          const attendanceOrder = { map: lateAttendancePriorityMap(players), firstOnly: true };
+          const attendanceOrder = {
+            map: lateAttendancePriorityMap(players),
+            firstOnly: true,
+            priorGames: new Map(initialCtx.priorGames || initialCtx.games),
+            startGames: new Map(initialCtx.games)
+          };
           const guaranteeEqualTarget = dailyPriorityMode === "equal";
           schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length, guaranteeEqualTarget, attendanceOrder).schedule;
         } else if (blueWhiteMode) {
