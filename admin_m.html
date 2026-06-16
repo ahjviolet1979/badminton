@@ -4162,13 +4162,22 @@
       return orderMap.get(player) || 9999;
     }
 
+    function batchGameCount(ctx, player, attendanceOrder = null) {
+      const played = ctx.games.get(player) || 0;
+      const startPlayed = attendanceOrder?.startGames?.get(player) || 0;
+      return Math.max(0, played - startPlayed);
+    }
+
     function evaluateGroup(group, ctx, target, roundUsed, rand, nextMatchId, idealRest, attendanceOrder = null) {
       const games = group.map(p => ctx.games.get(p) || 0);
+      const batchGames = group.map(p => batchGameCount(ctx, p, attendanceOrder));
       const minGame = Math.min(...games);
       const maxGame = Math.max(...games);
+      const minBatchGame = Math.min(...batchGames);
+      const maxBatchGame = Math.max(...batchGames);
       const overTarget = group.filter(p => (ctx.games.get(p) || 0) >= target).length;
       let recentPenalty = group.reduce((sum, p) => sum + (roundUsed.has(p) ? 500 : 0), 0);
-      let score = overTarget * 100000 + maxGame * 900 + (maxGame - minGame) * 700 + recentPenalty;
+      let score = overTarget * 100000 + maxBatchGame * 1200 + (maxBatchGame - minBatchGame) * 900 + maxGame * 700 + (maxGame - minGame) * 500 + recentPenalty;
       score += minPartnerDuplicateCountForGroup(group, ctx) * 1000000;
       score += (ctx.groups.get(groupKey(group)) || 0) * 50000;
       for (const previousGroup of ctx.groupMembers) {
@@ -4327,9 +4336,12 @@
           let groups = combinations(eligible, 4);
           const groupStats = group => {
             const games = group.map(p => ctx.games.get(p) || 0);
+            const batchGames = group.map(p => batchGameCount(ctx, p, attendanceOrder));
             return {
               max: Math.max(...games),
               total: games.reduce((sum, value) => sum + value, 0),
+              batchMax: Math.max(...batchGames),
+              batchTotal: batchGames.reduce((sum, value) => sum + value, 0),
               deficit: group.filter(p => (ctx.games.get(p) || 0) < targetGames).length,
               over: group.filter(p => (ctx.games.get(p) || 0) >= targetGames).length,
               restTotal: group.reduce((sum, p) => sum + ((ctx.lastPlayed.get(p) || 0) ? existingMatchCount + schedule.length + 1 - (ctx.lastPlayed.get(p) || 0) - 1 : 999), 0),
@@ -4341,6 +4353,10 @@
             groups = groups.filter(group => groupStats(group).deficit === maxDeficit);
             const minOver = Math.min(...groups.map(group => groupStats(group).over));
             groups = groups.filter(group => groupStats(group).over === minOver);
+            const minBatchMax = Math.min(...groups.map(group => groupStats(group).batchMax));
+            groups = groups.filter(group => groupStats(group).batchMax === minBatchMax);
+            const minBatchTotal = Math.min(...groups.map(group => groupStats(group).batchTotal));
+            groups = groups.filter(group => groupStats(group).batchTotal === minBatchTotal);
             const minTotalGames = Math.min(...groups.map(group => groupStats(group).total));
             groups = groups.filter(group => groupStats(group).total === minTotalGames);
             if (attendanceOrder) {
