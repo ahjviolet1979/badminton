@@ -1271,6 +1271,31 @@
       grid-column: 1 / -1;
     }
 
+    .tournament-select-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .include-ended-events {
+      display: none;
+      align-items: center;
+      gap: 5px;
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .include-ended-events input {
+      width: 14px;
+      height: 14px;
+      accent-color: var(--accent);
+    }
+
     .settings.four-cols {
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
@@ -2937,7 +2962,13 @@
 
         <div class="settings">
           <div>
-            <label for="tournamentSelect">대회 선택</label>
+            <div class="tournament-select-head">
+              <label for="tournamentSelect">대회 선택</label>
+              <label class="include-ended-events" id="includeEndedEventsWrap" for="includeEndedEvents">
+                <input id="includeEndedEvents" type="checkbox">
+                종료 된 대회포함
+              </label>
+            </div>
             <select id="tournamentSelect">
               <option value="">대회 목록을 불러오는 중입니다</option>
             </select>
@@ -3697,6 +3728,14 @@
         const enabled = admin?.role === "super_admin";
         tournamentSelect.disabled = !enabled;
         tournamentSelect.title = enabled ? "대회 선택" : "대회관리자는 연결된 대회만 사용할 수 있습니다.";
+      }
+      const includeEndedWrap = el("includeEndedEventsWrap");
+      const includeEndedInput = el("includeEndedEvents");
+      if (includeEndedWrap && includeEndedInput) {
+        const enabled = admin?.role === "super_admin";
+        includeEndedWrap.style.display = enabled ? "inline-flex" : "none";
+        includeEndedInput.disabled = !enabled;
+        if (!enabled) includeEndedInput.checked = false;
       }
     }
 
@@ -4629,7 +4668,8 @@
           !row.data?.deleted &&
           !row.data?.isDeleted &&
           row.data?.status !== "deleted";
-        const visibleRows = accessibleRows.filter(row => isActiveEvent(row));
+        const includeEnded = adminUser?.role === "super_admin" && el("includeEndedEvents")?.checked === true;
+        const visibleRows = accessibleRows.filter(row => includeEnded ? !row.data?.deleted && !row.data?.isDeleted && row.data?.status !== "deleted" : isActiveEvent(row));
         const labelForEvent = row => {
           const name = row.data?.eventId || row.id;
           if (row.data?.deleted || row.data?.isDeleted || row.data?.status === "deleted") return `${name} (삭제)`;
@@ -6718,6 +6758,10 @@
       el("supabaseEventId").value = nextEventId;
       localStorage.setItem("badminton_supabase_event_id", nextEventId);
       await loadCloudData(false);
+    });
+    el("includeEndedEvents").addEventListener("change", async () => {
+      if (!isSuperAdmin()) return;
+      await loadAdminEventOptions();
     });
     el("generateBtn").addEventListener("click", generate);
     el("deleteScheduleBtn").addEventListener("click", deleteAllSchedule);
