@@ -1959,8 +1959,6 @@
     }
 
     .player-status-modal-list {
-      max-height: min(58vh, 520px);
-      overflow: auto;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fbfcfa;
@@ -3504,16 +3502,13 @@
       }
       const presentCount = names.filter(name => statusMap[name]?.present && !statusMap[name]?.excluded).length;
       const excludedCount = names.filter(name => statusMap[name]?.excluded || !statusMap[name]?.present).length;
-      const query = (el("inlinePlayerStatusSearch")?.value || "").trim().toLowerCase();
       const ranks = attendanceRankMap(names);
       const filtered = names.filter(name => {
         const status = statusMap[name] || { present: false, excluded: true, attendedAt: "" };
-        if (query && !name.toLowerCase().includes(query)) return false;
         if (playerStatusFilter === "present") return status.present && !status.excluded;
         if (playerStatusFilter === "excluded") return status.excluded || !status.present;
         return true;
       });
-      const filterButton = (value, label) => `<button class="player-status-filter ${playerStatusFilter === value ? "active" : ""}" data-status-filter="${value}" type="button">${label}</button>`;
       const rowsHtml = filtered.length
         ? `
           <div class="player-status-head"><span>선수</span><button class="status-head-action" id="inlineMarkAllPresentBtn" type="button" title="전체 출석 처리">출석</button><button class="status-head-action" id="inlineMarkAllExcludedBtn" type="button" title="전체 제외 처리">제외</button></div>
@@ -3532,22 +3527,13 @@
       list.innerHTML = `
         <div class="player-status-summary">
           <div class="player-status-counts">
-            <span><strong>출석 ${presentCount}명</strong> / 제외 ${excludedCount}명</span>
-            <span>전체 ${names.length}명</span>
+            <span><strong>전체 ${names.length}</strong> / 출석 ${presentCount} / 미출 ${excludedCount}</span>
           </div>
           <div class="player-status-actions">
             <button class="player-status-mini-btn primary" id="openPlayerStatusBtn" type="button">${playerStatusExpanded ? "명단접기" : "명단관리"}</button>
-            <button class="player-status-mini-btn" id="markAllPresentBtn" type="button">전체출석</button>
-            <button class="player-status-mini-btn" id="markAllExcludedBtn" type="button">전체제외</button>
           </div>
         </div>
         ${playerStatusExpanded ? `
-          <div class="player-status-toolbar">
-            <input class="player-status-search" id="inlinePlayerStatusSearch" type="search" placeholder="선수 이름 검색" value="${escapeHtml(query)}" autocomplete="off">
-            ${filterButton("all", "전체")}
-            ${filterButton("present", "출석")}
-            ${filterButton("excluded", "제외")}
-          </div>
           <div class="player-status-modal-list">${rowsHtml}</div>
         ` : ""}`;
     }
