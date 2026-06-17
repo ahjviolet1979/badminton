@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>배드민턴 모바일 보기</title>
+  <title>諛곕뱶誘쇳꽩 紐⑤컮??蹂닿린</title>
   <script src="supabase_config.js"></script>
   <style>
     :root {
@@ -613,9 +613,9 @@
 <body class="locked">
   <div class="login-screen">
     <form class="login-card" id="loginForm">
-      <h1>대회 입장</h1>
-      <p class="sub">대회를 선택하고 안내받은 비밀번호를 입력하세요.</p>
-      <label for="eventSelect">대회</label>
+      <h1>배드민턴 대진표</h1>
+      <p>대회를 선택하고 비밀번호를 입력하세요.</p>
+      <label for="eventSelect">대회 선택</label>
       <select id="eventSelect">
         <option value="">대회 목록을 불러오는 중입니다</option>
       </select>
@@ -656,7 +656,7 @@
 
     <div class="tabs">
       <button class="tab active" data-view="scheduleView" type="button">대진표</button>
-      <button class="tab" data-view="playersView" type="button">선수별이력</button>
+      <button class="tab" data-view="playersView" type="button">게임이력</button>
       <button class="tab" data-view="rankingView" type="button">순위</button>
     </div>
 
@@ -665,13 +665,12 @@
     </section>
 
     <section class="view" id="playersView">
-      <div id="playersOutput" class="empty">출전이력 데이터를 기다리고 있습니다.</div>
+      <div id="playersOutput" class="empty">게임이력 데이터를 기다리고 있습니다.</div>
     </section>
 
     <section class="view" id="rankingView">
       <div id="rankingOutput" class="empty">순위 데이터를 기다리고 있습니다.</div>
     </section>
-
   </main>
 
   <script>
@@ -680,6 +679,10 @@
     let supabaseClient = null;
     let realtimeChannel = null;
     let autoRefreshTimer = null;
+
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"]/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[char]));
+    }
 
     function startAutoRefresh() {
       if (autoRefreshTimer) window.clearInterval(autoRefreshTimer);
@@ -718,7 +721,7 @@
         if (error) throw error;
         const events = (data || []).filter(row => row.data?.ended !== true && row.data?.viewerPassword);
         el("eventSelect").innerHTML = events.length
-          ? events.map(row => `<option value="${row.id}">${row.data?.eventId || row.id}</option>`).join("")
+          ? events.map(row => `<option value="${escapeHtml(row.id)}">${escapeHtml(row.data?.eventId || row.id)}</option>`).join("")
           : `<option value="">진행 중인 대회가 없습니다</option>`;
       } catch (error) {
         el("eventSelect").innerHTML = `<option value="">대회 목록 불러오기 실패</option>`;
@@ -809,11 +812,11 @@
       for (const match of state.schedule) {
         const result = state.results[match.id] || "";
         const teams = [
-          { code: "A", label: (match.teamALabel || "A") + "팀", team: match.teamALabel === "청" ? "blue" : match.teamALabel === "백" ? "white" : "", players: match.teamA, opponents: match.teamB },
-          { code: "B", label: (match.teamBLabel || "B") + "팀", team: match.teamBLabel === "청" ? "blue" : match.teamBLabel === "백" ? "white" : "", players: match.teamB, opponents: match.teamA }
+          { code: "A", label: (match.teamALabel || "A") + "팀", team: match.teamALabel === "청" ? "blue" : match.teamALabel === "백" ? "white" : "", players: match.teamA || [], opponents: match.teamB || [] },
+          { code: "B", label: (match.teamBLabel || "B") + "팀", team: match.teamBLabel === "청" ? "blue" : match.teamBLabel === "백" ? "white" : "", players: match.teamB || [], opponents: match.teamA || [] }
         ];
         for (const team of teams) {
-          const status = !result ? "미진행" : result === "P" ? "게임중" : result === "D" ? "완료" : result === team.code ? "승" : "패";
+          const status = !result ? "미입력" : result === "P" ? "게임중" : result === "D" ? "완료" : result === team.code ? "승" : "패";
           for (const player of team.players) {
             if (!stats.has(player)) {
               stats.set(player, { name: player, games: 0, wins: 0, losses: 0, eventLosses: 0, eventFine: 0, done: 0, pending: 0, partners: new Map(), matches: [], team: team.team });
@@ -829,7 +832,7 @@
             if (status === "승") row.wins++;
             if (status === "패") row.losses++;
             if (status === "완료") row.done++;
-            if (status === "미진행") row.pending++;
+            if (status === "미입력") row.pending++;
             row.partners.set(partner, (row.partners.get(partner) || 0) + 1);
             row.matches.push({
               id: match.id,
@@ -859,7 +862,7 @@
     function renderStats() {
       el("playerCount").textContent = state.players.length;
       el("matchCount").textContent = state.schedule.length;
-      el("roundCount").textContent = state.schedule.length ? Math.max(...state.schedule.map(m => m.round)) : 0;
+      el("roundCount").textContent = state.schedule.length ? Math.max(...state.schedule.map(m => m.round || 0)) : 0;
       el("completeCount").textContent = Object.values(state.results).filter(value => ["A", "B", "D"].includes(value)).length;
       const aWins = Object.values(state.results).filter(value => value === "A").length;
       const bWins = Object.values(state.results).filter(value => value === "B").length;
@@ -887,7 +890,7 @@
       }
       const search = searchText();
       const schedule = search
-        ? state.schedule.filter(match => [...match.teamA, ...match.teamB].some(name => name.toLowerCase().includes(search)))
+        ? state.schedule.filter(match => [...(match.teamA || []), ...(match.teamB || [])].some(name => String(name).toLowerCase().includes(search)))
         : state.schedule;
       if (!schedule.length) {
         el("scheduleOutput").className = "empty";
@@ -898,35 +901,34 @@
       el("scheduleOutput").innerHTML = schedule.map(match => {
         const result = state.results[match.id] || "";
         const isNext = (state.nextMatchIds || []).map(Number).includes(Number(match.id));
-        const teamAPlayers = '<span class="player-name-line">' + match.teamA[0] + '</span><span class="player-name-line">' + match.teamA[1] + '</span>';
-        const teamBPlayers = '<span class="player-name-line">' + match.teamB[0] + '</span><span class="player-name-line">' + match.teamB[1] + '</span>';
-        return '<article class="match-card ' + (isNext ? 'next-match' : '') + '">' +
-          '<div class="match-line">' +
-          '<div class="match-meta">' + (match.eventGame ? '<span class="event-dot" title="이벤트 경기">E</span>' : '') + match.id + '경기<br>' + match.round + 'R/' + match.court + '코트' + (isNext ? '<br><span class="next-badge">다음</span>' : '') + '</div>' +
-          '<div class="team-row ' + (result === "A" ? "win-a" : "") + '"><span class="team-label">' + (match.teamALabel || "A") + '팀</span><span class="names">' + teamAPlayers + '</span>' + (result === "A" ? '<span class="win-mark a">승</span>' : '') + '</div>' +
-          '<div class="match-vs">vs</div>' +
-          '<div class="team-row ' + (result === "B" ? "win-b" : "") + '"><span class="team-label">' + (match.teamBLabel || "B") + '팀</span><span class="names">' + teamBPlayers + '</span>' + (result === "B" ? '<span class="win-mark b">승</span>' : '') + (result === "D" ? '<span class="done-mark">완료</span>' : '') + (result === "P" ? '<span class="done-mark progress-mark">게임중</span>' : '') + '</div>' +
-          '</div></article>';
+        const teamAPlayers = `<span class="player-name-line">${escapeHtml(match.teamA?.[0] || "")}</span><span class="player-name-line">${escapeHtml(match.teamA?.[1] || "")}</span>`;
+        const teamBPlayers = `<span class="player-name-line">${escapeHtml(match.teamB?.[0] || "")}</span><span class="player-name-line">${escapeHtml(match.teamB?.[1] || "")}</span>`;
+        return `<article class="match-card ${isNext ? "next-match" : ""}">
+          <div class="match-line">
+            <div class="match-meta">${match.eventGame ? '<span class="event-dot" title="이벤트 경기">E</span>' : ''}${match.id}경기<br>${match.round}R/${match.court}코트${isNext ? '<br><span class="next-badge">다음</span>' : ''}</div>
+            <div class="team-row ${result === "A" ? "win-a" : ""}"><span class="team-label">${escapeHtml(match.teamALabel || "A")}팀</span><span class="names">${teamAPlayers}</span>${result === "A" ? '<span class="win-mark a">승</span>' : ''}</div>
+            <div class="match-vs">vs</div>
+            <div class="team-row ${result === "B" ? "win-b" : ""}"><span class="team-label">${escapeHtml(match.teamBLabel || "B")}팀</span><span class="names">${teamBPlayers}</span>${result === "B" ? '<span class="win-mark b">승</span>' : ''}${result === "D" ? '<span class="done-mark">완료</span>' : ''}${result === "P" ? '<span class="done-mark progress-mark">게임중</span>' : ''}</div>
+          </div></article>`;
       }).join("");
     }
 
     function playerCard(row) {
-      return '<article class="player-card">' +
-        '<div class="player-head">' +
-        '<div class="player-name">' + row.name + (row.eventLosses ? '<span class="event-fine">E ' + row.eventLosses + '패 ' + Number(row.eventFine || 0).toLocaleString("ko-KR") + '원</span>' : '') + '</div>' +
-        '<div class="player-record"><span class="player-record-line">총 ' + row.games + '경기 / 미입력 ' + row.pending + '</span><span class="player-record-line">승 ' + row.wins + ' / 패 ' + row.losses + ' / 완료 ' + row.done + '</span></div>' +
-        '</div>' +
-        '<div class="player-block partner">' +
-        '<div class="player-block-title">* 경기별 이력</div>' +
-        '<ul class="line-list">' + partnerDetailLines(row).map(line => '<li>' + line + '</li>').join("") + '</ul>' +
-        '</div>' +
-        '</article>';
+      return `<article class="player-card">
+        <div class="player-head">
+          <div class="player-name">${escapeHtml(row.name)}${row.eventLosses ? `<span class="event-fine">E ${row.eventLosses}패 ${Number(row.eventFine || 0).toLocaleString("ko-KR")}원</span>` : ""}</div>
+          <div class="player-record"><span class="player-record-line">총 ${row.games}경기 / 미입력 ${row.pending}</span><span class="player-record-line">승 ${row.wins} / 패 ${row.losses} / 완료 ${row.done}</span></div>
+        </div>
+        <div class="player-block partner">
+          <ul class="line-list">${partnerDetailLines(row).map(line => `<li>${escapeHtml(line)}</li>`).join("")}</ul>
+        </div>
+      </article>`;
     }
 
     function renderPlayers(stats) {
       if (state.schedulePublic === false) {
         el("playersOutput").className = "empty";
-        el("playersOutput").textContent = "관리자가 아직 선수별이력을 공개하지 않았습니다.";
+        el("playersOutput").textContent = "관리자가 아직 게임이력을 공개하지 않았습니다.";
         return;
       }
       const search = searchText();
@@ -938,7 +940,7 @@
       }
       if (!visibleStats.length) {
         el("playersOutput").className = "empty";
-        el("playersOutput").textContent = "검색된 선수의 출전이력이 없습니다.";
+        el("playersOutput").textContent = "검색된 선수의 게임이력이 없습니다.";
         return;
       }
       el("playersOutput").className = "player-list";
@@ -974,13 +976,11 @@
         const index = baseRows.findIndex(item => item.name === row.name);
         const rankedGames = row.wins + row.losses + row.done;
         const winRate = rankedGames ? Math.round((row.wins / rankedGames) * 100) : 0;
-        return '<div class="rank-row top-' + (index + 1) + '">' +
-          '<div class="rank-no">' + (index + 1) + '</div>' +
-          '<div class="rank-main">' +
-          '<span class="rank-name">' + row.name + '</span>' +
-          '<span class="rank-sub">' + row.games + '경기 · ' + row.wins + '승 · ' + row.losses + '패 · ' + row.done + '완료 · ' + winRate + '% · 파트너 ' + row.partners.size + '</span>' +
-          '</div>' +
-          '</div>';
+        const eventText = row.eventLosses ? ` · E ${row.eventLosses}패 ${Number(row.eventFine || 0).toLocaleString("ko-KR")}원` : "";
+        return `<div class="rank-row top-${index + 1}">
+          <div class="rank-no">${index + 1}</div>
+          <div class="rank-main"><span class="rank-name">${escapeHtml(row.name)}</span><span class="rank-sub">${row.games}경기 · 승 ${row.wins} · 패 ${row.losses} · 완료 ${row.done} · 파트너 ${row.partners.size} · 승률 ${winRate}%${eventText}</span></div>
+        </div>`;
       }).join("");
       const blueWhite = state.schedule.some(match => match.mode === "blueWhite");
       el("rankingOutput").className = "rank-list";
@@ -990,49 +990,12 @@
         const visibleBlueRows = search ? blueRows.filter(row => row.name.toLowerCase().includes(search)) : blueRows;
         const visibleWhiteRows = search ? whiteRows.filter(row => row.name.toLowerCase().includes(search)) : whiteRows;
         el("rankingOutput").innerHTML =
-          '<section class="rank-section"><div class="rank-section-title">전체 순위</div>' + renderRows(visibleRanked, ranked) + '</section>' +
-          '<section class="rank-section"><div class="rank-section-title">청팀 순위 (' + blueRows.length + '명)</div>' + renderRows(visibleBlueRows, blueRows) + '</section>' +
-          '<section class="rank-section"><div class="rank-section-title">백팀 순위 (' + whiteRows.length + '명)</div>' + renderRows(visibleWhiteRows, whiteRows) + '</section>';
+          `<section class="rank-section"><div class="rank-section-title">전체 순위</div>${renderRows(visibleRanked, ranked)}</section>` +
+          `<section class="rank-section"><div class="rank-section-title">청팀 순위 (${blueRows.length}명)</div>${renderRows(visibleBlueRows, blueRows)}</section>` +
+          `<section class="rank-section"><div class="rank-section-title">백팀 순위 (${whiteRows.length}명)</div>${renderRows(visibleWhiteRows, whiteRows)}</section>`;
         return;
       }
       el("rankingOutput").innerHTML = renderRows(visibleRanked, ranked);
-    }
-
-    function keyOf(a, b) {
-      return [a, b].sort((x, y) => x.localeCompare(y, "ko-KR")).join(" / ");
-    }
-
-    function renderMatrix() {
-      if (!state.schedule.length) {
-        el("matrixOutput").className = "empty";
-        el("matrixOutput").textContent = "중복점검 데이터가 아직 없습니다.";
-        return;
-      }
-      const games = new Map(state.players.map(name => [name, 0]));
-      const partners = new Map();
-      for (const match of state.schedule) {
-        [...match.teamA, ...match.teamB].forEach(name => games.set(name, (games.get(name) || 0) + 1));
-        [match.teamA, match.teamB].forEach(team => {
-          const key = keyOf(team[0], team[1]);
-          partners.set(key, (partners.get(key) || 0) + 1);
-        });
-      }
-      const duplicatePartners = [...partners.entries()].filter(([, count]) => count > 1);
-      const search = searchText();
-      const gameRows = [...games.entries()]
-        .filter(([name]) => !search || name.toLowerCase().includes(search))
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"));
-      el("matrixOutput").className = "rank-list";
-      el("matrixOutput").innerHTML =
-        '<section class="rank-section"><div class="rank-section-title">경기 수 균형</div>' +
-        '<div class="rank-row"><div class="rank-no">균형</div><div class="rank-main"><span class="rank-name">' + Math.max(...games.values()) + ' / ' + Math.min(...games.values()) + '</span><span class="rank-sub">최대 / 최소 경기 수</span></div></div>' +
-        '</section>' +
-        '<section class="rank-section"><div class="rank-section-title">파트너 중복</div>' +
-        '<div class="rank-row"><div class="rank-no">' + duplicatePartners.length + '</div><div class="rank-main"><span class="rank-name">' + (duplicatePartners.length ? "일부 중복" : "좋음") + '</span><span class="rank-sub">' + (duplicatePartners.length ? duplicatePartners.map(([key, count]) => key + " (" + count + "회)").join(", ") : "중복 조합 없음") + '</span></div></div>' +
-        '</section>' +
-        '<section class="rank-section"><div class="rank-section-title">선수별 경기</div>' +
-        (gameRows.length ? gameRows.map(([name, count]) => '<div class="rank-row"><div class="rank-no">' + count + '</div><div class="rank-main"><span class="rank-name">' + name + '</span><span class="rank-sub">경기</span></div></div>').join("") : '<div class="empty">검색된 선수의 중복점검 데이터가 없습니다.</div>') +
-        '</section>';
     }
 
     function renderAll() {

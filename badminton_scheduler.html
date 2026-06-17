@@ -2156,7 +2156,7 @@
       <section class="panel">
       <div class="tabs no-print">
         <button class="tab active" data-view="scheduleView" type="button">대진표</button>
-        <button class="tab" data-view="historyView" type="button">선수별이력</button>
+        <button class="tab" data-view="historyView" type="button">게임이력</button>
         <button class="tab" data-view="rankingView" type="button">순위</button>
         <button class="tab" data-view="matrixView" type="button">중복점검</button>
       </div>
@@ -5025,7 +5025,7 @@
       const histories = calculatePlayerHistories().filter(history => !search || history.name.toLowerCase().includes(search));
       if (!histories.length) {
         el("historyOutput").className = "empty";
-        el("historyOutput").textContent = "검색된 선수의 선수별이력이 없습니다.";
+        el("historyOutput").textContent = "검색된 선수의 게임이력이 없습니다.";
         return;
       }
       el("historyOutput").className = "tablewrap";
@@ -5666,7 +5666,7 @@
           await captureView(viewId, true);
         }
         activateView(before);
-        setMessage("대진표, 개인순위, 선수별이력 이미지를 만들었습니다. 다운로드가 막히면 왼쪽 미리보기에서 저장하세요.");
+        setMessage("대진표, 개인순위, 게임이력 이미지를 만들었습니다. 다운로드가 막히면 왼쪽 미리보기에서 저장하세요.");
       } catch (error) {
         activateView(before);
         setMessage("전체 탭 이미지 생성 중 문제가 생겼습니다. 현재 탭 이미지로 하나씩 저장해보세요.", true);
