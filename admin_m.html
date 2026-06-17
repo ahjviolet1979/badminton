@@ -1883,6 +1883,30 @@
       font-weight: 800;
     }
 
+    .player-status-game-badge {
+      display: inline-block;
+      margin-right: 5px;
+      color: #60736a;
+      font-size: 11px;
+      font-weight: 800;
+      vertical-align: 1px;
+    }
+
+    .player-status-no-game {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      margin-left: 5px;
+      border-radius: 999px;
+      background: #dcfce7;
+      color: #047857;
+      font-size: 11px;
+      font-weight: 900;
+      vertical-align: 1px;
+    }
+
     .player-status-row label {
       display: flex;
       align-items: center;
@@ -3553,9 +3577,16 @@
             const status = statusMap[name] || { present: false, excluded: true, attendedAt: "" };
             const order = status.attendedAt ? ranks.get(name) : "";
             const key = escapeHtml(name);
+            const summary = playerScheduleStatusSummary(name);
+            const summaryBadge = status.present && !status.excluded
+              ? `<span class="player-status-game-badge">(완${summary.completed}/대기${summary.waiting})</span>`
+              : "";
+            const noGameMark = status.present && !status.excluded && summary.completed === 0 && summary.waiting === 0
+              ? `<span class="player-status-no-game" title="완료/대기 대진 없음">✓</span>`
+              : "";
             return `
               <div class="player-status-row">
-                <span class="player-status-name" title="${key}">${key}${order ? ` #${order}` : ""}</span>
+                <span class="player-status-name" title="${key}">${summaryBadge}${key}${order ? ` #${order}` : ""}${noGameMark}</span>
                 <label><input type="checkbox" class="player-present-check" data-player="${key}" ${status.present ? "checked" : ""}></label>
                 <label><input type="checkbox" class="player-exclude-check" data-player="${key}" ${status.excluded ? "checked" : ""}></label>
               </div>`;
@@ -3573,6 +3604,20 @@
         ${playerStatusExpanded ? `
           <div class="player-status-modal-list">${rowsHtml}</div>
         ` : ""}`;
+    }
+
+    function playerScheduleStatusSummary(player) {
+      const target = String(player || "").toLocaleLowerCase("ko-KR");
+      let completed = 0;
+      let waiting = 0;
+      state.schedule.forEach(match => {
+        const players = [...(match.teamA || []), ...(match.teamB || [])].map(name => String(name || "").toLocaleLowerCase("ko-KR"));
+        if (!players.includes(target)) return;
+        const result = state.results[match.id] || "";
+        if (isFinalResult(result)) completed++;
+        else waiting++;
+      });
+      return { completed, waiting };
     }
 
     function renderPlayerStatusModal() {
