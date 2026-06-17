@@ -5055,8 +5055,8 @@
                 <td class="history-text history-summary-text">
                   ${history.matches.map((match, index) => {
                     const next = history.matches[index + 1];
-                    const restText = next ? `, ${next.id - match.id - 1}게임쉼` : "";
-                    return `${match.id}경기 ${match.round}R/${match.court}코트: 팀 ${match.partner}, vs ${match.opponents}, ${match.status}${restText}`;
+                    const restText = next ? `, 휴식${next.id - match.id - 1}` : "";
+                    return `${match.id}경기 ${history.name}/${match.partner} VS ${match.opponents}, ${match.status}${restText}`;
                   }).join("<br>")}
                 </td>
               </tr>`).join("")}
