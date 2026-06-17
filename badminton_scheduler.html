@@ -2813,6 +2813,18 @@
         setMessage("제외 처리할 선수 명단이 없습니다.", true);
         return;
       }
+      const blockedPlayers = names.filter(name => {
+        const status = state.playerStatus?.[name];
+        return status?.present && !status?.excluded && hasOpenScheduleForPlayer(name);
+      });
+      if (blockedPlayers.length) {
+        const preview = blockedPlayers.slice(0, 5).join(", ");
+        const suffix = blockedPlayers.length > 5 ? ` 외 ${blockedPlayers.length - 5}명` : "";
+        window.alert(`출전할 대진이 있는 선수가 있습니다. 대진을 삭제하고 출석을 해제하세요.\n${preview}${suffix}`);
+        setMessage(`출전할 대진이 있는 선수 ${blockedPlayers.length}명이 있어 전체 제외를 중단했습니다.`, true);
+        renderPlayerStatusList();
+        return;
+      }
       resetDailyStatusesToExcluded(names);
       renderPlayerStatusList();
       setMessage(`운영모드 선수 ${names.length}명을 일괄 제외 처리했습니다. 명단은 유지됩니다.`);
