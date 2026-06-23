@@ -4841,8 +4841,8 @@
         ? players.reduce((sum, player) => sum + Math.max(0, targetGames - (initialCtx.games.get(player) || 0)), 0)
         : neededTotal;
       const targetMatches = initialCtx?.countPriorGamesTowardTarget
-        ? Math.floor(currentDeficit / 4)
-        : (allowOverTarget ? currentDeficit : Math.floor(neededTotal / 4));
+        ? Math.ceil(currentDeficit / 4)
+        : (allowOverTarget ? Math.ceil(currentDeficit / 4) : Math.floor(neededTotal / 4));
       const maxMatches = targetMatches;
       const rand = mulberry32(seed);
       const priority = randomPriority(players, rand);
@@ -4882,12 +4882,14 @@
             groups = groups.filter(group => groupStats(group).deficit === maxDeficit);
             const minOver = Math.min(...groups.map(group => groupStats(group).over));
             groups = groups.filter(group => groupStats(group).over === minOver);
+            const minMaxGames = Math.min(...groups.map(group => groupStats(group).max));
+            groups = groups.filter(group => groupStats(group).max === minMaxGames);
+            const minTotalGames = Math.min(...groups.map(group => groupStats(group).total));
+            groups = groups.filter(group => groupStats(group).total === minTotalGames);
             const minBatchMax = Math.min(...groups.map(group => groupStats(group).batchMax));
             groups = groups.filter(group => groupStats(group).batchMax === minBatchMax);
             const minBatchTotal = Math.min(...groups.map(group => groupStats(group).batchTotal));
             groups = groups.filter(group => groupStats(group).batchTotal === minBatchTotal);
-            const minTotalGames = Math.min(...groups.map(group => groupStats(group).total));
-            groups = groups.filter(group => groupStats(group).total === minTotalGames);
             if (attendanceOrder) {
               const minAttendance = Math.min(...groups.map(group => groupStats(group).attendance));
               groups = groups.filter(group => groupStats(group).attendance === minAttendance);
@@ -6636,18 +6638,14 @@
         if (dailyMode) {
           players = dailyPlayers;
           state.teamMap = {};
-          const dailyPriorityMode = "equal";
-          const initialCtx = dailyPriorityMode === "equal"
-            ? contextForDailyEqualAppend(players, existingSchedule)
-            : contextForDailyAppend(players, existingSchedule);
+          const initialCtx = contextForDailyAppend(players, existingSchedule);
           const attendanceOrder = {
             map: lateAttendancePriorityMap(players),
             firstOnly: true,
             priorGames: new Map(initialCtx.priorGames || initialCtx.games),
             startGames: new Map(initialCtx.games)
           };
-          const guaranteeEqualTarget = dailyPriorityMode === "equal";
-          schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length, guaranteeEqualTarget, attendanceOrder).schedule;
+          schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length, true, attendanceOrder).schedule;
         } else if (blueWhiteMode) {
           const prepared = prepareBlueWhitePlayers(enteredPlayers);
           players = prepared.players;
