@@ -7546,7 +7546,7 @@
                 return `${text}-${rest}휴-${game}`;
               }, "")
             : "없음";
-          return `<div class="simple-history-row"><strong>${escapeHtml(name)}</strong><span>총게임 : ${orderText}</span></div>`;
+          return `<div class="simple-history-row"><strong>${escapeHtml(name)}</strong><span>총${gameNumbers.length}게임 : ${orderText}</span></div>`;
         }).join("");
       };
 
