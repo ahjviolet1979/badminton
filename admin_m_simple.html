@@ -3208,16 +3208,21 @@
       font-size: 14px;
     }
 
+    .simple-partner-duplicate {
+      color: #b45309;
+      font-weight: 900;
+    }
+
     .simple-history-list {
       display: grid;
       gap: 7px;
     }
 
     .simple-history-row {
-      display: grid;
-      grid-template-columns: auto max-content;
+      display: flex;
       gap: 8px;
       align-items: center;
+      justify-content: flex-start;
       padding: 10px 11px;
       border: 1px solid #dbe4df;
       border-radius: 7px;
@@ -3226,6 +3231,7 @@
     }
 
     .simple-history-row strong {
+      flex: 0 0 auto;
       overflow: hidden;
       color: #123b30;
       font-size: 15px;
@@ -3234,9 +3240,11 @@
     }
 
     .simple-history-row span {
+      flex: 0 0 auto;
       color: #52635d;
       font-size: 13px;
       line-height: 1.45;
+      text-align: left;
       white-space: nowrap;
     }
 
@@ -6352,7 +6360,7 @@
         .map(([name, counts]) => {
           const partnerText = [...counts.entries()]
             .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"))
-            .map(([partner, count]) => `${escapeHtml(partner)}${count}`)
+            .map(([partner, count]) => `${escapeHtml(partner)}${count}${count > 1 ? '<span class="simple-partner-duplicate">(중)</span>' : ""}`)
             .join("/") || "없음";
           return `<div class="simple-partner-check-row"><strong>${escapeHtml(name)}:</strong>${partnerText}</div>`;
         });
