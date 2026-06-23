@@ -6324,17 +6324,14 @@
         }
       }
 
-      const playerRows = [...playerPartners.entries()]
-        .filter(([name]) => !isAutoSubstituteName(name))
-        .map(([name, counts]) => {
-          const partnerText = [...counts.entries()]
-            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"))
-            .map(([partner, count]) => `${escapeHtml(partner)}${count}${count > 1 ? '<span class="simple-partner-duplicate">(중)</span>' : ""}`)
-            .join("/") || "없음";
-          return `<div class="simple-partner-check-row"><strong>${escapeHtml(name)}:</strong>${partnerText}</div>`;
-        });
+      const playerRows = [...partners.entries()]
+        .filter(([, count]) => count > 1)
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"))
+        .map(([pair, count]) => `<div class="simple-partner-check-row"><strong>${escapeHtml(pair.replace(" | ", "/"))}</strong> ${count}회</div>`);
       el("matrixOutput").className = "simple-partner-check-list";
-      el("matrixOutput").innerHTML = playerRows.join("");
+      el("matrixOutput").innerHTML = playerRows.length
+        ? playerRows.join("")
+        : '<div class="simple-partner-check-row">중복 없음</div>';
     }
 
     function countLabel(count) {
@@ -7477,7 +7474,7 @@
       const historyBody = accordion("게임이력", "simple-history");
       historyBody.appendChild(el("historyView"));
 
-      const matrixBody = accordion("중복점검", "simple-matrix");
+      const matrixBody = accordion("파트너점검", "simple-matrix");
       matrixBody.appendChild(el("matrixView"));
 
       grid.appendChild(root);
@@ -7518,14 +7515,11 @@
             .filter(match => [...match.teamA, ...match.teamB].includes(name))
             .map(match => Number(match.id))
             .sort((a, b) => a - b);
-          const orderText = gameNumbers.length
-            ? gameNumbers.reduce((text, game, index) => {
-                if (!index) return String(game);
-                const rest = Math.max(0, game - gameNumbers[index - 1]);
-                return `${text}-${rest}휴-${game}`;
-              }, "")
+          const orderText = gameNumbers.length ? gameNumbers.join("-") : "없음";
+          const restText = gameNumbers.length > 1
+            ? gameNumbers.slice(1).map((game, index) => Math.max(0, game - gameNumbers[index])).join("-")
             : "없음";
-          return `<div class="simple-history-row"><strong>${escapeHtml(name)}</strong><span>총${gameNumbers.length} : ${orderText}</span></div>`;
+          return `<div class="simple-history-row"><strong>${escapeHtml(name)}</strong><span>총${gameNumbers.length} : ${orderText} / 휴식${restText}</span></div>`;
         }).join("");
       };
 
