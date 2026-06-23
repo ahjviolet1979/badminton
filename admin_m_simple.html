@@ -2989,8 +2989,8 @@
 
     .simple-generate-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 8px;
+      grid-template-columns: 82px 72px minmax(118px, 1fr);
+      gap: 6px;
       align-items: stretch;
     }
 
@@ -3008,6 +3008,18 @@
     .simple-generate-grid .number-stepper,
     .simple-generate-grid input {
       width: 100%;
+      min-width: 0;
+    }
+
+    .simple-generate-grid .number-stepper {
+      grid-template-columns: minmax(0, 1fr) 15px;
+      gap: 1px;
+    }
+
+    .simple-generate-grid .stepper-button {
+      min-width: 15px;
+      padding: 0;
+      font-size: 8px;
     }
 
     .simple-generate-options {
@@ -3015,7 +3027,7 @@
       align-items: center;
       min-height: 42px;
       margin: 0;
-      padding: 8px 10px;
+      padding: 8px 7px;
       border: 1px solid #d5e0da;
       border-radius: 7px;
       background: #f8fbf9;
