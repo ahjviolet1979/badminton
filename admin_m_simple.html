@@ -3255,15 +3255,16 @@
       flex: 0 0 auto;
       overflow: hidden;
       color: #123b30;
-      font-size: 15px;
+      font-size: 14px;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
     .simple-history-row span {
       flex: 0 0 auto;
-      color: #52635d;
+      color: #263f36;
       font-size: 13px;
+      font-weight: 700;
       line-height: 1.45;
       text-align: left;
       white-space: nowrap;
@@ -7520,7 +7521,20 @@
           seenNames.add(key);
           names.push(String(name).trim());
         });
-        const filtered = search ? names.filter(name => name.toLowerCase().includes(search)) : names;
+        const gameNumbersByPlayer = new Map();
+        state.schedule.forEach(match => {
+          const matchId = Number(match.id);
+          if (!Number.isFinite(matchId)) return;
+          const matchPlayers = new Set([...(match.teamA || []), ...(match.teamB || [])].map(normalizeName).filter(Boolean));
+          matchPlayers.forEach(key => {
+            if (!gameNumbersByPlayer.has(key)) gameNumbersByPlayer.set(key, []);
+            gameNumbersByPlayer.get(key).push(matchId);
+          });
+        });
+        const filtered = (search ? names.filter(name => name.toLowerCase().includes(search)) : names.slice())
+          .map((name, originalIndex) => ({ name, originalIndex, hasGames: (gameNumbersByPlayer.get(normalizeName(name)) || []).length > 0 }))
+          .sort((a, b) => Number(b.hasGames) - Number(a.hasGames) || a.originalIndex - b.originalIndex)
+          .map(row => row.name);
         const output = el("historyOutput");
         if (!filtered.length) {
           output.className = "empty";
@@ -7530,11 +7544,7 @@
         output.className = "simple-history-list";
         output.innerHTML = filtered.map(name => {
           const playerKey = normalizeName(name);
-          const gameNumbers = state.schedule
-            .filter(match => [...(match.teamA || []), ...(match.teamB || [])].some(player => normalizeName(player) === playerKey))
-            .map(match => Number(match.id))
-            .filter(Number.isFinite)
-            .sort((a, b) => a - b);
+          const gameNumbers = (gameNumbersByPlayer.get(playerKey) || []).slice().sort((a, b) => a - b);
           const orderText = gameNumbers.length ? gameNumbers.join("-") : "없음";
           const restText = gameNumbers.length > 1
             ? gameNumbers.slice(1).map((game, index) => Math.max(0, game - gameNumbers[index])).join("-")
