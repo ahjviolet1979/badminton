@@ -2824,6 +2824,9 @@
     }
 
     body.simple-admin header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
       padding: 10px 4px 8px;
       gap: 8px;
     }
@@ -2841,16 +2844,17 @@
 
     body.simple-admin .toolbar {
       display: flex;
-      flex-wrap: nowrap;
-      overflow-x: auto;
-      width: 100%;
-      padding: 2px 0 4px;
-      scrollbar-width: none;
+      width: auto;
+      padding: 0;
+      overflow: visible;
     }
 
-    body.simple-admin .toolbar::-webkit-scrollbar { display: none; }
+    body.simple-admin .toolbar > :not(#logoutAdminBtn) {
+      display: none !important;
+    }
 
-    body.simple-admin .toolbar .button {
+    body.simple-admin .toolbar #logoutAdminBtn {
+      display: inline-flex;
       flex: 0 0 38px;
       width: 38px;
       height: 38px;
