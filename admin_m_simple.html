@@ -2837,8 +2837,8 @@
 
     body.simple-admin header .subtitle,
     body.simple-admin #inputLockNotice,
-    body.simple-admin .grid > #settingsPanel,
-    body.simple-admin .grid > section {
+    body.simple-admin.simple-ready .grid > #settingsPanel,
+    body.simple-admin.simple-ready .grid > section {
       display: none !important;
     }
 
@@ -2867,8 +2867,12 @@
     }
 
     .simple-admin-root {
-      display: grid;
+      display: none;
       gap: 8px;
+    }
+
+    body.simple-admin.simple-ready .simple-admin-root {
+      display: grid;
     }
 
     .simple-event-banner {
@@ -7345,6 +7349,7 @@
       new MutationObserver(updateSimpleEventName).observe(el("tournamentSelect"), { childList: true, subtree: true });
       updateSimpleEventName();
       renderPlayerHistory();
+      document.body.classList.add("simple-ready");
     })();
   </script>
 </body>
