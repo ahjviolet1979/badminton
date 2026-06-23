@@ -6567,6 +6567,14 @@
       let regenerateMode = "none";
       let preservedCount = 0;
       let removedPendingCount = 0;
+      if (dailyMode && state.schedule.length) {
+        const result = keepCompletedScheduleOnly();
+        preservedCount = result.keptCount;
+        removedPendingCount = result.removedCount;
+        state.nextMatchIds = [];
+        state.resultEditIds = [];
+        existingSchedule = state.schedule.slice();
+      }
       if (!dailyMode && state.schedule.length) {
         regenerateMode = await askRegenerateChoice();
         if (regenerateMode === "cancel") {
@@ -6631,7 +6639,7 @@
         if (dailyMode) {
           players = dailyPlayers;
           state.teamMap = {};
-          const dailyPriorityMode = el("dailyPriorityMode")?.value || "latecomer";
+          const dailyPriorityMode = "equal";
           const initialCtx = dailyPriorityMode === "equal"
             ? contextForDailyEqualAppend(players, existingSchedule)
             : contextForDailyAppend(players, existingSchedule);
@@ -6689,13 +6697,15 @@
         const short = totalSlots - madeSlots;
         const extra = Math.max(0, madeSlots - totalSlots);
         const substituteText = substituteCount ? " 대타 " + substituteCount + "명을 자동 추가했습니다." : "";
-        const preserveText = regenerateMode === "keepCompleted"
+        const preserveText = dailyMode && (preservedCount || removedPendingCount)
+          ? ` 완료/게임중 대진 ${preservedCount}개를 유지하고 미완료 대진 ${removedPendingCount}개를 삭제했습니다.`
+          : regenerateMode === "keepCompleted"
           ? ` 완료된 대진 ${preservedCount}개를 유지하고 미완료 대진 ${removedPendingCount}개를 삭제했습니다.`
           : "";
         const modeText = dailyMode && existingSchedule.length
-          ? ` 운영모드 ${el("dailyPriorityMode")?.value === "equal" ? "전체인원 동일적용" : "늦참자 우선적용"} 방식으로 추가`
+          ? " 운영모드 전체인원 균일 방식으로 추가"
           : (dailyMode ? " 운영모드 출석자 기준으로" : (blueWhiteMode ? " 청백전 방식으로" : ""));
-        setMessage(extra > 0 && dailyMode && el("dailyPriorityMode")?.value === "equal"
+        setMessage(extra > 0 && dailyMode
           ? schedule.length + "경기를 전체인원 균일모드로 추가 생성했습니다. 전원이 " + targetGames + "경기 이상 배정되며, 복식 출전 수를 맞추기 위해 " + extra + "명에게 1경기가 추가 배정되었습니다."
           : short > 0
           ? schedule.length + "경기를" + modeText + " 생성했습니다." + preserveText + substituteText + " 총 " + short + "회 출전 슬롯은 인원/조건 때문에 비워졌습니다."
@@ -7515,7 +7525,7 @@
                 return `${text}-${rest}휴-${game}`;
               }, "")
             : "없음";
-          return `<div class="simple-history-row"><strong>${escapeHtml(name)}</strong><span>총${gameNumbers.length}게임 : ${orderText}</span></div>`;
+          return `<div class="simple-history-row"><strong>${escapeHtml(name)}</strong><span>총${gameNumbers.length} : ${orderText}</span></div>`;
         }).join("");
       };
 
