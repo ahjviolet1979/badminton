@@ -3111,6 +3111,40 @@
       white-space: nowrap;
     }
 
+    .simple-matrix-line {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .simple-matrix-item {
+      min-width: 0;
+      padding: 10px 5px;
+      border: 1px solid #dbe4df;
+      border-radius: 7px;
+      background: #f8fbf9;
+      text-align: center;
+    }
+
+    .simple-matrix-item span {
+      display: block;
+      overflow: hidden;
+      color: #64736c;
+      font-size: 11px;
+      font-weight: 700;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .simple-matrix-item strong {
+      display: block;
+      margin-top: 3px;
+      color: #123b30;
+      font-size: 16px;
+    }
+
+    .simple-matrix-item.warn strong { color: #b45309; }
+
     .simple-history-list {
       display: grid;
       gap: 7px;
@@ -6184,35 +6218,12 @@
       }
 
       const duplicatePartners = [...partners.entries()].filter(([, count]) => count > 1);
-      const search = searchText();
-      const gameRows = [...games.entries()]
-        .filter(([name]) => !search || name.toLowerCase().includes(search))
-        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"));
-      const duplicateText = duplicatePartners.length
-        ? '<div class="duplicate-list">' + duplicatePartners.map(([k, c]) => `<span class="duplicate-chip">${k} (${c}회)</span>`).join("") + '</div>'
-        : "없음";
-      el("matrixOutput").className = "mobile-section-stack";
+      const gameValues = [...games.values()];
+      el("matrixOutput").className = "simple-matrix-line";
       el("matrixOutput").innerHTML = `
-        <div class="mobile-matrix-summary">
-          <div class="mobile-matrix-card">
-            <div class="mobile-matrix-label">경기 수 최대 / 최소</div>
-            <div class="mobile-matrix-value">${Math.max(...games.values())} / ${Math.min(...games.values())}</div>
-            <div class="mobile-matrix-status">균형 확인</div>
-          </div>
-          <div class="mobile-matrix-card">
-            <div class="mobile-matrix-label">파트너 중복 조합</div>
-            <div class="mobile-matrix-value">${duplicatePartners.length}</div>
-            <div class="mobile-matrix-status ${duplicatePartners.length ? "warn" : ""}">${duplicatePartners.length ? "일부 중복" : "좋음"}</div>
-          </div>
-          <div class="mobile-duplicate-box">
-            <div class="mobile-matrix-label">중복된 파트너</div>
-            ${duplicateText}
-          </div>
-        </div>
-        <div class="mobile-section-title">선수별 경기 수</div>
-        <div class="mobile-game-counts">
-          ${gameRows.map(([name, count]) => `<div class="mobile-game-count-row"><strong>${name}</strong><span>${count}경기</span></div>`).join("")}
-        </div>`;
+        <div class="simple-matrix-item"><span>경기수</span><strong>${Math.max(...gameValues)} / ${Math.min(...gameValues)}</strong></div>
+        <div class="simple-matrix-item"><span>파트너조합</span><strong>${partners.size}</strong></div>
+        <div class="simple-matrix-item ${duplicatePartners.length ? "warn" : ""}"><span>중복파트너</span><strong>${duplicatePartners.length}</strong></div>`;
     }
 
     function countLabel(count) {
