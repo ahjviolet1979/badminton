@@ -3944,7 +3944,7 @@
       const sorted = players.slice().sort((a, b) => {
         const aTime = statuses[a]?.attendedAt || "";
         const bTime = statuses[b]?.attendedAt || "";
-        return bTime.localeCompare(aTime) || a.localeCompare(b, "ko-KR");
+        return aTime.localeCompare(bTime) || a.localeCompare(b, "ko-KR");
       });
       return new Map(sorted.map((name, index) => [name, index + 1]));
     }
@@ -3997,12 +3997,22 @@
       const presentCount = names.filter(name => statusMap[name]?.present && !statusMap[name]?.excluded).length;
       const excludedCount = names.filter(name => statusMap[name]?.excluded || !statusMap[name]?.present).length;
       const ranks = attendanceRankMap(names);
-      const filtered = names.filter(name => {
-        const status = statusMap[name] || { present: false, excluded: true, attendedAt: "" };
-        if (playerStatusFilter === "present") return status.present && !status.excluded;
-        if (playerStatusFilter === "excluded") return status.excluded || !status.present;
-        return true;
-      });
+      const filtered = names
+        .map((name, originalIndex) => ({ name, originalIndex }))
+        .filter(({ name }) => {
+          const status = statusMap[name] || { present: false, excluded: true, attendedAt: "" };
+          if (playerStatusFilter === "present") return status.present && !status.excluded;
+          if (playerStatusFilter === "excluded") return status.excluded || !status.present;
+          return true;
+        })
+        .sort((a, b) => {
+          const aPresent = statusMap[a.name]?.present && !statusMap[a.name]?.excluded;
+          const bPresent = statusMap[b.name]?.present && !statusMap[b.name]?.excluded;
+          if (aPresent !== bPresent) return aPresent ? -1 : 1;
+          if (aPresent) return (ranks.get(a.name) || 9999) - (ranks.get(b.name) || 9999);
+          return a.originalIndex - b.originalIndex;
+        })
+        .map(({ name }) => name);
       const rowsHtml = filtered.length
         ? `
           <div class="player-status-head"><span>선수</span><button class="status-head-action" id="inlineMarkAllPresentBtn" type="button" title="전체 출석 처리">출석</button><button class="status-head-action" id="inlineMarkAllExcludedBtn" type="button" title="전체 제외 처리">제외</button></div>
@@ -4104,9 +4114,9 @@
         setMessage("출석 처리할 선수 명단이 없습니다.", true);
         return;
       }
-      const now = new Date().toISOString();
-      names.filter(name => !isAutoSubstituteName(name)).forEach(name => {
-        state.playerStatus[name] = { present: true, excluded: false, attendedAt: state.playerStatus[name]?.attendedAt || now };
+      const now = Date.now();
+      names.filter(name => !isAutoSubstituteName(name)).forEach((name, index) => {
+        state.playerStatus[name] = { present: true, excluded: false, attendedAt: state.playerStatus[name]?.attendedAt || new Date(now + index).toISOString() };
       });
       renderPlayerStatusList();
       setMessage(`운영모드 선수 ${names.length}명을 일괄 출석 처리했습니다.`);
