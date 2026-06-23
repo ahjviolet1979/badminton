@@ -3028,16 +3028,30 @@
       white-space: nowrap;
     }
 
-    .simple-generate-button {
+    .simple-generate-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .simple-generate-button,
+    .simple-delete-button {
       width: 100%;
       min-height: 48px;
-      margin-top: 8px;
       justify-content: center;
       font-size: 16px;
       line-height: 1;
     }
 
-    .simple-generate-button br { display: none; }
+    .simple-generate-button br,
+    .simple-delete-button br { display: none; }
+
+    .simple-delete-button {
+      border-color: #efb4b4;
+      background: #fff1f1;
+      color: #b42323;
+    }
 
     .simple-schedule .stats {
       grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -3053,10 +3067,7 @@
     .simple-schedule .stat span { font-size: 10px; }
 
     .simple-schedule .player-search {
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 7px;
-      margin-bottom: 8px;
+      display: none !important;
     }
 
     .simple-schedule .schedule-mode-badge { display: none; }
@@ -3064,6 +3075,41 @@
     .simple-schedule #scheduleView,
     .simple-history #historyView,
     .simple-matrix #matrixView { display: block !important; }
+
+    body.simple-admin .simple-schedule #scheduleOutput .result-a,
+    body.simple-admin .simple-schedule #scheduleOutput .result-b,
+    body.simple-admin .simple-schedule #scheduleOutput td:nth-child(8) {
+      display: none !important;
+    }
+
+    body.simple-admin .simple-schedule #scheduleOutput .responsive-card td:nth-child(7) {
+      grid-column: 1 / 3;
+      grid-row: 4;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: 6px;
+      padding-top: 7px;
+      border-top: 1px dashed var(--line);
+    }
+
+    body.simple-admin .simple-schedule #scheduleOutput .responsive-card td:nth-child(9) {
+      grid-column: 3 / -1;
+      grid-row: 4;
+      align-items: center;
+      justify-content: flex-end;
+      padding-top: 7px;
+      border-top: 1px dashed var(--line);
+    }
+
+    body.simple-admin .simple-schedule #scheduleOutput .row-actions {
+      flex-wrap: nowrap;
+      gap: 4px;
+    }
+
+    body.simple-admin .simple-schedule #scheduleOutput .winner {
+      font-size: 12px;
+      white-space: nowrap;
+    }
 
     .simple-history-list {
       display: grid;
@@ -5674,9 +5720,7 @@
         const isNext = (state.nextMatchIds || []).map(Number).includes(Number(match.id));
         const nextDisabledAttr = recordedResult ? "disabled" : "";
         const isBlueWhiteMatch = match.mode === "blueWhite" || match.teamALabel === "청" || match.teamBLabel === "백";
-        const doneOption = !dailyMode && isBlueWhiteMatch
-          ? ""
-          : `<label class="winner"><input type="radio" name="winner-${match.id}" value="D" ${["D", "완료"].includes(String(result).trim()) ? "checked" : ""} ${resultDisabledAttr}> 완료</label>`;
+        const doneOption = `<label class="winner"><input type="radio" name="winner-${match.id}" value="D" ${["D", "완료"].includes(String(result).trim()) ? "checked" : ""} ${resultDisabledAttr}> 완료</label>`;
         const progressOption = `<label class="winner in-progress"><input type="radio" name="winner-${match.id}" value="P" ${isInProgressResult(result) ? "checked" : ""} ${resultDisabledAttr}> 게임중</label>`;
         const rowClass = [
           !recordedResult ? "pending-match-row" : isInProgressResult(result) ? "in-progress-match-row" : "completed-match-row",
@@ -5691,8 +5735,8 @@
             <td data-label="" class="versus">VS</td>
             <td data-label="${labelB}"><div class="team"><span class="pair">${schedulePlayerButton(match.id, "teamB", 0, match.teamB[0], result)}</span><span class="pair">${schedulePlayerButton(match.id, "teamB", 1, match.teamB[1], result)}</span></div></td>
             <td data-label="결과">
-              <label class="winner"><input type="radio" name="winner-${match.id}" value="A" ${result === "A" ? "checked" : ""} ${resultDisabledAttr}> ${match.teamALabel || "A"}승</label>
-              <label class="winner"><input type="radio" name="winner-${match.id}" value="B" ${result === "B" ? "checked" : ""} ${resultDisabledAttr}> ${match.teamBLabel || "B"}승</label>
+              <label class="winner result-a"><input type="radio" name="winner-${match.id}" value="A" ${result === "A" ? "checked" : ""} ${resultDisabledAttr}> ${match.teamALabel || "A"}승</label>
+              <label class="winner result-b"><input type="radio" name="winner-${match.id}" value="B" ${result === "B" ? "checked" : ""} ${resultDisabledAttr}> ${match.teamBLabel || "B"}승</label>
               ${doneOption}
               ${progressOption}
             </td>
@@ -7290,7 +7334,13 @@
       generateGrid.appendChild(generateOptions);
       const generateButton = el("generateBtn");
       generateButton.classList.add("simple-generate-button");
-      generateBody.appendChild(generateButton);
+      const deleteButton = el("deleteScheduleBtn");
+      deleteButton.classList.add("simple-delete-button");
+      const generateActions = document.createElement("div");
+      generateActions.className = "simple-generate-actions";
+      generateActions.appendChild(generateButton);
+      generateActions.appendChild(deleteButton);
+      generateBody.appendChild(generateActions);
 
       const scheduleBody = accordion("대진표", "simple-schedule");
       scheduleBody.appendChild(document.querySelector("section.panel .stats"));
