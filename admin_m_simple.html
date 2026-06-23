@@ -1768,6 +1768,12 @@
       background: #dcebe1;
     }
 
+    .drag-handle.holding {
+      color: #fff;
+      background: #078464;
+      box-shadow: 0 0 0 3px rgba(7, 132, 100, 0.14);
+    }
+
     .drag-handle:disabled {
       opacity: 0.28;
       cursor: not-allowed;
@@ -3168,6 +3174,27 @@
 
     .simple-matrix-item.warn strong { color: #b45309; }
 
+    .simple-partner-check-list {
+      display: grid;
+      gap: 5px;
+    }
+
+    .simple-partner-check-row {
+      padding: 9px 10px;
+      overflow-x: auto;
+      border: 1px solid #dbe4df;
+      border-radius: 7px;
+      background: #f8fbf9;
+      color: #33443e;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .simple-partner-check-row strong {
+      color: #123b30;
+      font-size: 14px;
+    }
+
     .simple-history-list {
       display: grid;
       gap: 7px;
@@ -3175,13 +3202,14 @@
 
     .simple-history-row {
       display: grid;
-      grid-template-columns: minmax(80px, auto) 1fr;
-      gap: 10px;
+      grid-template-columns: auto max-content;
+      gap: 8px;
       align-items: center;
       padding: 10px 11px;
       border: 1px solid #dbe4df;
       border-radius: 7px;
       background: #f9fbfa;
+      overflow-x: auto;
     }
 
     .simple-history-row strong {
@@ -3196,6 +3224,7 @@
       color: #52635d;
       font-size: 13px;
       line-height: 1.45;
+      white-space: nowrap;
     }
 
     @media (max-width: 420px) {
@@ -5286,7 +5315,7 @@
       el("eventMatchCount").value = savedSettings.eventMatchCount ?? data.eventMatchCount ?? 0;
       el("eventFineAmount").value = savedSettings.eventFineAmount ?? data.eventFineAmount ?? 1000;
       el("allowShortfall").checked = savedSettings.allowShortfall ?? data.allowShortfall ?? el("allowShortfall").checked;
-      el("includeInProgressPlayers").checked = savedSettings.includeInProgressPlayers ?? data.includeInProgressPlayers ?? false;
+      el("includeInProgressPlayers").checked = true;
       el("dailyPriorityMode").value = savedSettings.dailyPriorityMode || data.dailyPriorityMode || "latecomer";
       localStorage.setItem("badminton_include_in_progress", el("includeInProgressPlayers").checked ? "1" : "0");
       el("blueWhiteMode").checked = state.teamMode;
@@ -5511,8 +5540,8 @@
       state.modeRosters = { daily: "", tournament: "" };
       state.schedulePublic = false;
       state.scheduleStartAt = formatDateTimeLocal();
-      el("includeInProgressPlayers").checked = false;
-      localStorage.setItem("badminton_include_in_progress", "0");
+      el("includeInProgressPlayers").checked = true;
+      localStorage.setItem("badminton_include_in_progress", "1");
       el("players").value = "";
       el("scheduleStartAt").value = state.scheduleStartAt;
       el("supabaseEventId").value = nextEventId;
@@ -5934,19 +5963,54 @@
       let activeHandle = null;
       let dragScopeRows = [];
       let dragScopeEndRow = null;
+      let pendingRow = null;
+      let longPressTimer = null;
+      let pressStartX = 0;
+      let pressStartY = 0;
       const rows = () => [...tbody.querySelectorAll("tr[data-match-id]")];
       const isFinalRow = row => isFinalResult(state.results[Number(row.dataset.matchId)]);
       const moveDraggedRow = clientY => {
         if (!draggedRow) return;
-        const siblings = dragScopeRows.filter(row => row !== draggedRow && row.isConnected);
+        const connectedScope = dragScopeRows.filter(row => row.isConnected);
+        if (!connectedScope.length) return;
+        const scopeTop = Math.min(...connectedScope.map(row => row.getBoundingClientRect().top));
+        const scopeBottom = Math.max(...connectedScope.map(row => row.getBoundingClientRect().bottom));
+        if (clientY < scopeTop || clientY > scopeBottom) return;
+        const siblings = connectedScope.filter(row => row !== draggedRow);
+        if (!siblings.length) return;
         const beforeRow = siblings.find(row => {
           const rect = row.getBoundingClientRect();
           return clientY < rect.top + rect.height / 2;
         });
-        tbody.insertBefore(draggedRow, beforeRow || dragScopeEndRow);
+        if (beforeRow) {
+          tbody.insertBefore(draggedRow, beforeRow);
+          return;
+        }
+        const lastSiblingRect = siblings[siblings.length - 1].getBoundingClientRect();
+        if (clientY <= lastSiblingRect.bottom) {
+          tbody.insertBefore(draggedRow, dragScopeEndRow);
+        }
+      };
+      const clearLongPress = () => {
+        if (longPressTimer) window.clearTimeout(longPressTimer);
+        longPressTimer = null;
+        pendingRow = null;
+        activeHandle?.classList.remove("holding");
+      };
+      const removeDragListeners = () => {
+        window.removeEventListener("pointermove", onPointerMove);
+        window.removeEventListener("pointerup", finishDrag);
+        window.removeEventListener("pointercancel", cancelDrag);
       };
       const finishDrag = event => {
-        if (!draggedRow) return;
+        if (!draggedRow) {
+          activeHandle?.releasePointerCapture?.(event.pointerId);
+          clearLongPress();
+          activeHandle = null;
+          removeDragListeners();
+          return;
+        }
+        clearLongPress();
         activeHandle?.releasePointerCapture?.(event.pointerId);
         draggedRow.classList.remove("dragging");
         draggedRow = null;
@@ -5954,12 +6018,11 @@
         dragScopeRows = [];
         dragScopeEndRow = null;
         document.body.classList.remove("reordering-schedule");
-        window.removeEventListener("pointermove", onPointerMove);
-        window.removeEventListener("pointerup", finishDrag);
-        window.removeEventListener("pointercancel", cancelDrag);
+        removeDragListeners();
         applyScheduleOrderFromRows(rows());
       };
       const cancelDrag = event => {
+        clearLongPress();
         activeHandle?.releasePointerCapture?.(event.pointerId);
         if (draggedRow) draggedRow.classList.remove("dragging");
         draggedRow = null;
@@ -5967,12 +6030,15 @@
         dragScopeRows = [];
         dragScopeEndRow = null;
         document.body.classList.remove("reordering-schedule");
-        window.removeEventListener("pointermove", onPointerMove);
-        window.removeEventListener("pointerup", finishDrag);
-        window.removeEventListener("pointercancel", cancelDrag);
+        removeDragListeners();
       };
       const onPointerMove = event => {
-        if (!draggedRow) return;
+        if (!draggedRow) {
+          if (pendingRow && Math.hypot(event.clientX - pressStartX, event.clientY - pressStartY) > 10) {
+            cancelDrag(event);
+          }
+          return;
+        }
         event.preventDefault();
         moveDraggedRow(event.clientY);
       };
@@ -5984,22 +6050,33 @@
           if (handle.disabled || isFinalRow(row)) return;
           if (event.button !== undefined && event.button !== 0) return;
           event.preventDefault();
-          const allRows = rows();
-          const index = allRows.indexOf(row);
-          let start = index;
-          let end = index + 1;
-          while (start > 0 && !isFinalRow(allRows[start - 1])) start--;
-          while (end < allRows.length && !isFinalRow(allRows[end])) end++;
-          dragScopeRows = allRows.slice(start, end);
-          dragScopeEndRow = allRows[end] || null;
-          draggedRow = row;
+          clearLongPress();
+          pendingRow = row;
           activeHandle = handle;
-          draggedRow.classList.add("dragging");
-          document.body.classList.add("reordering-schedule");
+          pressStartX = event.clientX;
+          pressStartY = event.clientY;
+          handle.classList.add("holding");
           handle.setPointerCapture?.(event.pointerId);
           window.addEventListener("pointermove", onPointerMove, { passive: false });
           window.addEventListener("pointerup", finishDrag);
           window.addEventListener("pointercancel", cancelDrag);
+          longPressTimer = window.setTimeout(() => {
+            if (!pendingRow || pendingRow !== row) return;
+            const allRows = rows();
+            const index = allRows.indexOf(row);
+            let start = index;
+            let end = index + 1;
+            while (start > 0 && !isFinalRow(allRows[start - 1])) start--;
+            while (end < allRows.length && !isFinalRow(allRows[end])) end++;
+            dragScopeRows = allRows.slice(start, end);
+            dragScopeEndRow = allRows[end] || null;
+            draggedRow = row;
+            pendingRow = null;
+            longPressTimer = null;
+            handle.classList.remove("holding");
+            draggedRow.classList.add("dragging");
+            document.body.classList.add("reordering-schedule");
+          }, 2000);
         });
       });
     }
@@ -6225,12 +6302,19 @@
       const games = new Map(state.players.map(p => [p, 0]));
       const partners = new Map();
       const opponents = new Map();
+      const playerPartners = new Map(state.players.map(player => [player, new Map()]));
 
       for (const match of state.schedule) {
         [...match.teamA, ...match.teamB].forEach(p => games.set(p, games.get(p) + 1));
         [match.teamA, match.teamB].forEach(team => {
           const key = keyOf(team[0], team[1]);
           partners.set(key, (partners.get(key) || 0) + 1);
+          if (!playerPartners.has(team[0])) playerPartners.set(team[0], new Map());
+          if (!playerPartners.has(team[1])) playerPartners.set(team[1], new Map());
+          const firstPartners = playerPartners.get(team[0]);
+          const secondPartners = playerPartners.get(team[1]);
+          firstPartners.set(team[1], (firstPartners.get(team[1]) || 0) + 1);
+          secondPartners.set(team[0], (secondPartners.get(team[0]) || 0) + 1);
         });
         for (const a of match.teamA) {
           for (const b of match.teamB) {
@@ -6240,13 +6324,17 @@
         }
       }
 
-      const duplicatePartners = [...partners.entries()].filter(([, count]) => count > 1);
-      const gameValues = [...games.values()];
-      el("matrixOutput").className = "simple-matrix-line";
-      el("matrixOutput").innerHTML = `
-        <div class="simple-matrix-item"><span>경기수</span><strong>${Math.max(...gameValues)} / ${Math.min(...gameValues)}</strong></div>
-        <div class="simple-matrix-item"><span>파트너조합</span><strong>${partners.size}</strong></div>
-        <div class="simple-matrix-item ${duplicatePartners.length ? "warn" : ""}"><span>중복파트너</span><strong>${duplicatePartners.length}</strong></div>`;
+      const playerRows = [...playerPartners.entries()]
+        .filter(([name]) => !isAutoSubstituteName(name))
+        .map(([name, counts]) => {
+          const partnerText = [...counts.entries()]
+            .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "ko-KR"))
+            .map(([partner, count]) => `${escapeHtml(partner)}${count}`)
+            .join("/") || "없음";
+          return `<div class="simple-partner-check-row"><strong>${escapeHtml(name)}:</strong>${partnerText}</div>`;
+        });
+      el("matrixOutput").className = "simple-partner-check-list";
+      el("matrixOutput").innerHTML = playerRows.join("");
     }
 
     function countLabel(count) {
@@ -7188,7 +7276,8 @@
       renderAdminRosterControls();
     });
     el("resetTeamAssignBtn").addEventListener("click", resetTeamAssignments);
-    el("includeInProgressPlayers").checked = state.adminMode === "daily" || localStorage.getItem("badminton_include_in_progress") === "1";
+    el("includeInProgressPlayers").checked = true;
+    localStorage.setItem("badminton_include_in_progress", "1");
     el("includeInProgressPlayers").addEventListener("change", () => {
       localStorage.setItem("badminton_include_in_progress", el("includeInProgressPlayers").checked ? "1" : "0");
     });
@@ -7413,13 +7502,13 @@
             .map(match => Number(match.id))
             .sort((a, b) => a - b);
           const orderText = gameNumbers.length
-            ? gameNumbers.map((game, index) => {
-                if (!index) return `${game}번`;
+            ? gameNumbers.reduce((text, game, index) => {
+                if (!index) return String(game);
                 const rest = Math.max(0, game - gameNumbers[index - 1]);
-                return `(${rest}휴) ${game}번`;
-              }).join(" ")
-            : "대진 없음";
-          return `<div class="simple-history-row"><strong>${escapeHtml(name)}</strong><span>총 ${gameNumbers.length}게임 / ${orderText}</span></div>`;
+                return `${text}-${rest}휴-${game}`;
+              }, "")
+            : "없음";
+          return `<div class="simple-history-row"><strong>${escapeHtml(name)}</strong><span>총게임 : ${orderText}</span></div>`;
         }).join("");
       };
 
