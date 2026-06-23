@@ -2991,7 +2991,7 @@
       display: grid;
       grid-template-columns: 82px 72px minmax(118px, 1fr);
       gap: 6px;
-      align-items: stretch;
+      align-items: end;
     }
 
     .simple-generate-grid .simple-field {
@@ -3025,19 +3025,30 @@
     .simple-generate-options {
       display: flex;
       align-items: center;
+      align-self: end;
+      height: 42px;
       min-height: 42px;
       margin: 0;
-      padding: 8px 7px;
-      border: 1px solid #d5e0da;
-      border-radius: 7px;
-      background: #f8fbf9;
+      padding: 0 5px;
+      border: 0;
+      background: transparent;
     }
 
     .simple-generate-options .checkrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
       margin: 0;
       font-size: 12px;
       font-weight: 800;
       white-space: nowrap;
+    }
+
+    .simple-generate-options input[type="checkbox"] {
+      flex: 0 0 17px;
+      width: 17px;
+      height: 17px;
+      margin: 0;
     }
 
     .simple-generate-actions {
