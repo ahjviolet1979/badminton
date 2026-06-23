@@ -2973,10 +2973,21 @@
       margin: 0;
     }
 
+    .simple-attendance .player-status-actions {
+      display: none !important;
+    }
+
+    .simple-attendance .player-status-modal-list {
+      display: block !important;
+      max-height: none;
+      overflow: visible;
+    }
+
     .simple-generate-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 8px;
+      align-items: stretch;
     }
 
     .simple-generate-grid .simple-field {
@@ -2999,7 +3010,7 @@
       display: flex;
       align-items: center;
       min-height: 42px;
-      margin-top: 8px;
+      margin: 0;
       padding: 8px 10px;
       border: 1px solid #d5e0da;
       border-radius: 7px;
@@ -3008,8 +3019,9 @@
 
     .simple-generate-options .checkrow {
       margin: 0;
-      font-size: 14px;
+      font-size: 12px;
       font-weight: 800;
+      white-space: nowrap;
     }
 
     .simple-generate-button {
@@ -7245,13 +7257,6 @@
         return details.querySelector(".simple-accordion-body");
       }
 
-      const eventBody = accordion("오늘 대회 이름", "simple-event", true);
-      const eventSelectWrap = document.createElement("div");
-      eventSelectWrap.className = "simple-event-select";
-      eventSelectWrap.appendChild(el("tournamentSelect"));
-      eventBody.appendChild(eventSelectWrap);
-      eventBody.appendChild(el("adminSessionInfo"));
-
       const rosterBody = accordion("오늘 참가자 명단", "simple-roster");
       const rosterActions = document.createElement("div");
       rosterActions.className = "simple-roster-actions";
@@ -7262,8 +7267,11 @@
 
       const attendanceBody = accordion("출석 체크", "simple-attendance");
       attendanceBody.appendChild(el("playerStatusList"));
+      playerStatusExpanded = true;
+      playerStatusFilter = "all";
+      renderAdminRosterControls();
 
-      const generateBody = accordion("대진 생성", "simple-generate", true);
+      const generateBody = accordion("대진 생성", "simple-generate");
       const generateGrid = document.createElement("div");
       generateGrid.className = "simple-generate-grid";
       const settingFields = Array.from(document.querySelector(".settings.four-cols").children).slice(0, 2);
@@ -7276,12 +7284,12 @@
       generateOptions.className = "simple-generate-options";
       const includeInProgress = el("includeInProgressPlayers").closest("label");
       generateOptions.appendChild(includeInProgress);
-      generateBody.appendChild(generateOptions);
+      generateGrid.appendChild(generateOptions);
       const generateButton = el("generateBtn");
       generateButton.classList.add("simple-generate-button");
       generateBody.appendChild(generateButton);
 
-      const scheduleBody = accordion("대진표", "simple-schedule", true);
+      const scheduleBody = accordion("대진표", "simple-schedule");
       scheduleBody.appendChild(document.querySelector("section.panel .stats"));
       scheduleBody.appendChild(document.querySelector("section.panel .player-search"));
       scheduleBody.appendChild(el("scheduleView"));
