@@ -1774,6 +1774,21 @@
       box-shadow: 0 0 0 3px rgba(7, 132, 100, 0.14);
     }
 
+    #scheduleOutput tr.schedule-move-source {
+      border-color: #10b981 !important;
+      background: #ecfdf5 !important;
+      box-shadow: inset 4px 0 0 #10b981;
+    }
+
+    #scheduleOutput tr.schedule-move-source .drag-handle {
+      color: #fff;
+      background: #078464;
+    }
+
+    #scheduleOutput tr.schedule-move-target {
+      cursor: pointer;
+    }
+
     .drag-handle:disabled {
       opacity: 0.28;
       cursor: not-allowed;
@@ -5990,126 +6005,80 @@
     function setupScheduleReorder(disabled) {
       const tbody = el("scheduleOutput").querySelector("tbody");
       if (!tbody || disabled || state.inputLocked) return;
-      let draggedRow = null;
-      let activeHandle = null;
-      let dragScopeRows = [];
-      let dragScopeEndRow = null;
-      let pendingRow = null;
-      let longPressTimer = null;
-      let pressStartX = 0;
-      let pressStartY = 0;
       const rows = () => [...tbody.querySelectorAll("tr[data-match-id]")];
       const isFinalRow = row => isFinalResult(state.results[Number(row.dataset.matchId)]);
-      const moveDraggedRow = clientY => {
-        if (!draggedRow) return;
-        const connectedScope = dragScopeRows.filter(row => row.isConnected);
-        if (!connectedScope.length) return;
-        const scopeTop = Math.min(...connectedScope.map(row => row.getBoundingClientRect().top));
-        const scopeBottom = Math.max(...connectedScope.map(row => row.getBoundingClientRect().bottom));
-        if (clientY < scopeTop || clientY > scopeBottom) return;
-        const siblings = connectedScope.filter(row => row !== draggedRow);
-        if (!siblings.length) return;
-        const beforeRow = siblings.find(row => {
-          const rect = row.getBoundingClientRect();
-          return clientY < rect.top + rect.height / 2;
-        });
-        if (beforeRow) {
-          tbody.insertBefore(draggedRow, beforeRow);
+      let selectedRow = null;
+      let movableRows = [];
+
+      const cancelMove = () => {
+        selectedRow?.classList.remove("schedule-move-source");
+        movableRows.forEach(row => row.classList.remove("schedule-move-target"));
+        selectedRow = null;
+        movableRows = [];
+      };
+
+      const selectMoveSource = row => {
+        const allRows = rows();
+        const index = allRows.indexOf(row);
+        let start = index;
+        let end = index + 1;
+        while (start > 0 && !isFinalRow(allRows[start - 1])) start--;
+        while (end < allRows.length && !isFinalRow(allRows[end])) end++;
+        selectedRow = row;
+        movableRows = allRows.slice(start, end);
+        selectedRow.classList.add("schedule-move-source");
+        movableRows.filter(item => item !== selectedRow).forEach(item => item.classList.add("schedule-move-target"));
+        setMessage(`${row.dataset.matchId}경기를 선택했습니다. 이동할 위치의 경기 행을 눌러주세요.`);
+      };
+
+      const moveToRow = targetRow => {
+        if (!selectedRow || targetRow === selectedRow) {
+          cancelMove();
+          setMessage("대진 순서 변경을 취소했습니다.");
           return;
         }
-        const lastSiblingRect = siblings[siblings.length - 1].getBoundingClientRect();
-        if (clientY <= lastSiblingRect.bottom) {
-          tbody.insertBefore(draggedRow, dragScopeEndRow);
-        }
-      };
-      const clearLongPress = () => {
-        if (longPressTimer) window.clearTimeout(longPressTimer);
-        longPressTimer = null;
-        pendingRow = null;
-        activeHandle?.classList.remove("holding");
-      };
-      const removeDragListeners = () => {
-        window.removeEventListener("pointermove", onPointerMove);
-        window.removeEventListener("pointerup", finishDrag);
-        window.removeEventListener("pointercancel", cancelDrag);
-      };
-      const finishDrag = event => {
-        if (!draggedRow) {
-          activeHandle?.releasePointerCapture?.(event.pointerId);
-          clearLongPress();
-          activeHandle = null;
-          removeDragListeners();
+        if (!movableRows.includes(targetRow) || isFinalRow(targetRow)) {
+          window.alert("완료된 대진의 위치를 넘어서 이동할 수 없습니다.");
           return;
         }
-        clearLongPress();
-        activeHandle?.releasePointerCapture?.(event.pointerId);
-        draggedRow.classList.remove("dragging");
-        draggedRow = null;
-        activeHandle = null;
-        dragScopeRows = [];
-        dragScopeEndRow = null;
-        document.body.classList.remove("reordering-schedule");
-        removeDragListeners();
+        const currentRows = rows();
+        const sourceIndex = currentRows.indexOf(selectedRow);
+        const targetIndex = currentRows.indexOf(targetRow);
+        const source = selectedRow;
+        cancelMove();
+        if (sourceIndex < targetIndex) tbody.insertBefore(source, targetRow.nextSibling);
+        else tbody.insertBefore(source, targetRow);
         applyScheduleOrderFromRows(rows());
-      };
-      const cancelDrag = event => {
-        clearLongPress();
-        activeHandle?.releasePointerCapture?.(event.pointerId);
-        if (draggedRow) draggedRow.classList.remove("dragging");
-        draggedRow = null;
-        activeHandle = null;
-        dragScopeRows = [];
-        dragScopeEndRow = null;
-        document.body.classList.remove("reordering-schedule");
-        removeDragListeners();
-      };
-      const onPointerMove = event => {
-        if (!draggedRow) {
-          if (pendingRow && Math.hypot(event.clientX - pressStartX, event.clientY - pressStartY) > 10) {
-            cancelDrag(event);
-          }
-          return;
-        }
-        event.preventDefault();
-        moveDraggedRow(event.clientY);
       };
 
       tbody.querySelectorAll(".drag-handle").forEach(handle => {
         const row = handle.closest("tr[data-match-id]");
-        handle.addEventListener("pointerdown", event => {
+        handle.addEventListener("click", event => {
           if (guardInputLocked()) return;
           if (handle.disabled || isFinalRow(row)) return;
-          if (event.button !== undefined && event.button !== 0) return;
           event.preventDefault();
-          clearLongPress();
-          pendingRow = row;
-          activeHandle = handle;
-          pressStartX = event.clientX;
-          pressStartY = event.clientY;
-          handle.classList.add("holding");
-          handle.setPointerCapture?.(event.pointerId);
-          window.addEventListener("pointermove", onPointerMove, { passive: false });
-          window.addEventListener("pointerup", finishDrag);
-          window.addEventListener("pointercancel", cancelDrag);
-          longPressTimer = window.setTimeout(() => {
-            if (!pendingRow || pendingRow !== row) return;
-            const allRows = rows();
-            const index = allRows.indexOf(row);
-            let start = index;
-            let end = index + 1;
-            while (start > 0 && !isFinalRow(allRows[start - 1])) start--;
-            while (end < allRows.length && !isFinalRow(allRows[end])) end++;
-            dragScopeRows = allRows.slice(start, end);
-            dragScopeEndRow = allRows[end] || null;
-            draggedRow = row;
-            pendingRow = null;
-            longPressTimer = null;
-            handle.classList.remove("holding");
-            draggedRow.classList.add("dragging");
-            document.body.classList.add("reordering-schedule");
-          }, 2000);
+          event.stopPropagation();
+          if (selectedRow === row) {
+            cancelMove();
+            setMessage("대진 순서 변경을 취소했습니다.");
+            return;
+          }
+          if (selectedRow) {
+            moveToRow(row);
+            return;
+          }
+          selectMoveSource(row);
         });
       });
+
+      tbody.addEventListener("click", event => {
+        if (!selectedRow) return;
+        const targetRow = event.target.closest("tr[data-match-id]");
+        if (!targetRow || targetRow === selectedRow) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        moveToRow(targetRow);
+      }, true);
     }
 
     function deleteAllSchedule() {
