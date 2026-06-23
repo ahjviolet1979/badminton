@@ -3013,6 +3013,12 @@
       overflow: visible;
     }
 
+    .simple-attendance-generate {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #dce6e0;
+    }
+
     .simple-generate-grid {
       display: grid;
       grid-template-columns: 82px 72px minmax(118px, 1fr);
@@ -7435,12 +7441,14 @@
       rosterBody.appendChild(rosterActions);
       rosterBody.appendChild(el("players"));
 
-      const attendanceBody = accordion("출석 체크", "simple-attendance");
+      const attendanceBody = accordion("출석체크 및 대진생성", "simple-attendance");
       attendanceBody.appendChild(el("playerStatusList"));
       playerStatusExpanded = true;
       playerStatusFilter = "all";
 
-      const generateBody = accordion("대진 생성", "simple-generate");
+      const generateBody = document.createElement("div");
+      generateBody.className = "simple-attendance-generate simple-generate";
+      attendanceBody.appendChild(generateBody);
       const generateGrid = document.createElement("div");
       generateGrid.className = "simple-generate-grid";
       const settingFields = Array.from(document.querySelector(".settings.four-cols").children).slice(0, 2);
