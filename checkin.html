@@ -3356,18 +3356,20 @@
     }
 
     .checkin-session {
-      padding: 7px 9px;
+      min-height: 34px;
+      padding: 7px 10px;
       border: 1px solid #d7e1db;
       border-radius: 7px;
       background: #fff;
       color: #43554d;
       font-size: 13px;
-      font-weight: 700;
+      font-weight: 800;
+      line-height: 1.35;
     }
 
     .checkin-workarea {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 78px;
+      grid-template-columns: minmax(0, 1fr) 58px;
       gap: 6px;
       align-items: start;
     }
@@ -3381,7 +3383,7 @@
 
     .checkin-row {
       display: grid;
-      grid-template-columns: 54px 58px minmax(80px, 1fr) 43px 43px;
+      grid-template-columns: 62px 56px minmax(80px, 1fr) 43px 43px;
       min-height: 46px;
       border-bottom: 1px solid #d7ded9;
       align-items: stretch;
@@ -3429,8 +3431,18 @@
       font-weight: 900;
     }
 
+    .checkin-status {
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
     .checkin-status.waiting {
       color: #2563eb;
+      font-weight: 800;
+    }
+
+    .checkin-status.present-complete {
+      color: #08775a;
       font-weight: 800;
     }
 
@@ -3443,16 +3455,20 @@
       font-size: 14px;
       font-weight: 800;
       cursor: pointer;
+      transition: background-color 0.15s ease, color 0.15s ease;
     }
 
     .checkin-attendance.active {
-      color: #006f53;
+      background: #d9f5e7;
+      color: #006b4f;
       font-weight: 900;
-      text-decoration: underline;
+      box-shadow: inset 0 0 0 2px #68c79f;
     }
 
     .checkin-attendance.absent.active {
-      color: #111827;
+      background: #fee8e8;
+      color: #b42318;
+      box-shadow: inset 0 0 0 2px #f2a3a3;
     }
 
     .checkin-actions {
@@ -3462,15 +3478,18 @@
 
     .checkin-actions .button {
       width: 100%;
-      min-height: 88px;
-      padding: 5px;
+      min-height: 76px;
+      padding: 6px 4px;
       justify-content: center;
       border-radius: 8px;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 900;
-      line-height: 1.3;
+      line-height: 1;
       text-align: center;
-      white-space: normal;
+      white-space: nowrap;
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      letter-spacing: 1px;
     }
 
     .checkin-view-button {
@@ -3639,17 +3658,18 @@
       .checkin-team { font-size: 13px; }
       .checkin-result-controls label { font-size: 12px; }
       .checkin-workarea {
-        grid-template-columns: minmax(0, 1fr) 70px;
+        grid-template-columns: minmax(0, 1fr) 54px;
       }
       .checkin-row {
-        grid-template-columns: 49px 53px minmax(72px, 1fr) 39px 39px;
+        grid-template-columns: 58px 49px minmax(68px, 1fr) 39px 39px;
       }
       .checkin-row > *,
       .checkin-attendance {
         font-size: 13px;
       }
       .checkin-actions .button {
-        font-size: 15px;
+        min-height: 72px;
+        font-size: 14px;
       }
       .checkin-player { font-size: 15px !important; }
     }
@@ -4000,6 +4020,7 @@
       scheduleMode: "",
       schedulePublic: true,
       scheduleStartAt: "",
+      lastGeneratedAt: "",
       inputLocked: localStorage.getItem("badminton_input_locked") === "1",
       cloudUpdatedAt: "",
       cloudSyncBusy: false,
@@ -5699,6 +5720,7 @@
         results: state.results,
         seed: state.seed,
         scheduleStartAt: scheduleSettings.scheduleStartAt,
+        lastGeneratedAt: state.lastGeneratedAt || "",
         adminMode: state.adminMode,
         scheduleMode: state.scheduleMode || "",
         scheduleSettings,
@@ -5728,6 +5750,7 @@
       const savedSettings = data.scheduleSettings || {};
       state.seed = savedSettings.seed || data.seed || state.seed;
       state.scheduleStartAt = normalizeDateTimeText(savedSettings.scheduleStartAt || data.scheduleStartAt || state.scheduleStartAt) || formatDateTimeLocal();
+      state.lastGeneratedAt = String(data.lastGeneratedAt || "");
       const savedAdminMode = savedSettings.adminMode || data.adminMode || "tournament";
       const savedScheduleMode = savedSettings.scheduleMode || data.scheduleMode || "";
       state.scheduleMode = state.schedule.length ? (savedScheduleMode || savedAdminMode) : "";
@@ -7968,8 +7991,8 @@
         <div class="checkin-workarea">
           <div class="checkin-roster" id="checkinRoster"></div>
           <div class="checkin-actions">
-            <button class="button primary" id="checkinGenerateSlot" type="button">대진<br>생성</button>
-            <button class="button checkin-view-button" id="checkinViewBtn" type="button">대진<br>보기</button>
+            <button class="button primary" id="checkinGenerateSlot" type="button">대진생성</button>
+            <button class="button checkin-view-button" id="checkinViewBtn" type="button">대진보기</button>
           </div>
         </div>
         <div class="checkin-settings" id="checkinSettings"></div>
@@ -8004,7 +8027,7 @@
         return String(state.results?.[match.id] || "").trim();
       }
 
-      function playerScheduleSummary(name) {
+      function playerScheduleSummary(name, present) {
         const matches = state.schedule.filter(match => [...(match.teamA || []), ...(match.teamB || [])].includes(name));
         const completed = matches.filter(match => isFinalResult(normalizedResult(match))).length;
         const pending = matches.length - completed;
@@ -8015,10 +8038,13 @@
           status = "게임중";
           statusClass = "in-progress";
         } else if (pending) {
-          status = "대기중";
+          status = "게임대기";
           statusClass = "waiting";
-        } else if (completed) {
-          status = "완료";
+        } else if (present) {
+          status = "출석완료";
+          statusClass = "present-complete";
+        } else {
+          status = "";
         }
         return { total: matches.length, completed, pending, status, statusClass };
       }
@@ -8039,11 +8065,11 @@
         const rows = ordered.map(name => {
           const attendance = state.playerStatus[name] || { present: false, excluded: true };
           const present = attendance.present && !attendance.excluded;
-          const summary = playerScheduleSummary(name);
+          const summary = playerScheduleSummary(name, present);
           const rank = present && ranks.get(name) ? ` #${ranks.get(name)}` : "";
           return `
             <div class="checkin-row">
-              <span class="checkin-status ${summary.statusClass}">${summary.status || "-"}</span>
+              <span class="checkin-status ${summary.statusClass}">${summary.status}</span>
               <span>${summary.total}/${summary.completed}/${summary.pending}</span>
               <span class="checkin-player" title="${escapeHtml(name)}">${escapeHtml(name)}${rank}</span>
               <button class="checkin-attendance ${present ? "active" : ""}" type="button" data-checkin-player="${escapeHtml(name)}" data-checkin-value="present">출석</button>
@@ -8060,9 +8086,13 @@
         const select = el("tournamentSelect");
         const option = select?.options[select.selectedIndex];
         el("checkinEventName").textContent = option?.textContent?.trim() || "오늘 대회";
-        const completedMatches = state.schedule.filter(match => isFinalResult(normalizedResult(match))).length;
-        const pendingMatches = state.schedule.length - completedMatches;
-        el("checkinSessionText").textContent = `현재 대진 ${state.schedule.length}경기 · 완료 ${completedMatches}경기 · 미완료 ${pendingMatches}경기`;
+        const generatedAt = state.lastGeneratedAt ? new Date(state.lastGeneratedAt) : null;
+        const generatedTime = generatedAt && !Number.isNaN(generatedAt.getTime())
+          ? `${generatedAt.getFullYear()}-${String(generatedAt.getMonth() + 1).padStart(2, "0")}-${String(generatedAt.getDate()).padStart(2, "0")} ${String(generatedAt.getHours()).padStart(2, "0")}:${String(generatedAt.getMinutes()).padStart(2, "0")}`
+          : "";
+        el("checkinSessionText").textContent = generatedTime
+          ? `최종 생성시간 : ${generatedTime}`
+          : "최종 생성시간 기록이 없습니다.";
       }
 
       function renderCheckinMatches() {
@@ -8117,6 +8147,7 @@
           return;
         }
         if (!window.confirm("게임중인 인원을 포함하여 대진을 재생성합니다.")) return;
+        state.lastGeneratedAt = new Date().toISOString();
         originalGenerateButton.click();
       });
 
