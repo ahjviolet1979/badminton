@@ -3498,7 +3498,10 @@
 
     function attendanceRankMap(players) {
       const statuses = state.playerStatus || {};
-      const sorted = players.slice().sort((a, b) => {
+      const sorted = players.filter(name => {
+        const status = statuses[name];
+        return status?.present && !status?.excluded && status?.attendedAt;
+      }).sort((a, b) => {
         const aTime = statuses[a]?.attendedAt || "";
         const bTime = statuses[b]?.attendedAt || "";
         return aTime.localeCompare(bTime) || a.localeCompare(b, "ko-KR");
@@ -3511,7 +3514,7 @@
       const sorted = players.slice().sort((a, b) => {
         const aTime = statuses[a]?.attendedAt || "";
         const bTime = statuses[b]?.attendedAt || "";
-        return bTime.localeCompare(aTime) || a.localeCompare(b, "ko-KR");
+        return aTime.localeCompare(bTime) || a.localeCompare(b, "ko-KR");
       });
       return new Map(sorted.map((name, index) => [name, index + 1]));
     }
