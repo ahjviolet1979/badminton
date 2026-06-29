@@ -3564,10 +3564,10 @@
 
     .checkin-match {
       display: grid;
-      grid-template-columns: 34px minmax(0, 1fr) 20px minmax(0, 1fr);
-      gap: 5px;
+      grid-template-columns: 42px minmax(0, 1fr) 18px minmax(0, 1fr) 72px;
+      gap: 4px;
       align-items: center;
-      padding: 8px;
+      padding: 8px 6px;
       border: 1px solid #d7e1db;
       border-radius: 8px;
       background: #fff;
@@ -3575,16 +3575,19 @@
 
     .checkin-match-number {
       color: #075f48;
-      font-size: 15px;
+      font-size: 14px;
       font-weight: 900;
       text-align: center;
+      white-space: nowrap;
     }
 
     .checkin-team {
       min-width: 0;
-      font-size: 15px;
+      overflow: hidden;
+      font-size: 14px;
       font-weight: 800;
       line-height: 1.35;
+      text-overflow: ellipsis;
     }
 
     .checkin-versus {
@@ -3595,24 +3598,46 @@
     }
 
     .checkin-result-controls {
-      grid-column: 1 / -1;
-      display: flex;
-      gap: 16px;
+      grid-column: auto;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 5px;
       align-items: center;
-      padding-top: 7px;
-      border-top: 1px dashed #d7e1db;
+      padding: 0;
+      border: 0;
     }
 
     .checkin-result-controls label {
-      display: inline-flex;
+      display: flex !important;
+      width: auto !important;
+      min-width: 0;
       align-items: center;
-      gap: 5px;
+      justify-content: flex-start;
+      gap: 3px;
       margin: 0;
-      font-size: 15px;
+      padding: 0;
+      font-size: 13px;
       font-weight: 800;
+      line-height: 1.2;
+      white-space: nowrap;
+      word-break: keep-all;
+    }
+
+    .checkin-result-controls input {
+      flex: 0 0 auto;
+      width: 17px;
+      height: 17px;
+      margin: 0;
     }
 
     @media (max-width: 370px) {
+      .checkin-match {
+        grid-template-columns: 38px minmax(0, 1fr) 16px minmax(0, 1fr) 66px;
+        gap: 3px;
+        padding: 7px 4px;
+      }
+      .checkin-team { font-size: 13px; }
+      .checkin-result-controls label { font-size: 12px; }
       .checkin-workarea {
         grid-template-columns: minmax(0, 1fr) 70px;
       }
