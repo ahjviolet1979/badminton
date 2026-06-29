@@ -5264,7 +5264,8 @@
       const courtCount = Number(el("courtCount").value);
       const tries = Number(el("tries").value);
       const seedText = el("seed").value.trim() || "A01";
-      const seed = seedToNumber(seedText);
+      const runSeedText = dailyMode ? `${seedText}-run-${Date.now()}` : seedText;
+      const seed = seedToNumber(runSeedText);
       const eventMatchCount = Number(el("eventMatchCount").value) || 0;
       const applySubstitutes = el("allowShortfall").checked;
       const dailyPlayers = dailyMode ? dailyEligiblePlayers() : [];
