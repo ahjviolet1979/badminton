@@ -3478,7 +3478,7 @@
 
     .checkin-actions .button {
       width: 100%;
-      min-height: 76px;
+      min-height: 64px;
       padding: 6px 4px;
       justify-content: center;
       border-radius: 8px;
@@ -3496,6 +3496,12 @@
       border-color: #4a83b8;
       background: #63a1da;
       color: #fff;
+    }
+
+    .checkin-delete-button {
+      border-color: #ee9b9b;
+      background: #fff0f0;
+      color: #b42318;
     }
 
     .checkin-settings {
@@ -3621,7 +3627,7 @@
 
     .checkin-match {
       display: grid;
-      grid-template-columns: 42px minmax(0, 1fr) 18px minmax(0, 1fr) 72px;
+      grid-template-columns: 28px minmax(0, 1fr) 18px minmax(0, 1fr) 92px;
       gap: 4px;
       align-items: center;
       padding: 8px 6px;
@@ -3681,7 +3687,8 @@
     .checkin-result-controls {
       grid-column: auto;
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr) 30px;
+      grid-template-rows: 1fr 1fr;
       gap: 5px;
       align-items: center;
       padding: 0;
@@ -3720,24 +3727,28 @@
 
     .checkin-edit-result {
       width: 30px;
-      height: 26px;
+      height: 30px;
       padding: 0;
-      border: 1px solid #cbd8d0;
+      grid-column: 2;
+      grid-row: 1 / 3;
+      align-self: center;
+      border: 1px solid #8bb8df;
       border-radius: 6px;
-      background: #fff;
-      color: #245f4e;
+      background: #e8f3fc;
+      color: #1766a3;
       font-size: 14px;
       font-weight: 900;
     }
 
     .checkin-edit-result.active {
-      border-color: #68c79f;
-      background: #d9f5e7;
+      border-color: #3b8dcc;
+      background: #cfe8fb;
+      color: #0b568f;
     }
 
     @media (max-width: 370px) {
       .checkin-match {
-        grid-template-columns: 38px minmax(0, 1fr) 16px minmax(0, 1fr) 66px;
+        grid-template-columns: 25px minmax(0, 1fr) 15px minmax(0, 1fr) 86px;
         gap: 3px;
         padding: 7px 4px;
       }
@@ -3754,7 +3765,7 @@
         font-size: 13px;
       }
       .checkin-actions .button {
-        min-height: 72px;
+        min-height: 60px;
         font-size: 14px;
       }
       .checkin-player { font-size: 15px !important; }
@@ -8079,6 +8090,7 @@
           <div class="checkin-actions">
             <button class="button primary" id="checkinGenerateSlot" type="button">대진생성</button>
             <button class="button checkin-view-button" id="checkinViewBtn" type="button">대진보기</button>
+            <button class="button checkin-delete-button" id="checkinDeleteBtn" type="button">대진삭제</button>
           </div>
         </div>
         <div class="checkin-settings" id="checkinSettings"></div>
@@ -8193,7 +8205,7 @@
           const resultLocked = hasRecordedResult(result) && !editEnabled;
           return `
             <article class="checkin-match" data-checkin-card="${match.id}" data-delete-allowed="${result ? "false" : "true"}">
-              <div class="checkin-match-number">${match.id}경기</div>
+              <div class="checkin-match-number">${match.id}</div>
               <div class="checkin-team">${(match.teamA || []).map((name, index) => schedulePlayerButton(match.id, "teamA", index, escapeHtml(name), result)).join("")}</div>
               <div class="checkin-versus">VS</div>
               <div class="checkin-team">${(match.teamB || []).map((name, index) => schedulePlayerButton(match.id, "teamB", index, escapeHtml(name), result)).join("")}</div>
@@ -8244,6 +8256,21 @@
         renderCheckinMatches();
         modal.classList.add("active");
       });
+      el("checkinDeleteBtn").addEventListener("click", () => {
+        const pendingMatches = state.schedule.filter(match => !hasRecordedResult(state.results[match.id]));
+        if (!pendingMatches.length) {
+          window.alert("삭제할 미완료 대진이 없습니다.");
+          return;
+        }
+        if (!window.confirm("미완료 대진이 모두 삭제됩니다. 계속하시겠습니까?")) return;
+        const pendingIds = new Set(pendingMatches.map(match => Number(match.id)));
+        state.schedule = state.schedule.filter(match => !pendingIds.has(Number(match.id)));
+        state.nextMatchIds = (state.nextMatchIds || []).filter(id => !pendingIds.has(Number(id)));
+        state.resultEditIds = (state.resultEditIds || []).filter(id => !pendingIds.has(Number(id)));
+        refreshAfterScheduleEdit(`미완료 대진 ${pendingMatches.length}개를 삭제했습니다.`, false);
+        renderCheckinRoster();
+        saveCloudData(true);
+      });
       el("checkinModalClose").addEventListener("click", () => modal.classList.remove("active"));
       modal.addEventListener("click", event => {
         if (event.target === modal) modal.classList.remove("active");
@@ -8261,7 +8288,8 @@
         if (editButton) {
           const matchId = Number(editButton.dataset.checkinEdit);
           const editSet = new Set((state.resultEditIds || []).map(Number));
-          editSet.add(matchId);
+          if (editSet.has(matchId)) editSet.delete(matchId);
+          else editSet.add(matchId);
           state.resultEditIds = [...editSet];
           renderCheckinMatches();
           return;
