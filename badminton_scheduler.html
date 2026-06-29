@@ -3087,29 +3087,19 @@
     }
 
     function appendScheduleContinuing(existingSchedule, newSchedule, courtCount) {
-      const appended = [];
-      const last = existingSchedule[existingSchedule.length - 1];
-      let nextId = existingSchedule.length + 1;
-      let nextRound = last ? last.round : 1;
-      let nextCourt = last ? last.court + 1 : 1;
-      if (nextCourt > courtCount) {
-        nextCourt = 1;
-        nextRound++;
-      }
-
-      newSchedule.forEach(match => {
-        appended.push({
+      const baseRound = existingSchedule.length
+        ? Math.max(...existingSchedule.map(match => Number(match.round) || 0))
+        : 0;
+      const firstNewRound = newSchedule.length
+        ? Math.min(...newSchedule.map(match => Number(match.round) || 1))
+        : 1;
+      const appended = newSchedule.map((match, index) => {
+        return {
           ...match,
-          id: nextId,
-          round: nextRound,
-          court: nextCourt
-        });
-        nextId++;
-        nextCourt++;
-        if (nextCourt > courtCount) {
-          nextCourt = 1;
-          nextRound++;
-        }
+          id: existingSchedule.length + index + 1,
+          round: baseRound + (Number(match.round) || firstNewRound) - firstNewRound + 1,
+          court: Math.min(Math.max(1, Number(match.court) || 1), courtCount)
+        };
       });
       return existingSchedule.concat(appended);
     }
