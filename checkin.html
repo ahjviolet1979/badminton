@@ -3590,6 +3590,9 @@
       border: 1px solid #d7e1db;
       border-radius: 8px;
       background: #fff;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: pan-y;
     }
 
     .checkin-match-number {
@@ -3607,6 +3610,27 @@
       font-weight: 800;
       line-height: 1.35;
       text-overflow: ellipsis;
+    }
+
+    .checkin-team .player-edit {
+      display: block;
+      width: 100%;
+      min-height: 24px;
+      padding: 0;
+      overflow: hidden;
+      border: 0;
+      background: transparent;
+      color: #14251f;
+      font: inherit;
+      text-align: left;
+      text-decoration: underline dotted #4f8c77;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .checkin-team .player-edit.locked {
+      text-decoration: none;
+      cursor: default;
     }
 
     .checkin-versus {
@@ -3647,6 +3671,13 @@
       width: 17px;
       height: 17px;
       margin: 0;
+    }
+
+    .checkin-result-controls input:disabled + span,
+    .checkin-result-controls label:has(input:disabled) {
+      color: #8a9690;
+      cursor: not-allowed;
+      opacity: 0.72;
     }
 
     @media (max-width: 370px) {
@@ -8103,15 +8134,16 @@
         }
         output.innerHTML = state.schedule.map(match => {
           const result = normalizedResult(match);
+          const resultLocked = isFinalResult(result);
           return `
-            <article class="checkin-match">
+            <article class="checkin-match" data-checkin-card="${match.id}" data-delete-allowed="${result ? "false" : "true"}">
               <div class="checkin-match-number">${match.id}경기</div>
-              <div class="checkin-team">${(match.teamA || []).map(escapeHtml).join("<br>")}</div>
+              <div class="checkin-team">${(match.teamA || []).map((name, index) => schedulePlayerButton(match.id, "teamA", index, escapeHtml(name), result)).join("")}</div>
               <div class="checkin-versus">VS</div>
-              <div class="checkin-team">${(match.teamB || []).map(escapeHtml).join("<br>")}</div>
+              <div class="checkin-team">${(match.teamB || []).map((name, index) => schedulePlayerButton(match.id, "teamB", index, escapeHtml(name), result)).join("")}</div>
               <div class="checkin-result-controls">
-                <label><input type="radio" name="checkin-result-${match.id}" data-checkin-match="${match.id}" value="P" ${isInProgressResult(result) ? "checked" : ""}> 게임중</label>
-                <label><input type="radio" name="checkin-result-${match.id}" data-checkin-match="${match.id}" value="D" ${isFinalResult(result) ? "checked" : ""}> 완료</label>
+                <label><input type="radio" name="checkin-result-${match.id}" data-checkin-match="${match.id}" value="P" ${isInProgressResult(result) ? "checked" : ""} ${resultLocked ? "disabled" : ""}> 게임중</label>
+                <label><input type="radio" name="checkin-result-${match.id}" data-checkin-match="${match.id}" value="D" ${isFinalResult(result) ? "checked" : ""} ${resultLocked ? "disabled" : ""}> 완료</label>
               </div>
             </article>`;
         }).join("");
@@ -8165,6 +8197,61 @@
         state.results[Number(input.dataset.checkinMatch)] = input.value;
         state.nextMatchIds = (state.nextMatchIds || []).filter(id => Number(id) !== Number(input.dataset.checkinMatch));
         saveCheckinChange();
+      });
+      el("checkinMatchList").addEventListener("click", event => {
+        const button = event.target.closest("button.player-edit");
+        if (!button) return;
+        const matchId = Number(button.dataset.matchId);
+        if (hasRecordedResult(state.results[matchId])) {
+          window.alert("게임중이거나 완료된 경기는 선수 교체를 할 수 없습니다.");
+          return;
+        }
+        openPlayerPickDialog(
+          matchId,
+          button.dataset.team,
+          Number(button.dataset.index),
+          button.textContent.trim()
+        );
+      });
+
+      let deleteHoldTimer = null;
+      let deleteHoldStart = null;
+      let deleteHoldTriggered = false;
+      const cancelDeleteHold = () => {
+        window.clearTimeout(deleteHoldTimer);
+        deleteHoldTimer = null;
+        deleteHoldStart = null;
+      };
+      el("checkinMatchList").addEventListener("pointerdown", event => {
+        if (event.target.closest("button, input, label")) return;
+        const card = event.target.closest("[data-checkin-card]");
+        if (!card || card.dataset.deleteAllowed !== "true") return;
+        deleteHoldTriggered = false;
+        deleteHoldStart = { x: event.clientX, y: event.clientY };
+        deleteHoldTimer = window.setTimeout(() => {
+          deleteHoldTriggered = true;
+          const matchId = Number(card.dataset.checkinCard);
+          const match = state.schedule.find(item => Number(item.id) === matchId);
+          if (!match || hasRecordedResult(state.results[matchId])) return;
+          if (!window.confirm(`${matchId}번 미진행 경기를 삭제하시겠습니까?`)) return;
+          state.schedule = state.schedule.filter(item => Number(item.id) !== matchId);
+          delete state.results[matchId];
+          refreshAfterScheduleEdit(`${matchId}번 미진행 경기를 삭제했습니다.`, false);
+          renderCheckinMatches();
+          saveCloudData(true);
+        }, 800);
+      });
+      el("checkinMatchList").addEventListener("pointermove", event => {
+        if (!deleteHoldStart) return;
+        if (Math.abs(event.clientX - deleteHoldStart.x) > 10 || Math.abs(event.clientY - deleteHoldStart.y) > 10) {
+          cancelDeleteHold();
+        }
+      });
+      ["pointerup", "pointercancel", "pointerleave"].forEach(type => {
+        el("checkinMatchList").addEventListener(type, cancelDeleteHold);
+      });
+      el("checkinMatchList").addEventListener("contextmenu", event => {
+        if (event.target.closest("[data-checkin-card][data-delete-allowed='true']")) event.preventDefault();
       });
       el("checkinLogoutBtn").addEventListener("click", () => el("logoutAdminBtn").click());
 
