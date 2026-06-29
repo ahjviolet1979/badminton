@@ -3479,6 +3479,8 @@
       position: relative;
       z-index: 20;
       align-self: start;
+      box-sizing: border-box;
+      padding: 0 4px;
     }
 
     .checkin-actions.follow-fixed {
@@ -3663,11 +3665,30 @@
     }
 
     .checkin-match-number {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      align-items: center;
+      justify-content: center;
       color: #075f48;
       font-size: 14px;
       font-weight: 900;
       text-align: center;
       white-space: nowrap;
+    }
+
+    .checkin-available-dot {
+      display: inline-flex;
+      width: 20px;
+      height: 20px;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #63d5a4;
+      border-radius: 50%;
+      background: #dcfce7;
+      color: #08775a;
+      font-size: 11px;
+      font-weight: 900;
     }
 
     .checkin-team {
@@ -3732,6 +3753,16 @@
       line-height: 1.2;
       white-space: nowrap;
       word-break: keep-all;
+    }
+
+    .checkin-result-controls label:nth-of-type(1) {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .checkin-result-controls label:nth-of-type(2) {
+      grid-column: 1;
+      grid-row: 2;
     }
 
     .checkin-result-controls input {
@@ -8226,13 +8257,16 @@
           output.innerHTML = '<div style="padding:24px;text-align:center;font-size:15px;font-weight:700;">생성된 대진이 없습니다.</div>';
           return;
         }
+        const reservedPlayers = reservedPlayerSet();
         output.innerHTML = state.schedule.map(match => {
           const result = normalizedResult(match);
           const editEnabled = (state.resultEditIds || []).map(Number).includes(Number(match.id));
           const resultLocked = hasRecordedResult(result) && !editEnabled;
+          const canStart = !hasRecordedResult(result)
+            && [...(match.teamA || []), ...(match.teamB || [])].every(name => !reservedPlayers.has(name));
           return `
             <article class="checkin-match" data-checkin-card="${match.id}" data-delete-allowed="${result ? "false" : "true"}">
-              <div class="checkin-match-number">${match.id}</div>
+              <div class="checkin-match-number"><span>${match.id}</span>${canStart ? '<span class="checkin-available-dot" title="4명 모두 출전 가능">가</span>' : ""}</div>
               <div class="checkin-team">${(match.teamA || []).map((name, index) => schedulePlayerButton(match.id, "teamA", index, escapeHtml(name), result)).join("")}</div>
               <div class="checkin-versus">VS</div>
               <div class="checkin-team">${(match.teamB || []).map((name, index) => schedulePlayerButton(match.id, "teamB", index, escapeHtml(name), result)).join("")}</div>
