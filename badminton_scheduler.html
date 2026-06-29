@@ -2873,6 +2873,17 @@
       return players;
     }
 
+    function conflictingInProgressPlayers(matchId) {
+      const target = state.schedule.find(match => Number(match.id) === Number(matchId));
+      if (!target) return [];
+      const busy = new Set();
+      state.schedule.forEach(match => {
+        if (Number(match.id) === Number(matchId) || !isInProgressResult(state.results[match.id])) return;
+        [...match.teamA, ...match.teamB].forEach(name => busy.add(name));
+      });
+      return [...target.teamA, ...target.teamB].filter(name => busy.has(name));
+    }
+
     function reservedPlayerSet() {
       const players = inProgressPlayerSet();
       const nextIds = new Set((state.nextMatchIds || []).map(Number));
@@ -4563,6 +4574,14 @@
         input.addEventListener("change", event => {
           if (guardInputLocked()) return;
           const matchId = Number(event.target.name.replace("winner-", ""));
+          if (isInProgressResult(event.target.value)) {
+            const conflicts = conflictingInProgressPlayers(matchId);
+            if (conflicts.length) {
+              window.alert(`${[...new Set(conflicts)].join(", ")} 선수는 다른 경기에서 게임중입니다.`);
+              renderAll(true);
+              return;
+            }
+          }
           state.results[matchId] = event.target.value;
           state.resultEditIds = (state.resultEditIds || []).filter(id => Number(id) !== matchId);
           state.nextMatchIds = (state.nextMatchIds || []).filter(id => Number(id) !== matchId);
