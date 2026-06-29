@@ -3295,10 +3295,19 @@
     }
 
     .checkin-root {
-      display: grid;
+      display: grid !important;
       gap: 7px;
       color: #14251f;
       font-family: "Noto Sans KR", "Malgun Gothic", sans-serif;
+    }
+
+    body.checkin-page .grid > .checkin-root {
+      display: grid !important;
+      width: 100%;
+      max-height: none;
+      padding: 0;
+      margin: 0;
+      overflow: visible;
     }
 
     .checkin-title {
