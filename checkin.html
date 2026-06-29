@@ -3788,6 +3788,30 @@
       cursor: default;
     }
 
+    .checkin-player-slot {
+      display: flex;
+      min-width: 0;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .checkin-player-slot .player-edit {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .checkin-game-order {
+      flex: 0 0 auto;
+      padding: 2px 4px;
+      border-radius: 5px;
+      background: #e8f3fc;
+      color: #1766a3;
+      font-size: 10px;
+      font-weight: 900;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
     .checkin-versus {
       color: #6b7b73;
       font-size: 11px;
@@ -6273,11 +6297,21 @@
       return ["A", "B", "D", "완료", "청승", "백승", "A승", "B승"].includes(String(result || "").trim());
     }
 
-    function schedulePlayerButton(matchId, teamKey, index, name, result = "") {
-      if (hasRecordedResult(result)) {
-        return `<span class="player-edit locked" title="결과 입력 또는 게임중인 경기는 선수 교체가 잠겨 있습니다.">${name}</span>`;
+    function playerAppearanceNumber(matchId, name) {
+      let count = 0;
+      for (const match of state.schedule) {
+        if ([...(match.teamA || []), ...(match.teamB || [])].includes(name)) count++;
+        if (Number(match.id) === Number(matchId)) return Math.max(1, count);
       }
-      return `<button class="player-edit" type="button" data-match-id="${matchId}" data-team="${teamKey}" data-index="${index}" title="선수 교체">${name}</button>`;
+      return Math.max(1, count);
+    }
+
+    function schedulePlayerButton(matchId, teamKey, index, name, result = "") {
+      const displayName = `${escapeHtml(name)}(${playerAppearanceNumber(matchId, name)})`;
+      if (hasRecordedResult(result)) {
+        return `<span class="player-edit locked" title="결과 입력 또는 게임중인 경기는 선수 교체가 잠겨 있습니다.">${displayName}</span>`;
+      }
+      return `<button class="player-edit" type="button" data-match-id="${matchId}" data-team="${teamKey}" data-index="${index}" data-player-name="${escapeHtml(name)}" title="선수 교체">${displayName}</button>`;
     }
 
     function rebuildPlayersFromSchedule() {
@@ -6546,7 +6580,7 @@
             matchId,
             target.dataset.team,
             Number(target.dataset.index),
-            target.textContent.trim()
+            target.dataset.playerName || target.textContent.trim()
           );
         });
       });
@@ -8334,6 +8368,9 @@
           return;
         }
         const reservedPlayers = reservedPlayerSet();
+        const playerSlot = (match, teamKey, name, index, result) => {
+          return `<span class="checkin-player-slot">${schedulePlayerButton(match.id, teamKey, index, name, result)}</span>`;
+        };
         output.innerHTML = state.schedule.map(match => {
           const result = normalizedResult(match);
           const editEnabled = (state.resultEditIds || []).map(Number).includes(Number(match.id));
@@ -8343,9 +8380,9 @@
           return `
             <article class="checkin-match" data-checkin-card="${match.id}" data-delete-allowed="${result ? "false" : "true"}">
               <div class="checkin-match-number"><span>${match.id}</span>${canStart ? '<span class="checkin-available-dot" title="4명 모두 출전 가능">가</span>' : ""}</div>
-              <div class="checkin-team">${(match.teamA || []).map((name, index) => schedulePlayerButton(match.id, "teamA", index, escapeHtml(name), result)).join("")}</div>
+              <div class="checkin-team">${(match.teamA || []).map((name, index) => playerSlot(match, "teamA", name, index, result)).join("")}</div>
               <div class="checkin-versus">VS</div>
-              <div class="checkin-team">${(match.teamB || []).map((name, index) => schedulePlayerButton(match.id, "teamB", index, escapeHtml(name), result)).join("")}</div>
+              <div class="checkin-team">${(match.teamB || []).map((name, index) => playerSlot(match, "teamB", name, index, result)).join("")}</div>
               <div class="checkin-result-controls">
                 <label><input type="radio" name="checkin-result-${match.id}" data-checkin-match="${match.id}" value="P" ${isInProgressResult(result) ? "checked" : ""} ${resultLocked ? "disabled" : ""}> 게임중</label>
                 <label><input type="radio" name="checkin-result-${match.id}" data-checkin-match="${match.id}" value="D" ${isFinalResult(result) ? "checked" : ""} ${resultLocked ? "disabled" : ""}> 완료</label>
@@ -8442,7 +8479,7 @@
           matchId,
           button.dataset.team,
           Number(button.dataset.index),
-          button.textContent.trim()
+          button.dataset.playerName || button.textContent.trim()
         );
       });
 
