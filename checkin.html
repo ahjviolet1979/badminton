@@ -3718,6 +3718,23 @@
       opacity: 0.72;
     }
 
+    .checkin-edit-result {
+      width: 30px;
+      height: 26px;
+      padding: 0;
+      border: 1px solid #cbd8d0;
+      border-radius: 6px;
+      background: #fff;
+      color: #245f4e;
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .checkin-edit-result.active {
+      border-color: #68c79f;
+      background: #d9f5e7;
+    }
+
     @media (max-width: 370px) {
       .checkin-match {
         grid-template-columns: 38px minmax(0, 1fr) 16px minmax(0, 1fr) 66px;
@@ -8172,7 +8189,8 @@
         }
         output.innerHTML = state.schedule.map(match => {
           const result = normalizedResult(match);
-          const resultLocked = isFinalResult(result);
+          const editEnabled = (state.resultEditIds || []).map(Number).includes(Number(match.id));
+          const resultLocked = hasRecordedResult(result) && !editEnabled;
           return `
             <article class="checkin-match" data-checkin-card="${match.id}" data-delete-allowed="${result ? "false" : "true"}">
               <div class="checkin-match-number">${match.id}경기</div>
@@ -8182,6 +8200,7 @@
               <div class="checkin-result-controls">
                 <label><input type="radio" name="checkin-result-${match.id}" data-checkin-match="${match.id}" value="P" ${isInProgressResult(result) ? "checked" : ""} ${resultLocked ? "disabled" : ""}> 게임중</label>
                 <label><input type="radio" name="checkin-result-${match.id}" data-checkin-match="${match.id}" value="D" ${isFinalResult(result) ? "checked" : ""} ${resultLocked ? "disabled" : ""}> 완료</label>
+                ${hasRecordedResult(result) ? `<button class="checkin-edit-result ${editEnabled ? "active" : ""}" type="button" data-checkin-edit="${match.id}" title="결과 수정" aria-label="${match.id}경기 결과 수정">✎</button>` : ""}
               </div>
             </article>`;
         }).join("");
@@ -8233,10 +8252,20 @@
         const input = event.target.closest("[data-checkin-match]");
         if (!input) return;
         state.results[Number(input.dataset.checkinMatch)] = input.value;
+        state.resultEditIds = (state.resultEditIds || []).filter(id => Number(id) !== Number(input.dataset.checkinMatch));
         state.nextMatchIds = (state.nextMatchIds || []).filter(id => Number(id) !== Number(input.dataset.checkinMatch));
         saveCheckinChange();
       });
       el("checkinMatchList").addEventListener("click", event => {
+        const editButton = event.target.closest("[data-checkin-edit]");
+        if (editButton) {
+          const matchId = Number(editButton.dataset.checkinEdit);
+          const editSet = new Set((state.resultEditIds || []).map(Number));
+          editSet.add(matchId);
+          state.resultEditIds = [...editSet];
+          renderCheckinMatches();
+          return;
+        }
         const button = event.target.closest("button.player-edit");
         if (!button) return;
         const matchId = Number(button.dataset.matchId);
