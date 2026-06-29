@@ -3519,12 +3519,6 @@
       color: #fff;
     }
 
-    .checkin-delete-button {
-      border-color: #ee9b9b;
-      background: #fff0f0;
-      color: #b42318;
-    }
-
     .checkin-settings {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -3602,6 +3596,79 @@
 
     body.checkin-page #playerPickChoice {
       z-index: 1400;
+    }
+
+    .checkin-generate-choice {
+      position: fixed;
+      inset: 0;
+      z-index: 1500;
+      display: none;
+      place-items: center;
+      padding: 18px;
+      background: rgba(19, 34, 27, 0.48);
+    }
+
+    .checkin-generate-choice.active {
+      display: grid;
+    }
+
+    .checkin-generate-card {
+      width: min(100%, 360px);
+      padding: 16px;
+      border: 1px solid #9eaaa3;
+      border-radius: 8px;
+      background: #fff;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .checkin-generate-card h3 {
+      margin: 0 0 7px;
+      color: #17352b;
+      font-size: 18px;
+    }
+
+    .checkin-generate-card p {
+      margin: 0 0 14px;
+      color: #b42318;
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .checkin-generate-radios {
+      display: grid;
+      grid-template-columns: auto 1fr 1fr;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+      font-size: 15px;
+      font-weight: 800;
+    }
+
+    .checkin-generate-radios label {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin: 0;
+      white-space: nowrap;
+    }
+
+    .checkin-generate-radios input {
+      width: 20px;
+      height: 20px;
+      margin: 0;
+    }
+
+    .checkin-generate-choice-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .checkin-generate-choice-actions .button {
+      min-height: 42px;
+      justify-content: center;
+      font-size: 15px;
+      font-weight: 900;
     }
 
     .checkin-modal.active {
@@ -8148,7 +8215,6 @@
           <div class="checkin-actions">
             <button class="button primary" id="checkinGenerateSlot" type="button">대진생성</button>
             <button class="button checkin-view-button" id="checkinViewBtn" type="button">대진보기</button>
-            <button class="button checkin-delete-button" id="checkinDeleteBtn" type="button">대진삭제</button>
           </div>
         </div>
         <div class="checkin-settings" id="checkinSettings"></div>
@@ -8168,6 +8234,26 @@
         </div>
       `;
       document.body.appendChild(modal);
+
+      const generateChoice = document.createElement("div");
+      generateChoice.className = "checkin-generate-choice";
+      generateChoice.id = "checkinGenerateChoice";
+      generateChoice.innerHTML = `
+        <div class="checkin-generate-card" role="dialog" aria-modal="true" aria-labelledby="checkinGenerateChoiceTitle">
+          <h3 id="checkinGenerateChoiceTitle">대진을 생성하시겠습니까?</h3>
+          <p>기존 대진은 삭제됩니다.</p>
+          <div class="checkin-generate-radios">
+            <span>게임중인 사람</span>
+            <label><input type="radio" name="checkin-include-progress" value="include" checked> 포함</label>
+            <label><input type="radio" name="checkin-include-progress" value="exclude"> 미포함</label>
+          </div>
+          <div class="checkin-generate-choice-actions">
+            <button class="button" id="checkinGenerateCancel" type="button">취소</button>
+            <button class="button primary" id="checkinGenerateConfirm" type="button">대진생성</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(generateChoice);
 
       const targetField = el("targetGames").closest(".simple-field") || el("targetGames").parentElement;
       const courtField = el("courtCount").closest(".simple-field") || el("courtCount").parentElement;
@@ -8308,7 +8394,22 @@
           window.alert("출석자가 4명이 되야 대진을 생성합니다");
           return;
         }
-        if (!window.confirm("게임중인 인원을 포함하여 대진을 재생성합니다.")) return;
+        generateChoice.querySelector('input[value="include"]').checked = true;
+        generateChoice.classList.add("active");
+      });
+      el("checkinGenerateCancel").addEventListener("click", () => generateChoice.classList.remove("active"));
+      generateChoice.addEventListener("click", event => {
+        if (event.target === generateChoice) generateChoice.classList.remove("active");
+      });
+      el("checkinGenerateConfirm").addEventListener("click", () => {
+        const includeInProgress = generateChoice.querySelector('input[name="checkin-include-progress"]:checked')?.value !== "exclude";
+        el("includeInProgressPlayers").checked = includeInProgress;
+        if (dailyEligiblePlayers().length < 4) {
+          generateChoice.classList.remove("active");
+          window.alert("운영모드는 게임중 선수를 제외한 출전 가능 인원이 최소 4명 이상이어야 대진을 생성할 수 있습니다.");
+          return;
+        }
+        generateChoice.classList.remove("active");
         state.lastGeneratedAt = new Date().toISOString();
         originalGenerateButton.click();
       });
@@ -8316,21 +8417,6 @@
       el("checkinViewBtn").addEventListener("click", () => {
         renderCheckinMatches();
         modal.classList.add("active");
-      });
-      el("checkinDeleteBtn").addEventListener("click", () => {
-        const pendingMatches = state.schedule.filter(match => !hasRecordedResult(state.results[match.id]));
-        if (!pendingMatches.length) {
-          window.alert("삭제할 미완료 대진이 없습니다.");
-          return;
-        }
-        if (!window.confirm("미완료 대진이 모두 삭제됩니다. 계속하시겠습니까?")) return;
-        const pendingIds = new Set(pendingMatches.map(match => Number(match.id)));
-        state.schedule = state.schedule.filter(match => !pendingIds.has(Number(match.id)));
-        state.nextMatchIds = (state.nextMatchIds || []).filter(id => !pendingIds.has(Number(id)));
-        state.resultEditIds = (state.resultEditIds || []).filter(id => !pendingIds.has(Number(id)));
-        refreshAfterScheduleEdit(`미완료 대진 ${pendingMatches.length}개를 삭제했습니다.`, false);
-        renderCheckinRoster();
-        saveCloudData(true);
       });
       el("checkinModalClose").addEventListener("click", () => modal.classList.remove("active"));
       modal.addEventListener("click", event => {
