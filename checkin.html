@@ -5500,6 +5500,7 @@
       ctx.priorGames = new Map(ctx.games);
       players.forEach(player => {
         ctx.games.set(player, 0);
+        ctx.lastPlayed.set(player, 0);
         ctx.restGaps.set(player, []);
       });
       return ctx;
@@ -5564,8 +5565,6 @@
               const minAttendance = Math.min(...groups.map(group => groupStats(group).attendance));
               groups = groups.filter(group => groupStats(group).attendance === minAttendance);
             }
-            const maxRestTotal = Math.max(...groups.map(group => groupStats(group).restTotal));
-            groups = groups.filter(group => groupStats(group).restTotal === maxRestTotal);
           } else {
             const minMaxGames = Math.min(...groups.map(group => groupStats(group).max));
             groups = groups.filter(group => groupStats(group).max === minMaxGames);
@@ -7296,7 +7295,10 @@
       const courtCount = Number(el("courtCount").value);
       const tries = Number(el("tries").value);
       const seedText = el("seed").value.trim() || "A01";
-      const runSeedText = dailyMode ? `${seedText}-run-${Date.now()}` : seedText;
+      const runRandom = globalThis.crypto?.getRandomValues
+        ? globalThis.crypto.getRandomValues(new Uint32Array(1))[0]
+        : Math.floor(Math.random() * 0xFFFFFFFF);
+      const runSeedText = dailyMode ? `${seedText}-run-${Date.now()}-${runRandom}` : seedText;
       const seed = seedToNumber(runSeedText);
       const eventMatchCount = Number(el("eventMatchCount").value) || 0;
       const applySubstitutes = el("allowShortfall").checked;
