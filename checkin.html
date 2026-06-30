@@ -3356,8 +3356,10 @@
     }
 
     .checkin-session {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
       min-height: 34px;
-      padding: 7px 10px;
       border: 1px solid #d7e1db;
       border-radius: 7px;
       background: #fff;
@@ -3365,6 +3367,18 @@
       font-size: 13px;
       font-weight: 800;
       line-height: 1.35;
+      overflow: hidden;
+    }
+
+    .checkin-session > span {
+      padding: 8px 9px;
+    }
+
+    .checkin-session-count {
+      border-left: 1px solid #d7e1db;
+      background: #f5faf7;
+      color: #075f48;
+      white-space: nowrap;
     }
 
     .checkin-workarea {
@@ -7315,7 +7329,7 @@
         if (dailyMode) {
           players = dailyPlayers;
           state.teamMap = {};
-          const initialCtx = contextForDailyAppend(players, existingSchedule);
+          const initialCtx = contextForDailyEqualAppend(players, existingSchedule);
           const attendanceOrder = {
             map: lateAttendancePriorityMap(players),
             firstOnly: true,
@@ -8252,7 +8266,10 @@
           <button class="checkin-logout" id="checkinLogoutBtn" type="button">로그아웃</button>
         </div>
         <div class="checkin-note">* 출석체크 후 대진생성 버튼을 눌러주세요 *</div>
-        <div class="checkin-session" id="checkinSessionText">마지막 생성 정보를 불러오는 중입니다.</div>
+        <div class="checkin-session">
+          <span id="checkinSessionTime">최종 생성시간 기록이 없습니다.</span>
+          <span class="checkin-session-count" id="checkinSessionCount">총 0 / 출 0 / 미출 0</span>
+        </div>
         <div class="checkin-workarea">
           <div class="checkin-roster" id="checkinRoster"></div>
           <div class="checkin-actions">
@@ -8375,9 +8392,14 @@
         const generatedTime = generatedAt && !Number.isNaN(generatedAt.getTime())
           ? `${generatedAt.getFullYear()}-${String(generatedAt.getMonth() + 1).padStart(2, "0")}-${String(generatedAt.getDate()).padStart(2, "0")} ${String(generatedAt.getHours()).padStart(2, "0")}:${String(generatedAt.getMinutes()).padStart(2, "0")}`
           : "";
-        el("checkinSessionText").textContent = generatedTime
+        el("checkinSessionTime").textContent = generatedTime
           ? `최종 생성시간 : ${generatedTime}`
           : "최종 생성시간 기록이 없습니다.";
+        const presentCount = players.filter(name => {
+          const status = state.playerStatus?.[name];
+          return status?.present && !status?.excluded;
+        }).length;
+        el("checkinSessionCount").textContent = `총 ${players.length} / 출 ${presentCount} / 미출 ${players.length - presentCount}`;
       }
 
       function renderCheckinMatches() {

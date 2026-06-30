@@ -6200,18 +6200,14 @@
         if (dailyMode) {
           players = dailyPlayers;
           state.teamMap = {};
-          const dailyPriorityMode = el("dailyPriorityMode")?.value || "latecomer";
-          const initialCtx = dailyPriorityMode === "equal"
-            ? contextForDailyEqualAppend(players, existingSchedule)
-            : contextForDailyAppend(players, existingSchedule);
+          const initialCtx = contextForDailyEqualAppend(players, existingSchedule);
           const attendanceOrder = {
             map: lateAttendancePriorityMap(players),
             firstOnly: true,
             priorGames: new Map(initialCtx.priorGames || initialCtx.games),
             startGames: new Map(initialCtx.games)
           };
-          const guaranteeEqualTarget = dailyPriorityMode === "equal";
-          schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length, guaranteeEqualTarget, attendanceOrder).schedule;
+          schedule = generateSchedule(players, targetGames, courtCount, tries, true, seed, initialCtx, existingSchedule.length, true, attendanceOrder).schedule;
         } else if (blueWhiteMode) {
           const prepared = prepareBlueWhitePlayers(enteredPlayers);
           players = prepared.players;

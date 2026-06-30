@@ -6668,7 +6668,7 @@
         if (dailyMode) {
           players = dailyPlayers;
           state.teamMap = {};
-          const initialCtx = contextForDailyAppend(players, existingSchedule);
+          const initialCtx = contextForDailyEqualAppend(players, existingSchedule);
           const attendanceOrder = {
             map: lateAttendancePriorityMap(players),
             firstOnly: true,
